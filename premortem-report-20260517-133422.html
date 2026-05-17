@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ActantDB premortem — 2026-05-17</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #131a2c;
+    --panel-2: #1a2238;
+    --text: #e6eaf2;
+    --muted: #95a0b8;
+    --line: #25304a;
+    --accent: #8aa6ff;
+    --red: #ff5d6c;
+    --orange: #ffae57;
+    --yellow: #ffd84a;
+    --green: #57d99a;
+    --blue: #6cc1ff;
+    --purple: #c08bff;
+    --pink: #ff8ad0;
+    --teal: #6ce4cf;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
+  header h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header .meta { color: var(--muted); font-size: 13px; }
+  h2 { font-size: 18px; margin: 32px 0 12px; letter-spacing: -0.005em; }
+  h3 { font-size: 15px; margin: 18px 0 6px; color: var(--accent); }
+  p { margin: 0 0 12px; }
+  code, pre { font: 13px/1.5 ui-monospace,"JetBrains Mono",Menlo,monospace; }
+  code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; color: var(--teal); }
+  .summary { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 24px; }
+  .summary ul { margin: 0; padding-left: 20px; }
+  .summary li { margin: 6px 0; }
+  .summary li strong { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel-2); color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .p-high { background: rgba(255,93,108,0.15); color: var(--red); }
+  .p-crit { background: rgba(255,93,108,0.25); color: var(--red); border: 1px solid var(--red); }
+  .p-med { background: rgba(255,174,87,0.15); color: var(--orange); }
+  .p-low { background: rgba(108,225,207,0.15); color: var(--teal); }
+  .p-easy { background: rgba(87,217,154,0.15); color: var(--green); }
+  .p-mod { background: rgba(255,216,74,0.15); color: var(--yellow); }
+  .p-hard { background: rgba(255,93,108,0.15); color: var(--red); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin: 14px 0; position: relative; }
+  .card.full { border-left: 4px solid var(--accent); }
+  .card.f1 { border-left-color: var(--red); }
+  .card.f2 { border-left-color: var(--orange); }
+  .card.f3 { border-left-color: var(--yellow); }
+  .card.f4 { border-left-color: var(--green); }
+  .card.f5 { border-left-color: var(--blue); }
+  .card.f6 { border-left-color: var(--purple); }
+  .card.f7 { border-left-color: var(--pink); }
+  .card.f8 { border-left-color: var(--teal); }
+  .card.f9 { border-left-color: var(--orange); }
+  .card .title-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .card h3 { margin: 0; color: var(--text); }
+  .scores { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card .compact-tag { font-size: 11px; color: var(--muted); margin-left: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .field { margin: 10px 0; }
+  .field .label { display: inline-block; min-width: 130px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: top; }
+  .field .value { display: inline; }
+  .narrative p { margin-top: 6px; }
+  .bucket { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin: 12px 0; }
+  .bucket h3 { margin-top: 0; }
+  ul.checks li { margin: 4px 0; }
+  .kill { background: rgba(255,93,108,0.07); border: 1px solid rgba(255,93,108,0.25); border-radius: 10px; padding: 14px 18px; margin: 12px 0; }
+  .kill h2 { margin-top: 0; color: var(--red); }
+  footer { color: var(--muted); font-size: 12px; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .hidden-assumption { background: rgba(138,166,255,0.07); border: 1px solid rgba(138,166,255,0.25); border-radius: 10px; padding: 14px 18px; }
+  .hidden-assumption strong { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>ActantDB premortem</h1>
+  <div class="meta">Frame: November 17, 2026 — the project has died, wide developer adoption did not happen. 2026-05-17 / premortem run.</div>
+</header>
+
+<section class="summary">
+  <h2 style="margin-top:0">Executive summary</h2>
+  <ul>
+    <li><strong>Most likely failure:</strong> F1 + F4 — the market crystallized around Mastra (TS), LangGraph (enterprise), Convex (reactive backend + agent memory) before ActantDB shipped one line of code, and the 5-minute demo that could've cut through won't be ready by month 6.</li>
+    <li><strong>Most dangerous failure:</strong> F8 — bandwidth split with Swoosh; determines which product survives. If Wes picks wrong, both die.</li>
+    <li><strong>Most fragile assumption:</strong> One person can ship the full plan (40 crates, 4 SDKs, Studio, six modes, full reliability + AI-native + protocols + observability + hot-kernel) in 6 months against funded incumbents with production logos.</li>
+    <li><strong>Most important change:</strong> Pick one wedge that is winnable; ship it as a <em>complement</em> to incumbents, not a <em>replacement</em>. Strong candidate: chronicle + replay as a Mastra/Convex plugin distributed via npm.</li>
+    <li><strong>Biggest unresolved unknown:</strong> Have you actually talked to 15 working agent developers about whether they'd pay attention to this? No — and the answer almost certainly reshapes the plan.</li>
+  </ul>
+</section>
+
+<section class="hidden-assumption">
+  <p><strong>Hidden assumption.</strong> You can ship ActantDB-as-designed, with the team and time you have, against the competitors who already shipped, and earn wide developer adoption.</p>
+  <p>The architecture isn't wrong. The <em>bet</em> that this version of it — one person, 40 Rust crates, 4 SDKs, splitting attention with Swoosh, six-month horizon, into a TS-volume market that already named its winners — can win wide developer adoption is what's failing. Test it explicitly: take the plan to 15 working agent developers. Ask "what would have to be true for you to move from your current tool to ActantDB?" If fewer than 3 give a concrete answer, the wedge is wrong.</p>
+</section>
+
+<h2>Failure map</h2>
+<table>
+  <thead>
+    <tr><th>#</th><th>Failure mode</th><th>Likelihood</th><th>Severity</th><th>Detectability</th><th>Confidence</th><th>Primary mitigation</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>F1</td><td>Late to a crystallized market</td><td><span class="pill p-high">High</span></td><td><span class="pill p-high">High</span></td><td><span class="pill p-easy">Easy</span></td><td><span class="pill p-high">High</span></td><td>Ship a wedge as a Mastra/Convex plugin, not a replacement</td></tr>
+    <tr><td>F2</td><td>TS market vs Rust project</td><td><span class="pill p-high">High</span></td><td><span class="pill p-high">High</span></td><td><span class="pill p-easy">Easy</span></td><td><span class="pill p-high">High</span></td><td>Embed core via napi-rs/WASM; ship on npm as <code>@actantdb/core</code></td></tr>
+    <tr><td>F3</td><td>Spec-to-code gap via coding agents</td><td><span class="pill p-high">High</span></td><td><span class="pill p-high">High</span></td><td><span class="pill p-mod">Moderate</span></td><td><span class="pill p-high">High</span></td><td>Single machine-checked <code>actant-contracts</code> crate as source of truth</td></tr>
+    <tr><td>F4</td><td>No working 5-minute demo by month 6</td><td><span class="pill p-high">High</span></td><td><span class="pill p-crit">Critical</span></td><td><span class="pill p-mod">Moderate</span></td><td><span class="pill p-high">High</span></td><td>Demo-first: end-to-end stub script in week 1, fill stubs after</td></tr>
+    <tr><td>F5</td><td>Scope keeps eating runway</td><td><span class="pill p-high">High</span></td><td><span class="pill p-high">High</span></td><td><span class="pill p-hard">Hard</span></td><td><span class="pill p-high">High</span></td><td>Hard freeze: 40 crates → 4. Everything else → <code>future/</code></td></tr>
+    <tr><td>F6</td><td>Wrong tier of buyer (enterprise vs volume)</td><td><span class="pill p-med">Medium</span></td><td><span class="pill p-high">High</span></td><td><span class="pill p-hard">Hard</span></td><td><span class="pill p-med">Medium</span></td><td>Lead with a developer pull (replay); governance trails</td></tr>
+    <tr><td>F7</td><td>Documentation wall</td><td><span class="pill p-med">Medium</span></td><td><span class="pill p-med">Medium</span></td><td><span class="pill p-easy">Easy</span></td><td><span class="pill p-high">High</span></td><td>200-line getting-started.md; deep docs linked-not-surfaced</td></tr>
+    <tr><td>F8</td><td>Founder bandwidth split with Swoosh</td><td><span class="pill p-med">Medium</span></td><td><span class="pill p-crit">Critical</span></td><td><span class="pill p-easy">Easy</span></td><td><span class="pill p-med">Medium</span></td><td>Freeze Swoosh public users until 3 ActantDB design partners</td></tr>
+    <tr><td>F9</td><td>No external validation; design is a guess</td><td><span class="pill p-high">High</span></td><td><span class="pill p-high">High</span></td><td><span class="pill p-easy">Easy</span></td><td><span class="pill p-high">High</span></td><td>15 customer-discovery interviews this week</td></tr>
+  </tbody>
+</table>
+
+<h2>Failure cards</h2>
+
+<div class="card f1 full">
+  <div class="title-row"><h3>F1 — Late to a crystallized market</h3>
+    <div class="scores"><span class="pill p-high">L High</span><span class="pill p-high">S High</span><span class="pill p-easy">D Easy</span><span class="pill p-high">C High</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>By May 2026 Mastra is in production at Replit/Brex with 300k weekly downloads; Convex shipped durable workflows as a checkbox. ActantDB is 258 planning files and 40 empty <code>lib.rs</code> stubs. By August Wes had implemented ~12 of 50 work packages, split with Swoosh. September: <code>actant dev</code> ships as a half-working CLI; HN gives it 40 upvotes and three "how is this different from Mastra + Convex?" comments. By November: 380 stars, zero design partners, zero production logos. The category never noticed it.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">Architectural depth + breadth of SDK coverage beats first-mover distribution and production logos.</span></div>
+  <div class="field"><span class="label">Warning signs</span><span class="value">Prospects ask "why not Mastra + Convex?" without a one-sentence answer · no developer outside Wes has voluntarily run <code>actant dev</code> by day 60 · work-package backlog grows faster than it burns down.</span></div>
+  <div class="field"><span class="label">Validation test</span><span class="value">Cold-pitch the README to 15 working agent developers. If fewer than 3 say "I'd switch from $current_tool with a concrete reason," the wedge isn't real.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">Ship one opinionated wedge (Guard authority + chronicle replay) as a <em>Mastra/Convex plugin</em>, not a substrate replacement.</span></div>
+  <div class="field"><span class="label">Kill criterion</span><span class="value">If by Aug 17, 2026 fewer than 5 non-Wes developers have shipped an agent on it, pivot to plugin-on-Mastra or shut down.</span></div>
+</div>
+
+<div class="card f2 full">
+  <div class="title-row"><h3>F2 — TypeScript-first market vs Rust-first project</h3>
+    <div class="scores"><span class="pill p-high">L High</span><span class="pill p-high">S High</span><span class="pill p-easy">D Easy</span><span class="pill p-high">C High</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>Launch produces 1.8k r/rust stars; curve flattens. The TS audience asks the same two questions: "why a separate server?" and "can I just <code>npm install</code> this?" Mastra closes the durability gap with an in-process SQLite-backed memory adapter. ActantDB demands a Rust toolchain on CI, a worker process diagram, and a port to expose. 94 % of issues are SDK bugs; 89 % of PRs are Rust core changes from three maintainers. Two of three burn out. November: 400 weekly npm downloads vs Mastra's 600k. The project wasn't killed — it was simply skipped.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">TS/Python devs accept a separate Rust server process if the SDK ergonomics are good enough.</span></div>
+  <div class="field"><span class="label">Warning signs</span><span class="value">SDK-reported-issues : SDK-authored-fixes &gt; 5:1 in 60 days · first-time TS contributors open zero PRs against the Rust core after 90 days · "why not just Mastra?" appears unanswered &gt; 3×/week.</span></div>
+  <div class="field"><span class="label">Validation test</span><span class="value">50-person unmoderated onboarding study with TS devs new to Rust. If median time-to-first-working-agent &gt; 2× Mastra's, or &gt; 40 % abandon at "install the server," positioning is broken.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">Embedded mode: compile core to napi-rs Node addon + WASM. Distribute as <code>@actantdb/core</code>. Server mode becomes scale-out, not default.</span></div>
+  <div class="field"><span class="label">Kill criterion</span><span class="value">If 6-month weekly npm downloads &lt; 10 % of Mastra's <em>and</em> outside-contributor Rust-core PRs &lt; 5/month, pivot to a TS-native control plane or sunset.</span></div>
+</div>
+
+<div class="card f3 full">
+  <div class="title-row"><h3>F3 — Spec-to-code gap via coding agents</h3>
+    <div class="scores"><span class="pill p-high">L High</span><span class="pill p-high">S High</span><span class="pill p-mod">D Moderate</span><span class="pill p-high">C High</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>First 8 work packages land in two weeks. Pattern feels validated. By August, 30+ crates have green tests <em>locally</em>. Each agent session has re-derived its own interpretation of "AccountableAction," the audit-log schema, and the error type hierarchy. First workspace-level <code>cargo build</code> in September fails in 312 places. Reconciling <code>actant-core-types</code> ↔ <code>actant-policy</code> invalidates <code>actant-runtime</code> (4,000 lines of agent-generated glue assuming the old shape). Each reconciliation takes 2–3 weeks because Wes didn't write any of it. October: <code>actant new my-agent</code> compiles but panics on first action. The demo never ran end-to-end.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">A single human can hold workspace-wide semantic coherence across 40 crates built in parallel by stateless agents from prose specs.</span></div>
+  <div class="field"><span class="label">Warning signs</span><span class="value">First cross-crate integration needs type adapters · two agent sessions on the same spec produce materially different trait signatures · open PR queue &gt; 5 for more than a week.</span></div>
+  <div class="field"><span class="label">Validation test</span><span class="value">Implement crates 1–5 with the agent. Have a <em>fresh</em> agent session implement crate 6 using only the published interfaces of 1–5. If &gt; 1 round of interface revision needed, the model is broken.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">Replace prose specs with one machine-checked <code>actant-contracts</code> crate. Every trait + error + schema type lives there once; <code>cargo check</code> is the source of truth.</span></div>
+  <div class="field"><span class="label">Kill criterion</span><span class="value">If by Aug 1, 2026 <code>cargo build --workspace</code> doesn't succeed with 15+ crates integrated and one end-to-end smoke test passing, abandon 40-crate architecture and rebuild as a 3-crate monolith.</span></div>
+</div>
+
+<div class="card f4 full">
+  <div class="title-row"><h3>F4 — No working 5-minute demo by month 6</h3>
+    <div class="scores"><span class="pill p-high">L High</span><span class="pill p-crit">S Critical</span><span class="pill p-mod">D Moderate</span><span class="pill p-high">C High</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>Months 1–3 feel productive — twelve crates compile, all green. Then the integration tax arrives. Storage was query-pull; subscribe assumed push-from-storage. CLI's <code>actant dev</code> wants templates + schema-dsl + codegen-project + server to interop cleanly; codegen emits modules templates don't reference. Index↔embedders↔cache triangle has three plausible ownership models, no decision. Coding agents are excellent at spec'd seams; bad at deciding which seam is correct when crates disagree. Month 6: <code>actant dev</code> crashes half the time; "live memory candidates" never rendered real data; every blog post ends in future tense.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">A working demo is the sum of working crates, rather than the product of integration decisions a human must make in advance.</span></div>
+  <div class="field"><span class="label">Warning signs</span><span class="value">Two "finished" crates need re-opening to make a third compile · the happy-path script doesn't exist as an executable test by month 2 · any README ends with "this is what it will be."</span></div>
+  <div class="field"><span class="label">Validation test</span><span class="value">Write a failing end-to-end test in week 1: <code>actant new demo && actant dev</code> boots, accepts one command, fires one approval, surfaces one memory candidate. Crates can be stubs; wiring must be real.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">Invert build order. Week 1: demo as a hardcoded shell with all crates as <code>todo!()</code> stubs satisfying a frozen integration contract. Then fill stubs.</span></div>
+  <div class="field"><span class="label">Kill criterion</span><span class="value">If at month 4 <code>actant dev</code> can't run the demo end-to-end with stub data, cut scope to a single-binary monolith and ship that as v0.1, or stop.</span></div>
+</div>
+
+<div class="card f5 full">
+  <div class="title-row"><h3>F5 — Scope keeps eating runway</h3>
+    <div class="scores"><span class="pill p-high">L High</span><span class="pill p-high">S High</span><span class="pill p-hard">D Hard</span><span class="pill p-high">C High</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>Sessions 1–5 each end with planning artifacts that <em>feel</em> like progress: 258 files, 40 crate scaffolds, ADRs 0004–0020, specs 15–19, three migrations. Each addition passes the local test in isolation. Wes mistakes planning velocity for product velocity. Phase 1 begins week 7 instead of week 1 because hot-kernel discipline requires the event-loop crate, which requires the lane catalog, which requires throttle/circuit/lock primitives, which require spec 17 to be finalized. By August, Phase 1's 4–6 week estimate is 16 weeks; only the event-log crate compiles. Each competitor ship makes Wes add <em>one more</em> differentiator rather than cut one.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">The substrate must be conceptually complete before any developer touches it.</span></div>
+  <div class="field"><span class="label">Warning signs</span><span class="value">Planning-artifact : compiled-code ratio crosses 10:1 (currently infinite) · new crates added to Phase 1 dependency graph after Phase 1 "started" · "we'll need this for the substrate to be coherent" appears in session notes.</span></div>
+  <div class="field"><span class="label">Validation test</span><span class="value">Before writing one more spec: build a 200-line single-crate prototype that records events, runs one state machine, exposes one subscription. Show to 5 developers this week. &lt; 3 "I'd use this tomorrow" → positioning, not features, is the problem.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">Hard freeze: 40 crates → 4 (<code>core</code>, <code>eventlog</code>, <code>sdk</code>, <code>cli-minimal</code>). Other 36 → <code>future/</code>. Migrations 0002–0003 collapse to 0001-v2. ADRs 0008–0020 marked post-v0.1.</span></div>
+  <div class="field"><span class="label">Kill criterion</span><span class="value">If by July 1, 2026 (6 weeks) no <code>cargo install actant-cli && actant init && actant run</code> works end-to-end against the 4-crate core, kill ActantDB as a product and extract the event-ledger as a library.</span></div>
+</div>
+
+<div class="card f6 full">
+  <div class="title-row"><h3>F6 — Wrong tier of buyer (enterprise vs volume) <span class="compact-tag">compact</span></h3>
+    <div class="scores"><span class="pill p-med">L Med</span><span class="pill p-high">S High</span><span class="pill p-hard">D Hard</span><span class="pill p-med">C Med</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>The architecture optimizes for governance, replay, audit, compliance, sensitivity lineage. These are buying criteria for regulated enterprises. They are not pulls for a solo developer choosing an agent backend on a Sunday. By month 6 the message lands with three CISOs at Series-C companies but produces ~zero <code>actant new</code> runs from the OSS community the success criterion targets.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">Accountability/governance is a wide-developer pull.</span></div>
+  <div class="field"><span class="label">Warning sign</span><span class="value">Positive feedback comes from compliance/security people, not working agent developers.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">Lead with one unmistakable developer pull (replay agent failures, fastest local dev loop). Governance trails.</span></div>
+</div>
+
+<div class="card f7 full">
+  <div class="title-row"><h3>F7 — Documentation wall <span class="compact-tag">compact</span></h3>
+    <div class="scores"><span class="pill p-med">L Med</span><span class="pill p-med">S Med</span><span class="pill p-easy">D Easy</span><span class="pill p-high">C High</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>20 specs + 18 ADRs + 20 planning docs + 50 work packages = 250+ markdown files. A developer evaluating ActantDB hits this and bounces. Mastra's homepage shows <code>pnpm create mastra@latest</code> and a 30-line working example. Completeness reads as overwhelming to outsiders even though it's a strength inside.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">Documentation depth signals quality.</span></div>
+  <div class="field"><span class="label">Warning sign</span><span class="value">Every external review includes "this is a lot to read."</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">One 200-line <code>getting-started.md</code> with a runnable example. Everything else linked, not surfaced.</span></div>
+</div>
+
+<div class="card f8 full">
+  <div class="title-row"><h3>F8 — Founder bandwidth split with Swoosh</h3>
+    <div class="scores"><span class="pill p-med">L Med</span><span class="pill p-crit">S Critical</span><span class="pill p-easy">D Easy</span><span class="pill p-med">C Med</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>Swoosh hits real Mac users in private beta week 6; real users mean real bugs (keychain, MCP handshake, permissions dialog firing twice). Each bug is a 4-hour context switch out of the 40-crate backend. Coding agents keep producing 4,000-line PRs against ActantDB crates; they sit in review 5–9 days because Wes is the only one who understands the architecture. Agent velocity outruns review bandwidth by week 8. By month 3, Swoosh has user dopamine; ActantDB has a backlog. By month 6: Swoosh survives, ActantDB has 31 of 50 work packages "in progress," zero design partners.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">One founder can simultaneously architect a 40-crate infrastructure product AND ship + support a consumer Mac app because "coding agents do the work."</span></div>
+  <div class="field"><span class="label">Warning signs</span><span class="value">PR review latency on ActantDB &gt; 72h for two consecutive weeks · commit ratio between the two repos drifts past 70/30 for 3+ weeks · Wes hasn't personally written a non-trivial ActantDB commit in 14 days.</span></div>
+  <div class="field"><span class="label">Validation test</span><span class="value">2-week time-boxed simulation in June: log every working hour against {ActantDB-build, ActantDB-review, Swoosh-build, Swoosh-support, shared}. If ActantDB-direct &lt; 25h/week, the structure is already broken.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">Freeze Swoosh at internal-only dogfood until ActantDB has 3 paying design partners. No public Swoosh users, no launches, no X posts. Swoosh exists solely as the integration test for ActantDB until ActantDB has external pull.</span></div>
+  <div class="field"><span class="label">Kill criterion</span><span class="value">If by Aug 17, 2026 ActantDB has &lt; 10 of 50 work packages production-merged OR zero design partners actively integrating, kill Swoosh-as-separate-product OR kill ActantDB. <strong>Not both.</strong></span></div>
+</div>
+
+<div class="card f9 full">
+  <div class="title-row"><h3>F9 — No external validation; design is a guess <span class="compact-tag">compact</span></h3>
+    <div class="scores"><span class="pill p-high">L High</span><span class="pill p-high">S High</span><span class="pill p-easy">D Easy</span><span class="pill p-high">C High</span></div></div>
+  <div class="field narrative"><div class="label">Story</div>
+    <p>Eight hours of planning produced 258 files with zero developer interviews, zero design partners, zero waitlist. The audience identity ("agent developers") is broad enough that it doesn't predict buying behavior. Six months in, the docs describe a product no specific person explicitly asked for.</p></div>
+  <div class="field"><span class="label">Root assumption</span><span class="value">A well-reasoned design generalizes to a real audience.</span></div>
+  <div class="field"><span class="label">Warning sign</span><span class="value">Cannot name 3 specific developers who would switch from their current tool to ActantDB.</span></div>
+  <div class="field"><span class="label">Mitigation</span><span class="value">15 customer-discovery interviews this week before writing more code.</span></div>
+</div>
+
+<h2>Revised plan</h2>
+
+<div class="bucket">
+  <h3>Change now</h3>
+  <ul>
+    <li>Reframe the project. Pick one wedge: chronicle + replay, governance plug-in for Mastra/Convex, or local-first private memory for Swoosh. Make the rest later.</li>
+    <li>40-crate scope freeze. Move 36 crates to <code>future/</code>. Phase 1 = 4 crates: <code>actant-core</code>, <code>actant-eventlog</code>, <code>actant-sdk-ts</code>, <code>actant-cli-minimal</code>. Six weeks.</li>
+    <li>Stop writing specs. Move existing spec set to <code>archive/</code>. The single living spec becomes the <code>actant-contracts</code> Rust crate.</li>
+    <li>Ship demo-first scaffold: a failing end-to-end <code>actant new demo && actant dev</code> test with <code>todo!()</code> stubs, before any feature implementation.</li>
+  </ul>
+</div>
+
+<div class="bucket">
+  <h3>Test before committing</h3>
+  <ul>
+    <li>15 customer-discovery interviews this week with working agent developers. One question: "What would have to be true for you to use ActantDB?"</li>
+    <li>2-week time audit: log every hour against {ActantDB-build, ActantDB-review, Swoosh-build, Swoosh-support}. If ActantDB-direct &lt; 25h/week, fix the structure before writing crate #2.</li>
+    <li>Coding-agent coherence test: implement crates 1–5 with Claude Code; have a <em>fresh</em> session implement crate 6 using only published interfaces. &gt; 1 round of interface revision → replace prose specs with the contracts crate.</li>
+  </ul>
+</div>
+
+<div class="bucket">
+  <h3>Monitor during execution</h3>
+  <ul>
+    <li>PR review latency on ActantDB. Hard threshold: 72 hours.</li>
+    <li>Commit ratio between ActantDB and Swoosh. Hard threshold: 70/30 in either direction for 3+ weeks triggers a decision.</li>
+    <li><code>actant new && actant dev</code> cold-start success rate. Goal: 100 % by end of month 2.</li>
+    <li>"Why not just Mastra + Convex?" appearances. Unanswered 3+ times → positioning broken.</li>
+  </ul>
+</div>
+
+<div class="bucket">
+  <h3>Accept as risk</h3>
+  <ul>
+    <li>The architectural depth may never be fully delivered in v0.1. v0.1 is much smaller than the design; the design becomes the v2 roadmap.</li>
+    <li>Some planning work is "wasted" in the narrow sense. It's also the strongest competitive moat — but only if a v0.1 ships to put it in front of developers.</li>
+  </ul>
+</div>
+
+<h2>Pre-launch checklist</h2>
+<ul class="checks">
+  <li>☐ Talk to 15 working agent developers by end of week.</li>
+  <li>☐ Pick one wedge by end of next week. Write a one-paragraph positioning statement.</li>
+  <li>☐ Commit to a 4-crate scope freeze. Move everything else to <code>future/</code>. Visible commit.</li>
+  <li>☐ Run the time-audit simulation for 2 weeks before writing crate #2.</li>
+  <li>☐ Replace prose specs with <code>actant-contracts</code> crate before parallelizing coding agents.</li>
+  <li>☐ Write the demo-first failing test before any feature implementation.</li>
+  <li>☐ Decide: freeze Swoosh users until 3 ActantDB design partners, OR commit fully to Swoosh. Not both.</li>
+</ul>
+
+<div class="kill">
+  <h2>Kill / pivot criteria</h2>
+  <ul>
+    <li><strong>By Jul 1, 2026 (6 weeks):</strong> if <code>cargo install actant-cli && actant init && actant run</code> doesn't produce a working end-to-end demo against the 4-crate core, freeze ActantDB and extract the event-ledger as a standalone library.</li>
+    <li><strong>By Aug 1, 2026:</strong> if <code>cargo build --workspace</code> can't integrate 15 crates with one smoke test passing, abandon 40-crate architecture and rebuild as a 3-crate monolith.</li>
+    <li><strong>By Aug 17, 2026 (90 days):</strong> if fewer than 5 non-Wes developers have shipped an agent on it, pivot to plugin-on-Mastra or shut down.</li>
+    <li>If by end of month 3 fewer than 10 of 50 work packages are production-merged OR zero external design partners are integrating, kill Swoosh-as-separate-product OR kill ActantDB. <strong>Not both.</strong></li>
+    <li>If <code>actant dev</code> can't run the demo end-to-end with stub data by month 4, cut scope to a single-binary monolith and ship that as v0.1, or stop.</li>
+  </ul>
+</div>
+
+<footer>
+  Generated 2026-05-17. Plan: ActantDB — Rust agent backend; 258 planning files, zero production code; success criterion = wide developer adoption in 6 months. Market context (Mastra/LangGraph/Convex adoption) verified via web search 2026-05-17. Transcript: <code>premortem-transcript-20260517-133422.md</code>.
+</footer>
+
+</div>
+</body>
+</html>

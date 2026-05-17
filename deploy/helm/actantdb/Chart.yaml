@@ -1,0 +1,9 @@
+apiVersion: v2
+name: actantdb
+description: ActantDB — the autonomous-action backend (Phase 6 cloud/team).
+type: application
+version: 0.1.0
+appVersion: "0.0.1"
+home: https://actantdb.com
+maintainers:
+  - name: The ActantDB Authors

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 700" font-family="ui-monospace,Menlo,Consolas,monospace">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1116"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="700" fill="url(#bg)"/>
+
+  <!-- Header bar -->
+  <rect x="0" y="0" width="1280" height="48" fill="#161b22"/>
+  <rect x="0" y="47" width="1280" height="1" fill="#2a3038"/>
+  <text x="24" y="30" fill="#e6edf3" font-size="15" font-weight="600" letter-spacing="0.04em">Actant Studio</text>
+  <text x="1256" y="30" fill="#8b949e" font-size="11" text-anchor="end">demo-test-cleanup · ~/.actantdb/demo-test-cleanup/events.sqlite</text>
+
+  <!-- Headline -->
+  <text x="40" y="100" fill="#e6edf3" font-size="28" font-weight="600">Why did this agent delete the wrong file?</text>
+  <text x="40" y="132" fill="#8b949e" font-size="14">Side-by-side: original run vs. replay with stale memory removed and stricter policy applied.</text>
+
+  <!-- Diff table -->
+  <g transform="translate(40,170)">
+    <rect x="0" y="0" width="1200" height="420" fill="#0e1116" stroke="#2a3038" rx="6"/>
+
+    <!-- Table headers -->
+    <text x="20"  y="36" fill="#8b949e" font-size="11" letter-spacing="0.08em">EVENT</text>
+    <text x="280" y="36" fill="#8b949e" font-size="11" letter-spacing="0.08em">DIFF</text>
+    <text x="380" y="36" fill="#8b949e" font-size="11" letter-spacing="0.08em">ORIGINAL (RECORDED)</text>
+    <text x="800" y="36" fill="#8b949e" font-size="11" letter-spacing="0.08em">REPLAY (UNDER OVERRIDES)</text>
+    <line x1="0" y1="48" x2="1200" y2="48" stroke="#2a3038"/>
+
+    <!-- Row 1: context_build -->
+    <text x="20"  y="78" fill="#c9d1d9" font-size="13">context_build</text>
+    <text x="280" y="78" fill="#e3b341" font-size="13">changed</text>
+    <text x="380" y="78" fill="#c9d1d9" font-size="13">3 included, 0 blocked</text>
+    <text x="800" y="78" fill="#c9d1d9" font-size="13">2 included, 1 blocked</text>
+    <text x="1020" y="78" fill="#ffb55b" font-size="12">◀ mem_42_dist blocked</text>
+    <line x1="0" y1="92" x2="1200" y2="92" stroke="#2a3038"/>
+
+    <!-- Row 2: model_call -->
+    <text x="20"  y="122" fill="#c9d1d9" font-size="13">model_call</text>
+    <text x="280" y="122" fill="#e3b341" font-size="13">changed</text>
+    <text x="380" y="122" fill="#c9d1d9" font-size="13">"rm -rf build dist"</text>
+    <text x="800" y="122" fill="#c9d1d9" font-size="13">"rm -rf build"</text>
+    <line x1="0" y1="136" x2="1200" y2="136" stroke="#2a3038"/>
+
+    <!-- Row 3: guard_verdict -->
+    <text x="20"  y="166" fill="#c9d1d9" font-size="13">guard_verdict</text>
+    <text x="280" y="166" fill="#e3b341" font-size="13">changed</text>
+    <g>
+      <text x="380" y="166" fill="#c9d1d9" font-size="13">require_approval</text>
+      <rect x="510" y="152" width="78" height="20" rx="10" fill="#2c2200"/>
+      <text x="549" y="166" fill="#e3b341" font-size="11" text-anchor="middle">constrain</text>
+    </g>
+    <g>
+      <text x="800" y="166" fill="#c9d1d9" font-size="13">allow</text>
+      <rect x="848" y="152" width="50" height="20" rx="10" fill="#0f2c11"/>
+      <text x="873" y="166" fill="#56d364" font-size="11" text-anchor="middle">ok</text>
+    </g>
+    <line x1="0" y1="180" x2="1200" y2="180" stroke="#2a3038"/>
+
+    <!-- Row 4: tool_call -->
+    <text x="20"  y="210" fill="#c9d1d9" font-size="13">tool_call</text>
+    <text x="280" y="210" fill="#8b949e" font-size="13">identical</text>
+    <text x="380" y="210" fill="#c9d1d9" font-size="13">shell.run "rm -rf build"</text>
+    <text x="800" y="210" fill="#c9d1d9" font-size="13">shell.run "rm -rf build"</text>
+    <line x1="0" y1="224" x2="1200" y2="224" stroke="#2a3038"/>
+
+    <!-- Row 5: effect_completed -->
+    <text x="20"  y="254" fill="#c9d1d9" font-size="13">effect_completed</text>
+    <text x="280" y="254" fill="#8b949e" font-size="13">identical</text>
+    <text x="380" y="254" fill="#c9d1d9" font-size="13">exit=0</text>
+    <text x="800" y="254" fill="#c9d1d9" font-size="13">exit=0  (recorded reuse)</text>
+    <line x1="0" y1="268" x2="1200" y2="268" stroke="#2a3038"/>
+
+    <!-- Callout -->
+    <rect x="20" y="298" width="1160" height="92" fill="#0d2138" rx="4"/>
+    <rect x="20" y="298" width="3"    height="92" fill="#58a6ff"/>
+    <text x="44" y="328" fill="#c9d1d9" font-size="14">Without mem_42_dist, the planner would have proposed the safe command directly.</text>
+    <text x="44" y="354" fill="#c9d1d9" font-size="14">The memory caused the risky proposal; Guard caught it; replay proves the causal link.</text>
+    <text x="44" y="378" fill="#8b949e" font-size="12">Click <tspan fill="#79c0ff">model_call</tspan> in the timeline → Replay from here → toggle exclusions → Run replay.</text>
+  </g>
+
+  <!-- Footer -->
+  <text x="40"  y="640" fill="#8b949e" font-size="12">Actant — Guard Authority + Chronicle Replay for any agent that calls tools</text>
+  <text x="1240" y="640" fill="#8b949e" font-size="12" text-anchor="end">npm install @actantdb/mastra · npx actantdb studio</text>
+</svg>

@@ -1,0 +1,22 @@
+{
+  "name": "actant-demo-test-cleanup",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Killer-demo rehearsal for ActantDB — a Mastra-shaped agent wrapped through @actantdb/mastra. See ./README.md.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "demo": "node ./demo.mjs",
+    "studio": "actantdb studio --project demo-test-cleanup --store-dir ./.actantdb"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/mastra": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/studio": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

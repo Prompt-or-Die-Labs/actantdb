@@ -1,0 +1,21 @@
+[package]
+name = "actant-contracts"
+description = "Single source of truth for every public type, error, event, command, and schema. Every other ActantDB crate and SDK consumes its types from here. Hand-edits to generated outputs are forbidden."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde      = { workspace = true }
+serde_json = { workspace = true }
+schemars   = { workspace = true }
+thiserror  = { workspace = true }
+time       = { workspace = true }
+ulid       = { workspace = true }
+
+[[bin]]
+name = "actant-contracts"
+path = "src/bin/cli.rs"

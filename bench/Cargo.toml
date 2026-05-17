@@ -1,0 +1,34 @@
+[package]
+name = "actant-bench"
+description = "ActantDB performance benchmarks (criterion-based)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+actant-command = { workspace = true }
+actant-core    = { workspace = true }
+actant-server  = { workspace = true }
+actant-storage = { workspace = true }
+axum           = { workspace = true }
+serde_json     = { workspace = true }
+tokio          = { workspace = true }
+
+[dev-dependencies]
+criterion      = { version = "0.5", features = ["async_tokio"] }
+reqwest        = { version = "0.12", default-features = false, features = ["json", "blocking", "rustls-tls"] }
+
+[[bench]]
+name = "storage_append"
+harness = false
+
+[[bench]]
+name = "command_dispatch"
+harness = false
+
+[[bench]]
+name = "http_command"
+harness = false

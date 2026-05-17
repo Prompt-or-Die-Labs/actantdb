@@ -1,0 +1,18 @@
+[package]
+name = "actant-napi"
+description = "Node.js native addon for ActantDB via NAPI-RS. Distributed inside @actantdb/core; TS developers never see it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+actant-contracts = { workspace = true }
+actant-kernel    = { workspace = true }
+serde            = { workspace = true }
+serde_json       = { workspace = true }

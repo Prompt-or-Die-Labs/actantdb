@@ -1,0 +1,29 @@
+{
+  "name": "actantdb-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ActantDB monorepo — TypeScript packages first, Rust kernel embedded.",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev":   "pnpm -r --parallel dev",
+    "test":  "pnpm -r test",
+    "lint":  "pnpm -r lint",
+    "smoke": "node ./scripts/smoke.mjs",
+    "ci":    "pnpm -r build && pnpm -r test && pnpm smoke"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/mastra": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/replay": "workspace:*",
+    "@actantdb/studio": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  }
+}

@@ -1,0 +1,37 @@
+[package]
+name = "actant-worker-manager"
+description = "Single-binary daemon that starts shell/file/email/slack/browser workers from one config."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "actant-workers"
+path = "src/main.rs"
+
+[lib]
+name = "actant_worker_manager"
+path = "src/lib.rs"
+
+[dependencies]
+actant-core            = { workspace = true }
+actant-effects         = { workspace = true }
+actant-storage         = { workspace = true }
+actant-worker-protocol = { workspace = true }
+actant-worker-shell    = { workspace = true }
+actant-worker-file     = { workspace = true }
+actant-worker-model    = { workspace = true }
+actant-worker-email    = { workspace = true }
+actant-worker-slack    = { workspace = true }
+actant-worker-browser  = { workspace = true }
+actant-worker-mcp      = { workspace = true }
+anyhow                 = { workspace = true }
+clap                   = { workspace = true }
+serde                  = { workspace = true }
+serde_json             = { workspace = true }
+tokio                  = { workspace = true }
+tracing                = { workspace = true }
+tracing-subscriber     = { workspace = true }

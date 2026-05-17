@@ -1,0 +1,7 @@
+[toolchain]
+# Bumped from 1.82 (2024-10) to 1.85 (edition2024) on 2026-05-17 to keep
+# pace with transitive deps (time-core 0.1.8 requires edition2024).
+# Pin a known-good stable rather than the floating `stable` channel.
+channel = "1.88.0"
+components = ["rustfmt", "clippy"]
+profile = "default"

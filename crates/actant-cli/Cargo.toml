@@ -1,0 +1,35 @@
+[package]
+name = "actant-cli"
+description = "ActantDB CLI: actantdb command."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+name = "actant_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "actantdb"
+path = "src/main.rs"
+
+[dependencies]
+actant-command   = { workspace = true }
+actant-core      = { workspace = true }
+actant-storage   = { workspace = true }
+actant-server    = { workspace = true }
+anyhow           = { workspace = true }
+axum             = { workspace = true }
+clap             = { workspace = true }
+serde            = { workspace = true }
+serde_json       = { workspace = true }
+sqlx             = { workspace = true }
+tokio            = { workspace = true }
+tracing          = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+ulid             = { workspace = true }

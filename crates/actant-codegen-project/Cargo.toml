@@ -1,0 +1,22 @@
+[package]
+name = "actant-codegen-project"
+description = "Project-level code generators: `actant generate command|effect|worker|agent|workflow`."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+actant-core       = { workspace = true }
+actant-schema-dsl = { workspace = true }
+actant-templates  = { workspace = true }
+anyhow            = { workspace = true }
+serde             = { workspace = true }
+serde_json        = { workspace = true }
+thiserror         = { workspace = true }
+tracing           = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

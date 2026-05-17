@@ -1,0 +1,66 @@
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock.bak
+*.pdb
+
+# Build/runtime artifacts
+*.log
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+data/
+artifacts/
+checkpoints/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / TS
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# Swift / Xcode
+.build/
+DerivedData/
+Packages/
+*.xcodeproj/
+*.xcworkspace/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.yaml
+secrets.toml
+.actant-credentials
+
+# Coverage
+coverage/
+lcov.info
+*.lcov
+
+# OS
+Thumbs.db
+ehthumbs.db

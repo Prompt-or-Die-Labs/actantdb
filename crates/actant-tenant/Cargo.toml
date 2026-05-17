@@ -1,0 +1,21 @@
+[package]
+name = "actant-tenant"
+description = "Multi-tenant boundary helpers: tenant-scoped repositories, role checks, request context."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+actant-auth    = { workspace = true }
+actant-core    = { workspace = true }
+actant-storage = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+sqlx           = { workspace = true }
+thiserror      = { workspace = true }
+time           = { workspace = true }
+tokio          = { workspace = true }
+tracing        = { workspace = true }

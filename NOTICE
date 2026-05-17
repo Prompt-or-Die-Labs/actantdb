@@ -1,0 +1,9 @@
+ActantDB
+Copyright 2026 The ActantDB Authors
+
+This product includes software developed by The ActantDB Authors.
+
+Design inspiration for the command-as-reducer and live-subscription
+patterns came from SpacetimeDB (https://spacetimedb.com). No SpacetimeDB
+source code is incorporated in this work; ActantDB is a clean-room
+implementation specialized for autonomous agents.

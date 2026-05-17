@@ -1,0 +1,72 @@
+{{- if and (eq .Values.storage.backend "postgres") (not .Values.storage.postgres.externalUrl) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "actantdb.fullname" . }}-postgres
+  labels:
+    {{- include "actantdb.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  password: {{ .Values.storage.postgres.auth.password | default (randAlphaNum 24) | quote }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "actantdb.fullname" . }}-postgres
+  labels:
+    {{- include "actantdb.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "actantdb.fullname" . }}-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "actantdb.selectorLabels" . | nindent 6 }}
+      tier: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "actantdb.selectorLabels" . | nindent 8 }}
+        tier: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: actantdb
+            - name: POSTGRES_USER
+              value: {{ .Values.storage.postgres.auth.username }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "actantdb.fullname" . }}-postgres
+                  key: password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "actantdb.fullname" . }}-postgres
+  labels:
+    {{- include "actantdb.labels" . | nindent 4 }}
+spec:
+  ports:
+    - port: 5432
+      name: postgres
+  selector:
+    {{- include "actantdb.selectorLabels" . | nindent 4 }}
+    tier: postgres
+{{- end }}

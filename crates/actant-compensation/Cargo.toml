@@ -1,0 +1,21 @@
+[package]
+name = "actant-compensation"
+description = "Compensation-plan generator: emits compensation_plan rows for reversible effects so the system has a pre-state to revert to."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+actant-core    = { workspace = true }
+actant-storage = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+sqlx           = { workspace = true }
+thiserror      = { workspace = true }
+time           = { workspace = true }
+tokio          = { workspace = true }
+tracing        = { workspace = true }
+ulid           = { workspace = true }

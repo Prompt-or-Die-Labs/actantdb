@@ -1,0 +1,31 @@
+[package]
+name = "actant-worker-browser"
+description = "Browser-effect worker for ActantDB. Click / type / navigate / screenshot via a pluggable transport. Phase-2 driver: WebDriver/CDP (deferred); Phase-1 ships a deterministic in-process emulator."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "actant-worker-browser"
+path = "src/main.rs"
+
+[lib]
+name = "actant_worker_browser"
+path = "src/lib.rs"
+
+[dependencies]
+actant-core            = { workspace = true }
+actant-effects         = { workspace = true }
+actant-storage         = { workspace = true }
+actant-worker-protocol = { workspace = true }
+anyhow                 = { workspace = true }
+async-trait            = { workspace = true }
+clap                   = { workspace = true }
+serde                  = { workspace = true }
+serde_json             = { workspace = true }
+tokio                  = { workspace = true }
+tracing                = { workspace = true }
+tracing-subscriber     = { workspace = true }

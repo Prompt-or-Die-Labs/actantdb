@@ -1,0 +1,24 @@
+[package]
+name = "actant-index"
+description = "ActantIndex retrieval subsystem: hybrid dense+sparse+graph retrieval, reranking, context packer, retrieval traces."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+actant-core    = { workspace = true }
+actant-storage = { workspace = true }
+anyhow         = { workspace = true }
+async-trait    = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+thiserror      = { workspace = true }
+time           = { workspace = true }
+tokio          = { workspace = true }
+tracing        = { workspace = true }
+actant-embed   = { workspace = true }
+actant-policy  = { workspace = true }
+sha2           = { workspace = true }

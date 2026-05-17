@@ -1,0 +1,202 @@
+openapi: 3.0.3
+info:
+  title: ActantDB HTTP API
+  version: 0.0.1
+  description: |
+    The HTTP+WebSocket surface for `actantdb-server`. See
+    `/specs/08-api-spec.md` for the design.
+servers:
+  - url: http://127.0.0.1:4555
+    description: Local default.
+paths:
+  /v1/healthz:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  time: { type: string, format: date-time }
+  /v1/metadata/commands:
+    get:
+      summary: List known command types
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commands:
+                    type: array
+                    items: { type: string }
+  /v1/command:
+    post:
+      summary: Dispatch a command
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResponse"
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /v1/events:
+    get:
+      summary: List Chronicle events for a session
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items: { type: object }
+  /v1/approvals:
+    get:
+      summary: List pending approvals in a workspace
+      parameters:
+        - name: workspace_id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  approvals:
+                    type: array
+                    items: { type: object }
+  /v1/replay/checkpoint:
+    post:
+      summary: Create a replay checkpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workspace_id, event_id]
+              properties:
+                workspace_id: { type: string }
+                event_id: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkpoint_id: { type: string }
+  /v1/replay/run:
+    post:
+      summary: Run a replay from a checkpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actor_id, checkpoint_id, mode]
+              properties:
+                actor_id: { type: string }
+                checkpoint_id: { type: string }
+                mode:
+                  type: string
+                  enum: [recorded, model, policy, memory]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+  /v1/metrics:
+    get:
+      summary: Prometheus text-format metrics
+      responses:
+        "200":
+          description: text/plain v0.0.4
+          content:
+            text/plain: {}
+  /v1/ws:
+    get:
+      summary: WebSocket subscription
+      parameters:
+        - name: workspace_id
+          in: query
+          required: true
+          schema: { type: string }
+        - name: session_id
+          in: query
+          required: false
+          schema: { type: string }
+        - name: kind
+          in: query
+          required: false
+          schema: { type: string, default: events }
+      responses:
+        "101":
+          description: Switching Protocols
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Error:
+      description: Structured error body
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              message: { type: string }
+  schemas:
+    CommandRequest:
+      type: object
+      required: [workspace_id, actor_id, command_type, input]
+      properties:
+        workspace_id: { type: string }
+        actor_id: { type: string }
+        command_type: { type: string }
+        input: { type: object }
+        idempotency_key: { type: string }
+    CommandResponse:
+      type: object
+      required: [command_id, result]
+      properties:
+        command_id: { type: string }
+        event_id: { type: string, nullable: true }
+        result: { type: object }

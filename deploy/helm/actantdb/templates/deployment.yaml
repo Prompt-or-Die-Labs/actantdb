@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "actantdb.fullname" . }}
+  labels:
+    {{- include "actantdb.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "actantdb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "actantdb.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: actantdb-server
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 4555
+              protocol: TCP
+          env:
+            - name: ACTANTDB_BIND
+              value: "0.0.0.0:4555"
+            {{- if eq .Values.storage.backend "postgres" }}
+            - name: ACTANTDB_DATABASE_URL
+              value: {{ .Values.storage.postgres.externalUrl | default (printf "postgres://%s:$(POSTGRES_PASSWORD)@%s-postgres:5432/actantdb" .Values.storage.postgres.auth.username (include "actantdb.fullname" .)) | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "actantdb.fullname" . }}-postgres
+                  key: password
+            {{- else }}
+            - name: ACTANTDB_DB
+              value: /data/actant.sqlite
+            {{- end }}
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if and (eq .Values.storage.backend "sqlite") .Values.storage.sqlite.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- end }}
+          startupProbe:
+            httpGet:
+              path: /v1/healthz/startup
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /v1/healthz/ready
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /v1/healthz/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if and (eq .Values.storage.backend "sqlite") .Values.storage.sqlite.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "actantdb.fullname" . }}-data
+      {{- end }}

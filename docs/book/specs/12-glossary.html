@@ -1,0 +1,426 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>12 — Glossary - ActantDB — Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The autonomous-action backend. Substrate specs, SDK references, deployment guide, SLOs.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "../searchindex-5439e66d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-d9af1dd0.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">ActantDB — Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/actantdb/actantdb" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/actantdb/actantdb/edit/main/docs/src/src/specs/12-glossary.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="12--glossary"><a class="header" href="#12--glossary">12 — Glossary</a></h1>
+<p>Every defined term used across the spec set. Terms are listed alphabetically; cross-references in italics. New definitions belong here first, then in the spec where they apply.</p>
+<hr>
+<p><strong>Actant.</strong> Any entity capable of action. Used as the root of the product name and as the prefix for crates (<code>actant-core</code>) and types (<code>ActantEvent</code>). The set of actants in a workspace is the set of <em>actors</em>.</p>
+<p><strong>Actor.</strong> A row in the <code>actor</code> table. Each actor has a <code>kind</code>: <code>human</code>, <code>agent</code>, <code>subagent</code>, <code>model</code>, <code>tool</code>, <code>worker</code>, <code>system</code>. Every <em>command</em> names the actor that initiated it.</p>
+<p><strong>Agent.</strong> An autonomous process that issues <em>commands</em> on its own. The <code>actor.kind = 'agent'</code>. Distinguished from a <em>subagent</em> (which has scoped authority delegated from a parent agent) and from a <em>model</em> (which is a single model call, not an autonomous loop).</p>
+<p><strong>Approval request.</strong> A row in <code>approval_request</code>. Created by Guard when a <em>command</em> requires human approval. Resolved by an <code>approve_*</code> or <code>deny_*</code> command.</p>
+<p><strong>Artifact.</strong> A blob of content stored out-of-band, referenced from a row by <code>*_ref</code> columns. Has its own row in <code>artifact</code> (sensitivity, kind, URI, hash). Lives in the <em>Artifact Store</em>.</p>
+<p><strong>Artifact Store.</strong> A <em>companion store</em> for blobs (screenshots, tool outputs, files, transcripts, large model outputs). Phase 1 uses a local filesystem; later phases support S3-compatible storage.</p>
+<p><strong>Audit event.</strong> A denormalized projection over <code>agent_event</code> for fast auditor queries. Rebuildable from the Chronicle.</p>
+<p><strong>Authority scope.</strong> A row in <code>authority_scope</code>. Grants one <em>actor</em> one <em>permission</em> over one <em>resource pattern</em> up to one <em>sensitivity ceiling</em>. Composes by union.</p>
+<p><strong>Backpressure.</strong> The subscription system’s response to a slow client. When the per-subscription buffer overflows, the server emits a <code>lag</code> notification and forces a re-snapshot.</p>
+<p><strong>Candidate.</strong> A <em>memory</em> in its pre-approval state. Lives in <code>memory_candidate</code>. Promoted to <code>memory</code> by <code>approve_memory</code>.</p>
+<p><strong>Causality kind.</strong> An <code>agent_event</code> column. One of <code>observation</code>, <code>intent</code>, <code>effect</code>, <code>control</code>, <code>audit</code>. Distinguishes “the world reported X” from “the agent decided X” from “X was performed.”</p>
+<p><strong>Checkpoint.</strong> A row in <code>replay_checkpoint</code> plus four snapshot artifacts (state, model_route, permission, memory). Sufficient to reconstruct the world at the anchor event for any <em>replay mode</em>.</p>
+<p><strong>Chronicle.</strong> The append-only causal event ledger; the <code>agent_event</code> table. The source of truth for everything that happened.</p>
+<p><strong>Command.</strong> A typed, permission-checked mutation. The only path to write state. Recorded as a row in <code>command_record</code> and emits one or more <em>events</em>.</p>
+<p><strong>Command engine.</strong> The subsystem that authenticates, validates, authorizes, and commits <em>commands</em>.</p>
+<p><strong>Companion store.</strong> A storage system that ActantDB references but does not own: Artifact Store, Secret Vault, Semantic Index.</p>
+<p><strong>Context build.</strong> A row in <code>context_build</code>. The act of assembling a manifest for an upcoming <em>model call</em>. Produces N <code>context_item</code> rows.</p>
+<p><strong>Context engine.</strong> The subsystem that gathers, scores, firewalls, and redacts context for <em>model calls</em>.</p>
+<p><strong>Context firewall.</strong> The phase of context build that excludes candidates whose <em>visibility</em> or <em>sensitivity</em> is incompatible with the target <em>model route</em>.</p>
+<p><strong>Context item.</strong> A row in <code>context_item</code>. Records one candidate — included or blocked — that was considered for a <em>context build</em>.</p>
+<p><strong>Context manifest.</strong> The pair <code>(context_build, [context_item ...])</code>. The inspectable, replayable record of what a model saw.</p>
+<p><strong>Cryptographic erasure.</strong> A <em>deletion</em> mode in which the payload remains encrypted under a per-payload key in the <em>Secret Vault</em>; dropping the key renders the payload unreadable instantly. Used for high-sensitivity content where the audit skeleton must survive.</p>
+<p><strong>Dead letter.</strong> A terminal effect status reached after attempts are exhausted. Requires human re-entry to retry.</p>
+<p><strong>Decision gate.</strong> A binary pass/fail milestone at the end of each <em>phase</em> in <code>11-roadmap.md</code>. The next phase does not start until the gate passes.</p>
+<p><strong>Deletion.</strong> Removing payload while preserving the event skeleton. Modes: <code>delete_memory</code>, <code>delete_artifact</code>, <code>redact_event_payload</code>, <code>purge_secret_ref</code>, <code>expire_workspace</code>, <em>cryptographic erasure</em>.</p>
+<p><strong>DAG.</strong> Directed acyclic graph. The shape of a <em>workflow</em>.</p>
+<p><strong>Effect.</strong> A row in <code>effect</code>. Records the intent to perform a side effect (model call, tool call, shell, file, HTTP, etc.). Claimed and executed by a <em>worker</em> outside the database transaction that created it.</p>
+<p><strong>Effect engine.</strong> The subsystem owning the effect queue, claim protocol, retries, and dead-lettering.</p>
+<p><strong>Effect result.</strong> A row in <code>effect_result</code>. Per-attempt outcome record; allows replay to reconstruct effect outcomes without re-executing.</p>
+<p><strong>Effect type.</strong> The kind of side effect: <code>model.call</code>, <code>tool.call</code>, <code>shell.run</code>, <code>browser.act</code>, <code>file.read</code>, <code>file.write</code>, <code>http.request</code>, <code>calendar.read</code>, <code>email.draft</code>, <code>email.send</code>, <code>message.send</code>, <code>memory.embed</code>, <code>workflow.dispatch</code>, <code>human.notify</code>.</p>
+<p><strong>Embedding ref.</strong> A row in <code>embedding_ref</code>. Pointer to a vector in the <em>Semantic Index</em>; the vector itself does not live in ActantDB.</p>
+<p><strong>Event.</strong> A row in <code>agent_event</code>. Immutable record of something that happened. Carries actor, parent, type, payload hash, sensitivity, and a chained <code>event_hash</code> for tamper evidence.</p>
+<p><strong>Event hash.</strong> <code>SHA-256(parent_event_hash || payload_hash || canonical_metadata)</code>. Each event extends the chain; periodic checkpoint hashes anchor the chain externally.</p>
+<p><strong>Firewall.</strong> Short for <em>context firewall</em>.</p>
+<p><strong>Flow engine.</strong> The subsystem implementing <em>workflows</em>.</p>
+<p><strong>Guard.</strong> The policy/permissions/approval subsystem. Evaluates <code>(actor, permission, resource, sensitivity)</code> and returns <code>allow</code>, <code>allow_with_approval</code>, or <code>deny</code>.</p>
+<p><strong>Heartbeat.</strong> A worker’s periodic message to extend its lease on a claimed effect. Missing two consecutive heartbeats forfeits the claim.</p>
+<p><strong>Idempotency key.</strong> A caller-provided string that pairs with <code>workspace_id</code> to deduplicate commands and effects. Required on every effect; recommended on commands.</p>
+<p><strong>Invariant.</strong> A statement that must hold for the system to be correct. Catalogued in <code>05-security-model.md</code> §2.</p>
+<p><strong>Ledger.</strong> Short for <em>Chronicle</em>.</p>
+<p><strong>Local-only.</strong> A <em>replay mode</em> and a <em>visibility</em> tag. As a mode, forbids cloud context and cloud model calls during replay. As a visibility tag (<code>never_sync</code>), forbids the content from leaving the device.</p>
+<p><strong>Manifest.</strong> Short for <em>context manifest</em>.</p>
+<p><strong>Memory.</strong> A row in <code>memory</code>. An approved, durable piece of knowledge about the world. Has provenance (<code>source_event_ids</code>, <code>source_candidate_id</code>), sensitivity, visibility, and a usage history (<code>memory_use</code>).</p>
+<p><strong>Memory candidate.</strong> See <em>Candidate</em>.</p>
+<p><strong>Memory engine.</strong> The subsystem owning the memory lifecycle.</p>
+<p><strong>Memory use.</strong> A row in <code>memory_use</code>. Records that a memory appeared in a specific <code>context_build</code>, optionally associated with a <code>model_call</code>.</p>
+<p><strong>Model call.</strong> A row in <code>model_call</code>. A single invocation of a model route, with attached <code>context_build</code>, request/response refs, tokens, cost, latency.</p>
+<p><strong>Model route.</strong> A row in <code>model_route</code>. Names a provider + model + minimum required visibility + sensitivity ceiling + cost metadata. Routes are the unit Guard checks for model permissions.</p>
+<p><strong>Node.</strong> A row in <code>workflow_node</code>. One step type in a <em>workflow</em>.</p>
+<p><strong>Observation.</strong> An <em>event</em> with <code>causality_kind = 'observation'</code>. Records something the world did (tool result, webhook callback, model response).</p>
+<p><strong>Permission.</strong> A verb used in <code>authority_scope.permission</code> and <code>effect.required_permission</code>. Examples: <code>file.read</code>, <code>shell.run</code>, <code>memory.write</code>, <code>tool.call:github.create_issue</code>.</p>
+<p><strong>Phase.</strong> A delivery slice in <code>11-roadmap.md</code>. Phases run sequentially with <em>decision gates</em>.</p>
+<p><strong>Policy.</strong> A row in <code>policy</code>. A versioned bundle of rules that Guard consults. Its body lives in an artifact; ActantDB stores metadata and a hash.</p>
+<p><strong>Policy snapshot.</strong> The <code>permission_snapshot_ref</code> on a <em>checkpoint</em>. Used by <code>mode=policy</code> replay to compare alternate policies against the original decision path.</p>
+<p><strong>Projection.</strong> A row in any non-ledger table derived from <code>agent_event</code>. Updated inside the command transaction so that immediately-following reads see the change.</p>
+<p><strong>Provenance.</strong> The graph linking every <em>memory</em> back to the events that justified it, every model call’s <em>context build</em> to the memories it included, every tool call to the model call that proposed it. Fully traversable.</p>
+<p><strong>Reducer.</strong> SpacetimeDB’s term for the equivalent of an ActantDB <em>command</em>. Used in <code>00-overview.md</code> for the inspiration comparison; not used elsewhere.</p>
+<p><strong>Redaction.</strong> The phase of context build that rewrites included content to remove things that would leak in their current form (API keys, PII, prompt injections).</p>
+<p><strong>Replay.</strong> Re-running prior events to debug, compare, or audit. Modes: <code>recorded</code>, <code>experimental</code>, <code>policy</code>, <code>model</code>, <code>memory</code>, <code>tool</code>, <code>local_only</code>.</p>
+<p><strong>Replay diff.</strong> A row in <code>replay_diff</code>. One comparison point between original and replayed events: <code>identical</code>, <code>changed</code>, <code>missing</code>, <code>extra</code>.</p>
+<p><strong>Replay engine.</strong> The subsystem owning checkpoints and replay runs.</p>
+<p><strong>Replay run.</strong> A row in <code>replay_run</code>. One execution of a replay over a checkpoint with a mode and optional overrides.</p>
+<p><strong>Replay mode.</strong> See <em>Replay</em>.</p>
+<p><strong>Required permission.</strong> The <code>permission</code> an <em>effect</em> or <em>command</em> consumes. Guard checks it against the actor’s <em>authority scopes</em>.</p>
+<p><strong>Resource pattern.</strong> The object half of an authority scope (e.g. <code>~/Projects/**</code>, <code>*.example.com</code>). Interpreted by the subsystem the permission belongs to.</p>
+<p><strong>Risk level.</strong> An <code>effect</code>/<code>tool_call</code> column. One of <code>low</code>, <code>medium</code>, <code>high</code>, <code>critical</code>. Drives the default need for approval.</p>
+<p><strong>Scope.</strong> Three different uses, disambiguated by context:</p>
+<ul>
+<li><em>Authority scope</em>: a permission grant row.</li>
+<li><em>Approval scope</em> (<code>scope_granted</code>): <code>once</code>, <code>session</code>, <code>scope</code>, <code>forever</code>.</li>
+<li><em>Memory scope</em>: a label on a memory (<code>global</code>, <code>session</code>, <code>project</code>, …).</li>
+</ul>
+<p><strong>Secret ref.</strong> A row in <code>secret_ref</code>. Pointer to material in the <em>Secret Vault</em>; the material itself never lives in ActantDB.</p>
+<p><strong>Secret Vault.</strong> A <em>companion store</em> for secrets. macOS Keychain, 1Password, HashiCorp Vault, cloud KMS.</p>
+<p><strong>Semantic Index.</strong> A <em>companion store</em> for vector search. Qdrant, LanceDB, Chroma, FAISS, pgvector, SQLite vector extension.</p>
+<p><strong>Sensitivity.</strong> A label on content: <code>public</code> &lt; <code>low</code> &lt; <code>medium</code> &lt; <code>high</code> &lt; <code>secret</code> &lt; <code>regulated</code>. Compared against an <em>authority scope</em>’s <code>sensitivity_ceiling</code> and a <em>model route</em>’s ceiling.</p>
+<p><strong>Session.</strong> A row in <code>session</code>. A conversation between an <em>initiator</em> (typically a human) and an <em>agent</em>. Bounds many other rows (messages, model calls, tool calls).</p>
+<p><strong>Snapshot (subscription).</strong> The first message a client receives on a new subscription: the current set of matching rows.</p>
+<p><strong>Snapshot (replay).</strong> One of four artifacts on a <code>replay_checkpoint</code>: state, model_route, permission, memory.</p>
+<p><strong>Source of truth.</strong> The Chronicle. Every other row in the database is rebuildable from it.</p>
+<p><strong>Studio.</strong> The dashboard product (<code>actant-studio</code>). Renders: Approval Center, Memory Review, Context Inspector, Workflow Board, Replay Lab, Audit Trail, etc.</p>
+<p><strong>Subagent.</strong> An <em>actor</em> (<code>kind='subagent'</code>) with authority delegated from a parent agent and a narrower scope.</p>
+<p><strong>Subscription.</strong> A live, filtered, server-pushed view of a table. Delivered over WebSocket.</p>
+<p><strong>Subscription engine.</strong> The subsystem owning subscriptions: snapshot, incremental delivery, backpressure, reconnection.</p>
+<p><strong>Tamper evidence.</strong> The property of the <em>Chronicle</em> that any change to a past event invalidates the chained <em>event hash</em>. Verified by periodic checkpoint hashing.</p>
+<p><strong>Tombstone.</strong> An event that marks a prior payload deleted while keeping the audit skeleton intact.</p>
+<p><strong>Tool.</strong> A row in <code>tool</code>. A named, versioned external capability with a <code>required_permission</code>, <code>default_risk_level</code>, and an <code>input_schema</code>.</p>
+<p><strong>Tool call.</strong> A row in <code>tool_call</code>. One invocation of a <em>tool</em> by an agent. Subject to Guard; usually requires approval at <code>risk_level &gt;= high</code>.</p>
+<p><strong>Trigger.</strong> A row in <code>trigger</code>. Causes a <em>workflow run</em> to start: <code>cron</code>, <code>event</code>, <code>webhook</code>, <code>manual</code>.</p>
+<p><strong>Visibility.</strong> A set of tags on content that says where it may go: <code>local_model_allowed</code>, <code>cloud_model_allowed</code>, <code>human_only</code>, <code>never_model</code>, <code>never_sync</code>. Compared against a <em>model route</em>’s <code>visibility_required</code> set.</p>
+<p><strong>Worker.</strong> An <em>actor</em> (<code>kind='worker'</code>) that claims and executes <em>effects</em>. Reference workers: shell, file, browser, model, MCP.</p>
+<p><strong>Worker capability.</strong> A row in <code>worker_capability</code>. Declares which <em>effect types</em> a worker can claim.</p>
+<p><strong>Workflow.</strong> A row in <code>workflow</code>. A versioned DAG of nodes and edges. Workflows are executed as <em>workflow runs</em>.</p>
+<p><strong>Workflow run.</strong> A row in <code>workflow_run</code>. One execution of a workflow. Survives process restarts; advances through node states; gates on approval.</p>
+<p><strong>Workspace.</strong> A row in <code>workspace</code>. The unit of tenancy, policy scope, and audit. Every other row except <code>workspace</code> itself carries a <code>workspace_id</code>.</p>
+<hr>
+<h2 id="extended-primitives-phase-2"><a class="header" href="#extended-primitives-phase-2">Extended primitives (Phase 2+)</a></h2>
+<p>Defined in <code>/specs/13-actant-contract.md</code> and <code>/specs/14-extended-primitives.md</code>.</p>
+<p><strong>Actant Contract.</strong> The eight obligations every operation must answer: actor, intent, context, authority, action, observation, memory, replay. A subsystem, command, or product feature that cannot satisfy them is structurally rejected.</p>
+<p><strong>Autonomy drift.</strong> The condition where an actant’s behavior departs from its declared intent. Quantified by a <code>drift_signal</code> score from intent-mismatch, resource-mismatch, risk-escalation, and unusual-sequence components. Crossing the workspace <code>drift_threshold</code> produces an intervention.</p>
+<p><strong>Behavioral trust.</strong> Operational-signal-derived <code>trust_profile</code> per <code>(actor, capability_area)</code>. May escalate Guard’s <code>risk_level</code> but never grants additional authority.</p>
+<p><strong>Bounded autonomy.</strong> The system property that emerges from per-actor <code>budget</code> rows: an agent must halt or escalate when budgets are exhausted.</p>
+<p><strong>Budget.</strong> A row in <code>budget</code>. Bounds an actor / session / workflow_run / delegation on <code>tokens</code>, <code>cost_usd</code>, <code>time_seconds</code>, <code>tool_calls</code>, <code>risk_score</code>, <code>approvals</code>, <code>memory_writes</code>, <code>file_writes</code>, or <code>external_messages</code>.</p>
+<p><strong>Causal DAG.</strong> The structure of the Chronicle when <code>agent_event.causal_parent_ids</code> is populated — events have potentially many causal parents, not one. Distinguished from the simpler <code>parent_event_id</code> chain.</p>
+<p><strong>Capsule.</strong> A row in <code>capsule</code>. A policy bundle (sensitivity, visibility, sync, retention, cloud-allowed, memory-allowed) that travels with content. Anything derived from a capsule-bound object inherits the capsule’s policy.</p>
+<p><strong>Capsule membership.</strong> A row in <code>capsule_membership</code> binding an object (memory, context_item, artifact, observation, message) to a capsule. The basis of <em>sensitivity lineage</em>.</p>
+<p><strong>Compensation plan.</strong> A row in <code>compensation_plan</code> attached to an effect with <code>undo_capability != 'irreversible'</code>. Captures the pre-state artifact and the compensation effect type that would undo it.</p>
+<p><strong>Context debt.</strong> A score <code>[0.0, 1.0]</code> per <code>context_build</code> measuring reliance on stale, low-confidence, summarized, or under-provenance context. Surfaced as a <code>context_debt</code> row.</p>
+<p><strong>Delegation.</strong> A row in <code>delegation</code>. Explicit, scoped authority transfer from a parent actor to a child (subagent). The child’s effective authority during the delegation is the union of its own scopes plus the delegated subset.</p>
+<p><strong>Drift signal.</strong> A row in <code>drift_signal</code>. Captures a score and component breakdown for an actant’s recent behavior, plus the intervention (if any) that resulted.</p>
+<p><strong>Eval case.</strong> A row in <code>eval_case</code>. A reusable test minted from a replay or a regret, with success/forbidden criteria and a checkpoint. Runs from then on.</p>
+<p><strong>Eval run.</strong> A row in <code>eval_run</code>. One execution of an eval case, optionally linked to a <code>replay_run</code> that produced its inputs.</p>
+<p><strong>Evidence-backed memory.</strong> Memory whose <code>source_event_ids</code> include <code>observation</code> rows, not just message events. Lets the system answer “why do you believe this?” with a concrete observation.</p>
+<p><strong>Intent.</strong> A row in <code>intent</code>. The agent’s declared goal + proposed action class + resource targets + expected risk, formed before a tool call. Guard’s evaluation includes an intent–action alignment check.</p>
+<p><strong>Intent–action alignment.</strong> The check Guard performs against a proposed effect to verify it falls within the open <code>intent</code>’s declared scope. Failure produces <code>intent_action_mismatch</code>.</p>
+<p><strong>Intervention.</strong> A row in <code>intervention</code>. A first-class human steering action: pause, cancel, redirect, edit_context, deny_tool, change_model, add_instruction, restrict_permission, fork_replay, take_over_node. Interventions enter the causal graph.</p>
+<p><strong>Memory conflict.</strong> A row in <code>memory_conflict</code>. Two approved memories whose content contradicts; carries a <code>resolution_policy</code> the context engine consults before retrieval.</p>
+<p><strong>Model route decision.</strong> A row in <code>model_route_decision</code>. Records why a specific <code>model_route</code> was selected for a specific <code>model_call</code>, including candidates considered, privacy constraints, and fallbacks.</p>
+<p><strong>Observation.</strong> A row in <code>observation</code>. Structured evidence produced by an effect, with <code>evidence_type</code>, <code>confidence</code>, <code>verification_status</code>, optional <code>capsule_id</code>. Memory candidates reference observations to back beliefs with evidence.</p>
+<p><strong>Regret event.</strong> A row in <code>regret_event</code>. A captured bad outcome with causal event IDs and a suggested corrective action. Must be resolved by linking to a concrete change (policy, memory demotion, eval case, tool-schema update).</p>
+<p><strong>Sensitivity lineage.</strong> The property that sensitivity (and other capsule policy) flows through derivations. Realized by <code>capsule_membership</code> rows attached to derived objects, with strictest-wins composition when sources differ.</p>
+<p><strong>Session phase.</strong> The <code>session.phase</code> column. An explicit enum representing the agent’s current state: <code>idle</code>, <code>planning</code>, <code>building_context</code>, <code>calling_model</code>, <code>awaiting_approval</code>, <code>executing_tool</code>, <code>observing</code>, <code>reflecting</code>, <code>writing_memory</code>, <code>blocked</code>, <code>completed</code>, <code>failed</code>, <code>cancelled</code>.</p>
+<p><strong>Trust profile.</strong> A row in <code>trust_profile</code>. Behavior-derived score per <code>(actor, capability_area)</code>. Advisory only — escalates Guard’s scrutiny but does not grant authority.</p>
+<hr>
+<h2 id="ai-native--reliability-primitives-phase-1"><a class="header" href="#ai-native--reliability-primitives-phase-1">AI-native + reliability primitives (Phase 1+)</a></h2>
+<p>Defined in <code>/specs/15-actant-index.md</code>, <code>/specs/16-protocols.md</code>, <code>/specs/17-observability.md</code>, <code>/specs/18-reliability-primitives.md</code>.</p>
+<p><strong>ActantIndex.</strong> The retrieval subsystem. Owns hybrid dense+sparse+graph retrieval, reranking, semantic chunking, context packing, retrieval traces, retrieval evals.</p>
+<p><strong>Adaptive rate limiting.</strong> Ingests <code>RateLimit-*</code> headers from upstream providers and updates <code>rate_limit_state</code> so the next request knows to wait.</p>
+<p><strong>A2A.</strong> Agent-to-Agent protocol. ActantDB records peers (<code>a2a_card</code>), interactions (<code>a2a_interaction</code>), and gates outbound delegations through <code>delegation</code> rows + authority scopes.</p>
+<p><strong>AP2.</strong> Agent Payments Protocol. ActantDB records mandates (<code>ap2_mandate</code>), intents (<code>ap2_intent</code>), and transactions (<code>ap2_transaction</code>). Does NOT process payments.</p>
+<p><strong>ActantThrottle.</strong> Multi-axis rate limiter with token bucket / leaky bucket / fixed window / sliding window / concurrency / weighted-fair-queue algorithms.</p>
+<p><strong>ActantCircuit.</strong> Circuit breaker registry per <code>(workspace, dependency_key)</code>. States: <code>closed | open | half_open | degraded</code>. Drives <code>actant-models</code> fallback.</p>
+<p><strong>ActantLock.</strong> Lease-bounded resource locks (<code>lock:file:&lt;path&gt;</code>, <code>lock:ticket:&lt;id&gt;</code>, etc.).</p>
+<p><strong>ActantIngress.</strong> External event ingestion: webhooks, email, calendar, filesystem, MCP resources, A2A messages.</p>
+<p><strong>Cache entry.</strong> A row in <code>cache_entry</code>. Sensitivity-aware: secret-class never cached, high-class local-only, cross-actor reuse forbidden.</p>
+<p><strong>Capsule policy on retrieval.</strong> The rule that retrieval results inherit their source chunk’s capsule policy; a <code>local_only</code> chunk cannot enter a cloud-route retrieval result.</p>
+<p><strong>Chunk.</strong> A row in <code>index_chunk</code>. The unit of embedding. Modes: fixed-token, semantic, AST-code, markdown-section, PDF-layout, conversation-turn, tool-result, workflow-step, memory-evidence, multimodal-frame.</p>
+<p><strong>Compatible embedding space.</strong> A row in <code>embedding_space</code> declaring that two models produce interchangeable vectors (e.g. Voyage 4 family). Cross-space queries are rejected unless this declaration exists.</p>
+<p><strong>Dead-letter item.</strong> A row in <code>dead_letter_item</code>. An effect that exhausted retries; convertible to an <code>eval_case</code> via <code>actant dlq convert-to-eval</code>.</p>
+<p><strong>Effect lease.</strong> A row in <code>effect_claim</code>. Input-hash-bound mandate that a specific worker may execute a specific effect under a specific sandbox profile.</p>
+<p><strong>Embedder.</strong> A model that produces a vector from text/image/audio. Registered in <code>actant-embedders</code>.</p>
+<p><strong>Entity / Entity relation.</strong> Rows in <code>entity</code> and <code>entity_relation</code>. The graph layer of ActantIndex.</p>
+<p><strong>Failure-to-eval.</strong> The pipeline that converts a <code>dead_letter_item</code> into an <code>eval_case</code>: <code>actant dlq convert-to-eval &lt;id&gt;</code>.</p>
+<p><strong>Hybrid retrieval.</strong> Default retrieval mode: dense + sparse + reranker. See ADR-0012.</p>
+<p><strong>Idempotency record.</strong> A row in <code>idempotency_record</code>. Universal — every command + effect.</p>
+<p><strong>Ingress event.</strong> A row in <code>ingress_event</code>. A verified external event awaiting trigger dispatch.</p>
+<p><strong>Local-first embedder.</strong> An embedder that runs on-device (FastEmbed, MLX, llama.cpp). Default per ADR-0014.</p>
+<p><strong>MCP server / resource / prompt.</strong> Records in <code>mcp_server</code>, <code>mcp_resource</code>, <code>mcp_prompt</code>. MCP tools register as ordinary <code>tool</code> rows with <code>kind='mcp'</code>.</p>
+<p><strong>Model registry.</strong> A row in <code>model_registry</code>. Per-model capability metadata used by the router.</p>
+<p><strong>Model route decision.</strong> A row in <code>model_route_decision</code>. Records why a specific route was chosen for a specific <code>model_call</code>.</p>
+<p><strong>Multivector ref.</strong> A row in <code>multivector_ref</code>. Late-interaction (ColBERT-class) retrieval vectors per chunk.</p>
+<p><strong>OpenInference span kind.</strong> The attribute used by trace consumers (Phoenix/Arize/LangSmith) to classify a span. ActantDB sets it on every span per ADR-0015.</p>
+<p><strong>OTel GenAI conventions.</strong> OpenTelemetry’s semantic conventions for generative-AI spans, metrics, and events. ActantDB emits compatible spans per ADR-0015.</p>
+<p><strong>Prompt template / version.</strong> Rows in <code>prompt_template</code> and <code>prompt_version</code>. Versioned artifacts that replay re-renders for any prior model call.</p>
+<p><strong>Rate limit policy / state.</strong> Rows in <code>rate_limit_policy</code> and <code>rate_limit_state</code>. The configuration and runtime state of a single throttle rule.</p>
+<p><strong>Reranker.</strong> A model that scores candidate documents against a query directly. Local cross-encoder default; Cohere / Voyage / Jina available. Always emits a <code>reason_selected</code>.</p>
+<p><strong>Retrieval trace / candidate.</strong> Rows in <code>retrieval_trace</code> and <code>retrieval_candidate</code>. Inspectable record of every retrieval: included, blocked, why.</p>
+<p><strong>Retry policy.</strong> A row in <code>retry_policy</code>. Declarative retry configuration referenced by effects and workflow nodes.</p>
+<p><strong>Sparse encoder.</strong> An encoder that produces a sparse vector (BM25, SPLADE-v3, BM42).</p>
+<p><strong>Universal idempotency.</strong> ADR-0017 — every command and effect carries an idempotency key.</p>
+<hr>
+<h2 id="performance-discipline-phase-1"><a class="header" href="#performance-discipline-phase-1">Performance discipline (Phase 1+)</a></h2>
+<p>Defined in <code>/specs/19-performance-architecture.md</code>. ADRs 0018-0020.</p>
+<p><strong>Admission control.</strong> The kernel’s policy of refusing expensive work on the hot path (e.g. deep retrieval, graph expansion, compliance trace) and redirecting it to async lanes. Profiles in <code>/planning/performance-budgets.md</code>.</p>
+<p><strong>Async lane.</strong> A subscriber to the chronicle that does asynchronous work and writes back through commands. Lane catalog: <code>/planning/lane-catalog.md</code>. ADR-0018.</p>
+<p><strong>Capability token.</strong> A compact compiled representation of an actor’s authority, refreshed at session/workflow start. Hot-path authority checks read the token in microseconds rather than re-evaluating policy.</p>
+<p><strong>Compiled policy decision DAG.</strong> Policy bundles compile into a decision graph indexed by <code>(effect_type, actor_kind, resource_kind, sensitivity, workflow_mode, approval_mode)</code>. Lookup is array-indexed, not string-matched.</p>
+<p><strong>Deployment mode.</strong> A workspace-level flag (<code>local-fast</code>, <code>developer</code>, <code>team</code>, <code>enterprise</code>, <code>regulated</code>, <code>research</code>) controlling which async lanes are enabled. ADR-0020.</p>
+<p><strong>Freshness target.</strong> A per-lane latency goal measured between trigger event and lane completion. Reported as the <code>lane_freshness_seconds</code> metric.</p>
+<p><strong>Hot kernel.</strong> <code>actant-kernel</code>. The only crate that runs synchronously in the command path. ADR-0018.</p>
+<p><strong>Hot projection tier (L0).</strong> In-memory cache of active sessions, pending approvals, leases, budgets, worker health, capability tokens, rate-limit/circuit state, hot memory shortlists. WAL-backed and reconstructable from the event log.</p>
+<p><strong>Latency budget.</strong> The p50 / p99 wall-clock target for a hot-path operation. Enforced in CI by the <code>bench/</code> harness. Catalog: <code>/planning/performance-budgets.md</code>.</p>
+<p><strong>Lane.</strong> Short for <em>async lane</em>.</p>
+<p><strong>Progressive enrichment.</strong> ADR-0019 — write minimal facts immediately; lanes fill in richness later through enrichment fields with <code>lane_status</code>.</p>
+<p><strong>Retrieval profile.</strong> Admission-controlled retrieval configuration (<code>fast</code>, <code>balanced</code>, <code>deep</code>, <code>local_private</code>, <code>degraded</code>) chosen per request by <code>actant-index::plan</code> based on latency goal, sensitivity, budget, complexity, and backpressure.</p>
+<p><strong>Storage tier (L0-L5).</strong> L0 in-memory hot projections, L1 event log WAL, L2 projection tables, L3 semantic/sparse indexes, L4 artifact/blob store, L5 cold archive.</p>
+<hr>
+<h2 id="verification"><a class="header" href="#verification">Verification</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"> Every term used in another spec file appears here.</li>
+<li><input disabled="" type="checkbox"> Every term here is used at least once outside this file (so the glossary doesn’t drift from the specs).</li>
+<li><input disabled="" type="checkbox"> Definitions reference rows or tables by their exact names from <code>02-data-model.sql</code>.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../specs/11-roadmap.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../specs/13-actant-contract.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../specs/11-roadmap.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../specs/13-actant-contract.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

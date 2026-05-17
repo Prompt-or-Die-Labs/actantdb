@@ -1,0 +1,49 @@
+# Default values for the actantdb chart.
+replicaCount: 1
+
+image:
+  repository: ghcr.io/actantdb/actantdb-server
+  tag: ""              # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 4555
+
+# Storage backend.
+storage:
+  # One of: "sqlite" (single replica only) or "postgres".
+  backend: "postgres"
+  # Used when backend == "sqlite". Mounted into the pod.
+  sqlite:
+    persistence:
+      enabled: true
+      size: 1Gi
+  # Used when backend == "postgres".
+  postgres:
+    # If empty, the chart will provision a Postgres deployment + service.
+    externalUrl: ""
+    auth:
+      username: actantdb
+      password: ""       # required if no externalUrl
+
+# Optional ingress (NGINX-compatible).
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: actantdb.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+env: []                  # extra env entries (auth secrets, OIDC issuer, etc.)

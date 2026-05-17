@@ -1,0 +1,875 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>14 — Extended primitives - ActantDB — Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The autonomous-action backend. Substrate specs, SDK references, deployment guide, SLOs.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "../searchindex-5439e66d.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-d9af1dd0.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">ActantDB — Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/actantdb/actantdb" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/actantdb/actantdb/edit/main/docs/src/src/specs/14-extended-primitives.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="14--extended-primitives"><a class="header" href="#14--extended-primitives">14 — Extended primitives</a></h1>
+<p>This document specifies the <strong>new first-class primitives</strong> introduced by the Actant Contract (<code>specs/13-actant-contract.md</code>). They extend — they do not replace — the Phase 1 model in specs 00–12.</p>
+<p>Each primitive section follows the same shape: <strong>purpose, schema, commands, events, invariants</strong>.</p>
+<p>Sections:</p>
+<ol>
+<li>Intent</li>
+<li>Observation (structured)</li>
+<li>Capsule + sensitivity lineage</li>
+<li>Delegation</li>
+<li>Budget</li>
+<li>Regret event</li>
+<li>Eval case</li>
+<li>Memory conflict</li>
+<li>Intervention</li>
+<li>Trust profile</li>
+<li>Compensation plan</li>
+<li>Model route decision</li>
+<li>Context debt</li>
+<li>Autonomy drift</li>
+<li>Effect lease (rich form)</li>
+<li>Cross-cutting column additions</li>
+<li>Phase staging</li>
+</ol>
+<hr>
+<h2 id="1-intent"><a class="header" href="#1-intent">1. Intent</a></h2>
+<h3 id="purpose"><a class="header" href="#purpose">Purpose</a></h3>
+<p>Separate <strong>desire</strong> from <strong>action</strong>. Before a tool call enters Guard, the agent declares an intent. Guard’s evaluation then includes an <strong>intent–action alignment</strong> check: is the proposed effect plausibly within the declared intent’s scope?</p>
+<p>This is the layer that catches “agent declared <code>inspect tests</code>, proposed <code>rm -rf ~/.ssh</code>.”</p>
+<h3 id="schema"><a class="header" href="#schema">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE intent (
+    id                          TEXT PRIMARY KEY,
+    workspace_id                TEXT NOT NULL REFERENCES workspace(id),
+    actor_id                    TEXT NOT NULL REFERENCES actor(id),
+    session_id                  TEXT REFERENCES session(id),
+    workflow_run_id             TEXT REFERENCES workflow_run(id),
+    goal                        TEXT NOT NULL,        -- short natural-language description
+    proposed_action_class       TEXT NOT NULL,        -- e.g. 'file.inspect' | 'shell.read_only' | 'memory.write'
+    resource_targets            TEXT NOT NULL,        -- JSON array of glob patterns
+    expected_benefit            TEXT,
+    expected_risk               TEXT NOT NULL,        -- 'low' | 'medium' | 'high' | 'critical'
+    policy_hint                 TEXT,
+    created_from_context_build_id TEXT REFERENCES context_build(id),
+    status                      TEXT NOT NULL,        -- 'open' | 'fulfilled' | 'abandoned' | 'mutated'
+    created_at                  TEXT NOT NULL,
+    closed_at                   TEXT
+);
+
+CREATE INDEX idx_intent_session ON intent(session_id, status);
+CREATE INDEX idx_intent_actor   ON intent(actor_id, status);
+</code></pre>
+<h3 id="commands"><a class="header" href="#commands">Commands</a></h3>
+<ul>
+<li><code>form_intent</code> — agent declares an intent.</li>
+<li><code>fulfill_intent</code> — link an effect to the intent it satisfies.</li>
+<li><code>mutate_intent</code> — agent revises a still-open intent (creates a new <code>intent</code> row with <code>status='mutated'</code> on the old).</li>
+<li><code>abandon_intent</code> — mark unsatisfied (records reason).</li>
+</ul>
+<h3 id="events"><a class="header" href="#events">Events</a></h3>
+<pre><code>intent_formed
+intent_fulfilled
+intent_mutated
+intent_abandoned
+intent_action_mismatch                  -- emitted by Guard when alignment fails
+</code></pre>
+<h3 id="invariants"><a class="header" href="#invariants">Invariants</a></h3>
+<ul>
+<li>A <code>tool_call</code> produced by an <code>agent</code>-kind actor MUST reference an open <code>intent_id</code>.</li>
+<li>A Guard decision of <code>Deny</code> with reason <code>intent_mismatch</code> MUST emit <code>intent_action_mismatch</code> and link to the intent + the would-be effect.</li>
+<li>A <code>fulfill_intent</code> command can reference at most one open intent per effect; an effect may fulfil zero or one intents.</li>
+<li>See §14 (Autonomy drift) for the scoring that turns repeated mismatches into a drift signal.</li>
+</ul>
+<hr>
+<h2 id="2-observation-structured"><a class="header" href="#2-observation-structured">2. Observation (structured)</a></h2>
+<h3 id="purpose-1"><a class="header" href="#purpose-1">Purpose</a></h3>
+<p>A tool result is not a string pasted into chat. It is structured evidence. Phase 1 emits <code>effect_observed</code> events; this primitive adds a typed projection row that memory, context, and workflows can reference as <em>evidence</em>.</p>
+<h3 id="schema-1"><a class="header" href="#schema-1">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE observation (
+    id                  TEXT PRIMARY KEY,
+    workspace_id        TEXT NOT NULL REFERENCES workspace(id),
+    source_effect_id    TEXT NOT NULL REFERENCES effect(id),
+    evidence_type       TEXT NOT NULL,    -- 'shell_result' | 'file_content' | 'http_response'
+                                          -- | 'browser_snapshot' | 'model_output' | 'human_input'
+                                          -- | 'workflow_state' | 'metric'
+    summary             TEXT NOT NULL,
+    raw_artifact_ref    TEXT,
+    confidence          REAL NOT NULL DEFAULT 1.0,
+    sensitivity         TEXT NOT NULL,
+    capsule_id          TEXT REFERENCES capsule(id),
+    created_by_worker_id TEXT REFERENCES worker(id),
+    verification_status TEXT NOT NULL,    -- 'unverified' | 'self_verified' | 'cross_verified' | 'disputed'
+    created_at          TEXT NOT NULL
+);
+
+CREATE INDEX idx_observation_source ON observation(source_effect_id);
+</code></pre>
+<h3 id="commands-1"><a class="header" href="#commands-1">Commands</a></h3>
+<ul>
+<li><code>record_observation</code> — worker emits a structured observation alongside <code>complete_effect</code>.</li>
+<li><code>verify_observation</code> — a second actant marks the observation <code>cross_verified</code> (or <code>disputed</code>).</li>
+</ul>
+<h3 id="events-1"><a class="header" href="#events-1">Events</a></h3>
+<pre><code>observation_recorded
+observation_verified
+observation_disputed
+</code></pre>
+<h3 id="invariants-1"><a class="header" href="#invariants-1">Invariants</a></h3>
+<ul>
+<li>Every observation references exactly one source effect; deleting an effect’s payload tombstones its observation summary but keeps the row skeleton.</li>
+<li>A <code>memory_candidate</code> MAY (and SHOULD when possible) reference an <code>observation_id</code> in <code>source_event_ids</code> to back the candidate with evidence.</li>
+</ul>
+<hr>
+<h2 id="3-capsule--sensitivity-lineage"><a class="header" href="#3-capsule--sensitivity-lineage">3. Capsule + sensitivity lineage</a></h2>
+<h3 id="purpose-2"><a class="header" href="#purpose-2">Purpose</a></h3>
+<p>A <strong>data capsule</strong> bundles content with policy. Anything derived from a capsule inherits the capsule’s policy. This is the mechanism behind §8 of <code>13-actant-contract.md</code>: <em>sensitivity travels.</em></p>
+<h3 id="schema-2"><a class="header" href="#schema-2">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE capsule (
+    id                          TEXT PRIMARY KEY,
+    workspace_id                TEXT NOT NULL REFERENCES workspace(id),
+    name                        TEXT NOT NULL,
+    created_by_actor_id         TEXT NOT NULL REFERENCES actor(id),
+    sensitivity                 TEXT NOT NULL,
+    visibility                  TEXT NOT NULL,        -- space-separated tags
+    sync_policy                 TEXT NOT NULL,        -- 'local_only' | 'metadata_only' | 'team_sync' | 'cloud_sync' | 'hash_only' | 'encrypted_sync' | 'never_sync'
+    retention_policy            TEXT NOT NULL,        -- e.g. 'P30D' | 'P1Y' | 'forever'
+    redaction_policy            TEXT,
+    cloud_model_allowed         INTEGER NOT NULL,     -- 0/1
+    memory_allowed              TEXT NOT NULL,        -- 'true' | 'false' | 'review_only'
+    upgrades_to_sensitivity     TEXT,                 -- if combined with named features, upgrade to this
+    created_at                  TEXT NOT NULL,
+    retired_at                  TEXT
+);
+
+CREATE TABLE capsule_membership (
+    id                  TEXT PRIMARY KEY,
+    capsule_id          TEXT NOT NULL REFERENCES capsule(id),
+    object_type         TEXT NOT NULL,    -- 'memory' | 'context_item' | 'artifact' | 'observation' | 'message'
+    object_id           TEXT NOT NULL,
+    created_at          TEXT NOT NULL,
+    UNIQUE (capsule_id, object_type, object_id)
+);
+
+CREATE INDEX idx_capsule_membership_object ON capsule_membership(object_type, object_id);
+</code></pre>
+<h3 id="commands-2"><a class="header" href="#commands-2">Commands</a></h3>
+<ul>
+<li><code>create_capsule</code> — define a capsule with policy.</li>
+<li><code>attach_to_capsule</code> — bind a derived object to its source capsule.</li>
+<li><code>retire_capsule</code> — stop new memberships; existing ones still inherit.</li>
+</ul>
+<h3 id="events-2"><a class="header" href="#events-2">Events</a></h3>
+<pre><code>capsule_created
+object_attached_to_capsule
+capsule_retired
+capsule_policy_blocked   -- emitted when an operation was denied because of capsule policy
+</code></pre>
+<h3 id="invariants-lineage-rules"><a class="header" href="#invariants-lineage-rules">Invariants (lineage rules)</a></h3>
+<ul>
+<li>When a <code>context_item</code> is derived from a source object, the context engine MUST resolve the source’s capsule (if any) and copy its policy to the new item. Visibility and sensitivity propagate; the item cannot weaken either.</li>
+<li>When the same context build draws from multiple capsules, the result inherits the <strong>strictest</strong> policy across all parents.</li>
+<li>Sensitivity-upgrade rules in <code>13-actant-contract.md</code> §8 are realized as <code>capsule.upgrades_to_sensitivity</code> plus a workspace-level rule table (Phase 3+).</li>
+</ul>
+<hr>
+<h2 id="4-delegation"><a class="header" href="#4-delegation">4. Delegation</a></h2>
+<h3 id="purpose-3"><a class="header" href="#purpose-3">Purpose</a></h3>
+<p>Explicit authority transfer from a parent actor to a child (subagent). Replaces implicit “the subagent inherits everything I have.”</p>
+<h3 id="schema-3"><a class="header" href="#schema-3">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE delegation (
+    id                          TEXT PRIMARY KEY,
+    workspace_id                TEXT NOT NULL REFERENCES workspace(id),
+    parent_actor_id             TEXT NOT NULL REFERENCES actor(id),
+    child_actor_id              TEXT NOT NULL REFERENCES actor(id),
+    goal                        TEXT NOT NULL,
+    allowed_context_refs        TEXT NOT NULL,        -- JSON array of context_item.id
+    authority_scope_ids         TEXT NOT NULL,        -- JSON array of authority_scope.id (subset of parent's)
+    budget_id                   TEXT REFERENCES budget(id),
+    deadline                    TEXT,
+    return_channel              TEXT NOT NULL,        -- 'session' | 'workflow' | 'webhook' | 'inbox'
+    status                      TEXT NOT NULL,        -- 'active' | 'completed' | 'expired' | 'revoked' | 'failed'
+    started_at                  TEXT NOT NULL,
+    ended_at                    TEXT
+);
+
+CREATE INDEX idx_delegation_child ON delegation(child_actor_id, status);
+</code></pre>
+<h3 id="commands-3"><a class="header" href="#commands-3">Commands</a></h3>
+<ul>
+<li><code>delegate</code> — create a delegation. Validates that every <code>authority_scope_id</code> is owned by <code>parent_actor_id</code> and that the child has <code>actor.kind in ('subagent', 'agent')</code>.</li>
+<li><code>revoke_delegation</code> — parent (or admin) revokes; the child loses delegated scopes immediately.</li>
+<li><code>complete_delegation</code> — child reports outcome via <code>return_channel</code>.</li>
+</ul>
+<h3 id="events-3"><a class="header" href="#events-3">Events</a></h3>
+<pre><code>delegation_started
+delegation_revoked
+delegation_completed
+delegation_expired
+delegation_authority_overrun       -- emitted when child tried to use authority outside the delegation
+</code></pre>
+<h3 id="invariants-2"><a class="header" href="#invariants-2">Invariants</a></h3>
+<ul>
+<li>A child actor’s authority while a delegation is <code>active</code> is restricted to the union of its own scopes AND the delegated scopes.</li>
+<li>Closing a delegation MUST emit <code>delegation_completed</code> (with outcome) or <code>delegation_expired</code> (with deadline reached).</li>
+<li>A child cannot delegate further unless the parent granted <code>delegation.may_subdelegate=true</code> (Phase 3 column).</li>
+</ul>
+<hr>
+<h2 id="5-budget"><a class="header" href="#5-budget">5. Budget</a></h2>
+<h3 id="purpose-4"><a class="header" href="#purpose-4">Purpose</a></h3>
+<p>Agents spend more than tokens. A budget bounds <strong>autonomy</strong>: token, cost, time, tool-call, risk, approval, memory-write, file-write, external-message budgets. When the bound is reached, the actor halts or escalates.</p>
+<h3 id="schema-4"><a class="header" href="#schema-4">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE budget (
+    id                  TEXT PRIMARY KEY,
+    workspace_id        TEXT NOT NULL REFERENCES workspace(id),
+    actor_id            TEXT REFERENCES actor(id),
+    session_id          TEXT REFERENCES session(id),
+    workflow_run_id     TEXT REFERENCES workflow_run(id),
+    delegation_id       TEXT REFERENCES delegation(id),
+    budget_type         TEXT NOT NULL,    -- 'tokens' | 'cost_usd' | 'time_seconds' | 'tool_calls'
+                                          -- | 'risk_score' | 'approvals' | 'memory_writes'
+                                          -- | 'file_writes' | 'external_messages'
+    limit_value         REAL NOT NULL,
+    used_value          REAL NOT NULL DEFAULT 0,
+    reset_policy        TEXT,             -- 'session' | 'daily' | 'manual' | 'never'
+    enforcement_action  TEXT NOT NULL,    -- 'halt' | 'escalate' | 'warn'
+    last_reset_at       TEXT,
+    created_at          TEXT NOT NULL
+);
+
+CREATE INDEX idx_budget_actor ON budget(actor_id, budget_type);
+</code></pre>
+<h3 id="commands-4"><a class="header" href="#commands-4">Commands</a></h3>
+<ul>
+<li><code>set_budget</code> — create or update a budget.</li>
+<li><code>consume_budget</code> — atomic increment of <code>used_value</code>. Returns the remaining; raises if exceeded and <code>enforcement_action='halt'</code>.</li>
+<li><code>reset_budget</code> — manual reset, or scheduled by <code>reset_policy</code>.</li>
+</ul>
+<h3 id="events-4"><a class="header" href="#events-4">Events</a></h3>
+<pre><code>budget_set
+budget_consumed                         -- emitted only for significant consumption (configurable threshold)
+budget_warning                          -- crossed soft threshold (e.g. 80%)
+budget_exceeded                         -- with enforcement_action
+budget_reset
+</code></pre>
+<h3 id="invariants-3"><a class="header" href="#invariants-3">Invariants</a></h3>
+<ul>
+<li>Every command that requests an effect MUST verify required budgets before enqueuing. A budget overrun with <code>enforcement_action='halt'</code> produces <code>policy_blocked</code> with <code>decision_reason='budget_exceeded'</code>.</li>
+<li>Budget rows are write-once for <code>limit_value</code>; changing a limit creates a new <code>budget</code> row that supersedes the old.</li>
+</ul>
+<hr>
+<h2 id="6-regret-event"><a class="header" href="#6-regret-event">6. Regret event</a></h2>
+<h3 id="purpose-5"><a class="header" href="#purpose-5">Purpose</a></h3>
+<p>Capture bad outcomes as structured records that feed back into memory, policy, and evals. The system turns failure into improvement.</p>
+<h3 id="schema-5"><a class="header" href="#schema-5">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE regret_event (
+    id                          TEXT PRIMARY KEY,
+    workspace_id                TEXT NOT NULL REFERENCES workspace(id),
+    bad_outcome_type            TEXT NOT NULL,    -- 'user_correction' | 'tool_failure' | 'approval_denied'
+                                                  -- | 'workflow_aborted' | 'memory_corrected'
+                                                  -- | 'test_regression' | 'policy_violation'
+                                                  -- | 'unintended_effect'
+    causal_event_ids            TEXT NOT NULL,    -- JSON array
+    suspected_failure_mode      TEXT,
+    suggested_corrective_action TEXT,             -- JSON: { type: 'demote_memory'|'add_policy'|'update_tool_schema'|'create_eval', ... }
+    severity                    TEXT NOT NULL,    -- 'low' | 'medium' | 'high' | 'critical'
+    status                      TEXT NOT NULL,    -- 'open' | 'acknowledged' | 'resolved' | 'wontfix'
+    created_by_actor_id         TEXT NOT NULL REFERENCES actor(id),
+    resolved_by_actor_id        TEXT REFERENCES actor(id),
+    created_at                  TEXT NOT NULL,
+    resolved_at                 TEXT
+);
+</code></pre>
+<h3 id="commands-5"><a class="header" href="#commands-5">Commands</a></h3>
+<ul>
+<li><code>file_regret</code> — anyone (user, agent, evaluator) can file.</li>
+<li><code>acknowledge_regret</code> — a responsible actor accepts ownership.</li>
+<li><code>resolve_regret</code> — links to the action taken (memory demotion, policy change, eval creation).</li>
+</ul>
+<h3 id="events-5"><a class="header" href="#events-5">Events</a></h3>
+<pre><code>regret_filed
+regret_acknowledged
+regret_resolved
+regret_wontfix
+</code></pre>
+<h3 id="invariants-4"><a class="header" href="#invariants-4">Invariants</a></h3>
+<ul>
+<li>A regret’s <code>causal_event_ids</code> MUST all exist and share <code>workspace_id</code>.</li>
+<li>A <code>resolve_regret</code> MUST reference at least one concrete corrective action (a new <code>policy</code> row, a <code>memory_candidate</code> rejection, an <code>eval_case</code>, etc.).</li>
+</ul>
+<hr>
+<h2 id="7-eval-case"><a class="header" href="#7-eval-case">7. Eval case</a></h2>
+<h3 id="purpose-6"><a class="header" href="#purpose-6">Purpose</a></h3>
+<p>Evals derived from real production traces. When a replay shows a failure mode, the system can crystallize it into an eval that runs forever after.</p>
+<h3 id="schema-6"><a class="header" href="#schema-6">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE eval_case (
+    id                  TEXT PRIMARY KEY,
+    workspace_id        TEXT NOT NULL REFERENCES workspace(id),
+    name                TEXT NOT NULL,
+    source_replay_run_id TEXT REFERENCES replay_run(id),
+    source_regret_id    TEXT REFERENCES regret_event(id),
+    checkpoint_id       TEXT REFERENCES replay_checkpoint(id),
+    expected_behavior   TEXT NOT NULL,
+    forbidden_behavior  TEXT,
+    success_criteria    TEXT NOT NULL,    -- JSON DSL (Phase 2 spec)
+    policy_constraints  TEXT,
+    enabled             INTEGER NOT NULL DEFAULT 1,
+    created_at          TEXT NOT NULL,
+    last_run_at         TEXT,
+    last_pass           INTEGER             -- 0/1/NULL
+);
+
+CREATE TABLE eval_run (
+    id              TEXT PRIMARY KEY,
+    eval_case_id    TEXT NOT NULL REFERENCES eval_case(id),
+    replay_run_id   TEXT REFERENCES replay_run(id),
+    started_at      TEXT NOT NULL,
+    finished_at     TEXT,
+    passed          INTEGER,                -- 0/1
+    failure_detail_ref TEXT
+);
+</code></pre>
+<h3 id="commands-6"><a class="header" href="#commands-6">Commands</a></h3>
+<ul>
+<li><code>create_eval_from_replay</code> — given a replay_run and a description, mint an eval_case.</li>
+<li><code>run_eval</code> — re-execute the eval (kicks off a fresh replay under the eval’s constraints).</li>
+<li><code>disable_eval</code> / <code>enable_eval</code>.</li>
+</ul>
+<h3 id="events-6"><a class="header" href="#events-6">Events</a></h3>
+<pre><code>eval_case_created
+eval_run_started
+eval_run_passed
+eval_run_failed
+</code></pre>
+<h3 id="invariants-5"><a class="header" href="#invariants-5">Invariants</a></h3>
+<ul>
+<li>An eval whose <code>checkpoint_id</code> no longer resolves (snapshots purged) MUST be disabled and emit <code>eval_case_orphaned</code>.</li>
+</ul>
+<hr>
+<h2 id="8-memory-conflict"><a class="header" href="#8-memory-conflict">8. Memory conflict</a></h2>
+<h3 id="purpose-7"><a class="header" href="#purpose-7">Purpose</a></h3>
+<p>Two approved memories that contradict each other are first-class — not silently picked-one-of-them at retrieval time.</p>
+<h3 id="schema-7"><a class="header" href="#schema-7">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE memory_conflict (
+    id                          TEXT PRIMARY KEY,
+    workspace_id                TEXT NOT NULL REFERENCES workspace(id),
+    memory_a_id                 TEXT NOT NULL REFERENCES memory(id),
+    memory_b_id                 TEXT NOT NULL REFERENCES memory(id),
+    conflict_type               TEXT NOT NULL,    -- 'contradiction' | 'overlap' | 'supersedes' | 'context_dependent'
+    resolution_policy           TEXT,             -- 'newer_wins' | 'human_review_required'
+                                                  -- | 'context_specific' | 'model_decides_with_explanation'
+    last_resolved_at            TEXT,
+    detected_at                 TEXT NOT NULL,
+    UNIQUE (memory_a_id, memory_b_id)
+);
+</code></pre>
+<h3 id="commands-7"><a class="header" href="#commands-7">Commands</a></h3>
+<ul>
+<li><code>detect_memory_conflict</code> — invoked by the memory engine (Phase 3+) or by a reviewer.</li>
+<li><code>set_conflict_resolution</code> — choose how the engine picks between the two when both match a query.</li>
+<li><code>resolve_conflict</code> — supersede one with the other.</li>
+</ul>
+<h3 id="events-7"><a class="header" href="#events-7">Events</a></h3>
+<pre><code>memory_conflict_detected
+memory_conflict_resolved
+</code></pre>
+<h3 id="invariants-6"><a class="header" href="#invariants-6">Invariants</a></h3>
+<ul>
+<li>The context engine MUST consult <code>memory_conflict</code> rows when more than one of the conflicting pair would otherwise enter a context build, and apply the <code>resolution_policy</code>.</li>
+</ul>
+<hr>
+<h2 id="9-intervention"><a class="header" href="#9-intervention">9. Intervention</a></h2>
+<h3 id="purpose-8"><a class="header" href="#purpose-8">Purpose</a></h3>
+<p>Human steering is a first-class command, not a side channel. Interventions enter the causal graph.</p>
+<h3 id="schema-8"><a class="header" href="#schema-8">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE intervention (
+    id                  TEXT PRIMARY KEY,
+    workspace_id        TEXT NOT NULL REFERENCES workspace(id),
+    actor_id            TEXT NOT NULL REFERENCES actor(id),    -- the human doing it
+    target_session_id   TEXT REFERENCES session(id),
+    target_workflow_run_id TEXT REFERENCES workflow_run(id),
+    target_event_id     TEXT REFERENCES agent_event(id),
+    intervention_type   TEXT NOT NULL,    -- 'pause' | 'cancel' | 'redirect' | 'edit_context'
+                                          -- | 'deny_tool' | 'change_model' | 'add_instruction'
+                                          -- | 'restrict_permission' | 'fork_replay' | 'take_over_node'
+    patch_ref           TEXT,             -- artifact ref to the change payload
+    reason              TEXT NOT NULL,
+    created_at          TEXT NOT NULL
+);
+</code></pre>
+<h3 id="commands-8"><a class="header" href="#commands-8">Commands</a></h3>
+<ul>
+<li><code>intervene</code> — single entry-point for all intervention types. The handler dispatches by <code>intervention_type</code>.</li>
+</ul>
+<h3 id="events-8"><a class="header" href="#events-8">Events</a></h3>
+<pre><code>intervention_applied
+intervention_failed
+</code></pre>
+<h3 id="invariants-7"><a class="header" href="#invariants-7">Invariants</a></h3>
+<ul>
+<li>Every intervention MUST be replayable: the patch and the target are captured exactly. A replay can re-execute the run with or without the intervention.</li>
+<li>Interventions are subject to authority — only actors with <code>intervention.&lt;type&gt;</code> permission may invoke them.</li>
+</ul>
+<hr>
+<h2 id="10-trust-profile"><a class="header" href="#10-trust-profile">10. Trust profile</a></h2>
+<h3 id="purpose-9"><a class="header" href="#purpose-9">Purpose</a></h3>
+<p>Authority is calibrated by behavior. Trust profiles aggregate operational signals so policy can adapt.</p>
+<h3 id="schema-9"><a class="header" href="#schema-9">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE trust_profile (
+    id                  TEXT PRIMARY KEY,
+    workspace_id        TEXT NOT NULL REFERENCES workspace(id),
+    actor_id            TEXT NOT NULL REFERENCES actor(id),
+    capability_area     TEXT NOT NULL,    -- 'shell.run' | 'file.write' | 'memory.write' | ...
+    score               REAL NOT NULL,    -- 0.0 .. 1.0
+    confidence          REAL NOT NULL,    -- 0.0 .. 1.0
+    sample_size         INTEGER NOT NULL,
+    last_updated        TEXT NOT NULL,
+    evidence_ref        TEXT,             -- artifact ref to evidence summary
+    UNIQUE (actor_id, capability_area)
+);
+</code></pre>
+<h3 id="commands-9"><a class="header" href="#commands-9">Commands</a></h3>
+<ul>
+<li><code>recalculate_trust</code> — system command, runs periodically.</li>
+<li><code>pin_trust</code> — admin override (recorded as an audit event so changes are visible).</li>
+</ul>
+<h3 id="events-9"><a class="header" href="#events-9">Events</a></h3>
+<pre><code>trust_recalculated
+trust_pinned
+trust_downgrade            -- crossed a threshold downward
+trust_upgrade              -- crossed a threshold upward
+</code></pre>
+<h3 id="invariants-8"><a class="header" href="#invariants-8">Invariants</a></h3>
+<ul>
+<li>Guard MAY consult <code>trust_profile</code> to escalate <code>risk_level</code> on a request from an actor with low trust in the relevant area; this must be visible in <code>decision_reason</code>.</li>
+</ul>
+<hr>
+<h2 id="11-compensation-plan"><a class="header" href="#11-compensation-plan">11. Compensation plan</a></h2>
+<h3 id="purpose-10"><a class="header" href="#purpose-10">Purpose</a></h3>
+<p>Approvals should show reversibility. Some tools can be undone or compensated; others cannot. Plans are first-class so the UI and the audit story can both reason about them.</p>
+<h3 id="schema-10"><a class="header" href="#schema-10">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE compensation_plan (
+    id                          TEXT PRIMARY KEY,
+    workspace_id                TEXT NOT NULL REFERENCES workspace(id),
+    effect_id                   TEXT NOT NULL REFERENCES effect(id),
+    undo_capability             TEXT NOT NULL,    -- 'reversible' | 'partial' | 'irreversible'
+    compensation_effect_type    TEXT,             -- e.g. 'file.write' to restore prior content
+    pre_state_artifact_ref      TEXT,             -- captured before the effect; required if 'reversible'
+    created_at                  TEXT NOT NULL,
+    consumed_at                 TEXT              -- non-null once compensation was used
+);
+</code></pre>
+<h3 id="commands-10"><a class="header" href="#commands-10">Commands</a></h3>
+<ul>
+<li><code>attach_compensation_plan</code> — created automatically by the command engine for tools with <code>undo_capability != 'irreversible'</code>.</li>
+<li><code>compensate_effect</code> — execute the compensation effect; consumes the plan.</li>
+</ul>
+<h3 id="events-10"><a class="header" href="#events-10">Events</a></h3>
+<pre><code>compensation_attached
+compensation_consumed
+compensation_failed
+</code></pre>
+<h3 id="invariants-9"><a class="header" href="#invariants-9">Invariants</a></h3>
+<ul>
+<li>Tools with <code>undo_capability='reversible'</code> MUST produce a <code>pre_state_artifact_ref</code> before the effect commits.</li>
+<li>A compensation plan can be consumed at most once; the row’s <code>consumed_at</code> is set inside the consume transaction.</li>
+</ul>
+<hr>
+<h2 id="12-model-route-decision"><a class="header" href="#12-model-route-decision">12. Model route decision</a></h2>
+<h3 id="purpose-11"><a class="header" href="#purpose-11">Purpose</a></h3>
+<p>Choosing a model is itself an agentic decision with provenance. Already-running auditors need to know why a route was chosen on a per-call basis.</p>
+<h3 id="schema-11"><a class="header" href="#schema-11">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE model_route_decision (
+    id                  TEXT PRIMARY KEY,
+    workspace_id        TEXT NOT NULL REFERENCES workspace(id),
+    model_call_id       TEXT NOT NULL REFERENCES model_call(id),
+    purpose             TEXT NOT NULL,
+    candidate_route_ids TEXT NOT NULL,    -- JSON array
+    selected_route_id   TEXT NOT NULL REFERENCES model_route(id),
+    selection_reason    TEXT NOT NULL,
+    privacy_constraints TEXT,
+    cost_estimate_usd   REAL,
+    latency_estimate_ms INTEGER,
+    fallbacks           TEXT,             -- JSON array of route_ids in order
+    created_at          TEXT NOT NULL
+);
+</code></pre>
+<h3 id="commands-11"><a class="header" href="#commands-11">Commands</a></h3>
+<p>Created implicitly by <code>request_model_call</code> once the route selector finishes. There is no user-facing command in Phase 2; Phase 4 may add <code>propose_route</code> for human override.</p>
+<h3 id="events-11"><a class="header" href="#events-11">Events</a></h3>
+<pre><code>model_route_selected
+model_route_fallback_used
+</code></pre>
+<h3 id="invariants-10"><a class="header" href="#invariants-10">Invariants</a></h3>
+<ul>
+<li>Every <code>model_call</code> has exactly one <code>model_route_decision</code>. The selector cannot run without producing one.</li>
+</ul>
+<hr>
+<h2 id="13-context-debt"><a class="header" href="#13-context-debt">13. Context debt</a></h2>
+<h3 id="purpose-12"><a class="header" href="#purpose-12">Purpose</a></h3>
+<p>An operational metric: how much hidden, stale, or low-confidence context the system is relying on. Surfaces as a number on a context build, with diagnostics.</p>
+<h3 id="schema-12"><a class="header" href="#schema-12">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE context_debt (
+    id                      TEXT PRIMARY KEY,
+    context_build_id        TEXT NOT NULL REFERENCES context_build(id),
+    score                   REAL NOT NULL,            -- 0.0 .. 1.0, higher = more debt
+    age_factor              REAL NOT NULL,
+    confidence_factor       REAL NOT NULL,
+    sensitivity_factor      REAL NOT NULL,
+    summarization_factor    REAL NOT NULL,
+    provenance_factor       REAL NOT NULL,
+    review_factor           REAL NOT NULL,
+    notes                   TEXT,
+    created_at              TEXT NOT NULL
+);
+</code></pre>
+<h3 id="commands-12"><a class="header" href="#commands-12">Commands</a></h3>
+<p>Created implicitly by the context engine at the end of <code>build_context</code>.</p>
+<h3 id="events-12"><a class="header" href="#events-12">Events</a></h3>
+<pre><code>context_debt_recorded
+context_debt_warning           -- crossed threshold for the workspace
+</code></pre>
+<h3 id="invariants-11"><a class="header" href="#invariants-11">Invariants</a></h3>
+<ul>
+<li>Context-debt warnings are advisory in Phase 2. Phase 4 may gate model calls above a debt threshold to require human acknowledgement.</li>
+</ul>
+<hr>
+<h2 id="14-autonomy-drift"><a class="header" href="#14-autonomy-drift">14. Autonomy drift</a></h2>
+<h3 id="purpose-13"><a class="header" href="#purpose-13">Purpose</a></h3>
+<p>Compute a drift score from <code>(declared intent vs actual effects, resources touched, risk escalation, unusual tool sequence)</code> and react when it crosses a threshold.</p>
+<h3 id="schema-13"><a class="header" href="#schema-13">Schema</a></h3>
+<pre><code class="language-sql">CREATE TABLE drift_signal (
+    id                      TEXT PRIMARY KEY,
+    workspace_id            TEXT NOT NULL REFERENCES workspace(id),
+    session_id              TEXT REFERENCES session(id),
+    workflow_run_id         TEXT REFERENCES workflow_run(id),
+    actor_id                TEXT NOT NULL REFERENCES actor(id),
+    score                   REAL NOT NULL,            -- 0.0 .. 1.0
+    components              TEXT NOT NULL,            -- JSON: { intent_mismatch, resource_mismatch, risk_escalation, sequence_unusual }
+    triggered_intervention_id TEXT REFERENCES intervention(id),
+    created_at              TEXT NOT NULL
+);
+</code></pre>
+<h3 id="commands-13"><a class="header" href="#commands-13">Commands</a></h3>
+<ul>
+<li><code>recompute_drift</code> — system command; runs after each tool_call or effect.</li>
+<li><code>enforce_drift_threshold</code> — Guard helper invoked when a drift_signal crosses the workspace threshold; may inject an <code>intervention</code> of type <code>pause</code> and emit <code>intent_action_mismatch</code>.</li>
+</ul>
+<h3 id="events-13"><a class="header" href="#events-13">Events</a></h3>
+<pre><code>drift_signal_recorded
+drift_threshold_crossed
+drift_intervention_applied
+</code></pre>
+<h3 id="invariants-12"><a class="header" href="#invariants-12">Invariants</a></h3>
+<ul>
+<li>A drift signal at or above <code>workspace.drift_threshold</code> MUST result in either a recorded intervention or an explicit human acknowledgement.</li>
+</ul>
+<hr>
+<h2 id="15-effect-lease-rich-form"><a class="header" href="#15-effect-lease-rich-form">15. Effect lease (rich form)</a></h2>
+<h3 id="purpose-14"><a class="header" href="#purpose-14">Purpose</a></h3>
+<p>Phase 1’s <code>effect_claim</code> is the minimum lease. Phase 2 extends it to bind a worker mandate explicitly.</p>
+<h3 id="schema-additions"><a class="header" href="#schema-additions">Schema additions</a></h3>
+<pre><code class="language-sql">ALTER TABLE effect_claim ADD COLUMN input_hash             TEXT;
+ALTER TABLE effect_claim ADD COLUMN permission_scope_ref   TEXT;  -- snapshot of authority that justified the claim
+ALTER TABLE effect_claim ADD COLUMN sandbox_policy_ref     TEXT;  -- e.g. "docker:read-only", "macos:project-only"
+ALTER TABLE effect_claim ADD COLUMN max_attempts           INTEGER;
+</code></pre>
+<h3 id="invariants-13"><a class="header" href="#invariants-13">Invariants</a></h3>
+<ul>
+<li>A worker’s effect execution MUST hash its actual inputs and refuse to proceed if the hash differs from <code>effect_claim.input_hash</code> — preventing argument tampering between scheduling and execution.</li>
+</ul>
+<hr>
+<h2 id="16-cross-cutting-column-additions"><a class="header" href="#16-cross-cutting-column-additions">16. Cross-cutting column additions</a></h2>
+<p>These are tiny but pervasive.</p>
+<pre><code class="language-sql">-- Chronicle becomes a causal DAG, not a chain.
+ALTER TABLE agent_event   ADD COLUMN causal_parent_ids TEXT;          -- JSON array of agent_event.id
+-- An explicit phase column on session enables agent state-machine UIs.
+ALTER TABLE session       ADD COLUMN phase             TEXT NOT NULL DEFAULT 'idle';
+-- Tools declare their reversibility and risk classifier.
+ALTER TABLE tool          ADD COLUMN undo_capability   TEXT NOT NULL DEFAULT 'irreversible';
+ALTER TABLE tool          ADD COLUMN risk_classifier_ref TEXT;        -- artifact ref to the classifier definition
+-- Memory carries scope/visibility/expiry constraints used by the context firewall.
+ALTER TABLE memory        ADD COLUMN allowed_contexts  TEXT;          -- JSON array
+ALTER TABLE memory        ADD COLUMN forbidden_contexts TEXT;
+ALTER TABLE memory        ADD COLUMN last_verified_at  TEXT;
+-- Capsule lineage for derived items.
+ALTER TABLE context_item  ADD COLUMN capsule_id        TEXT REFERENCES capsule(id);
+ALTER TABLE artifact      ADD COLUMN capsule_id        TEXT REFERENCES capsule(id);
+ALTER TABLE memory        ADD COLUMN capsule_id        TEXT REFERENCES capsule(id);
+ALTER TABLE memory_candidate ADD COLUMN capsule_id     TEXT REFERENCES capsule(id);
+-- Workspace-level drift threshold.
+ALTER TABLE workspace     ADD COLUMN drift_threshold   REAL NOT NULL DEFAULT 0.7;
+</code></pre>
+<h3 id="session-phase-enum"><a class="header" href="#session-phase-enum">Session phase enum</a></h3>
+<pre><code>idle              awaiting_approval
+planning          executing_tool
+building_context  observing
+calling_model     reflecting
+                  writing_memory
+                  blocked
+                  completed
+                  failed
+                  cancelled
+</code></pre>
+<p>Stored as snake_case strings in <code>session.phase</code>. The set is closed; new phases require a migration.</p>
+<hr>
+<h2 id="17-phase-staging"><a class="header" href="#17-phase-staging">17. Phase staging</a></h2>
+<p>The extended primitives ship across Phases 2–4. Phase 2 lands the core; Phase 3 lands lineage and self-improvement; Phase 4 lands fleet-level controls.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Phase</th><th>Primitive</th><th>Why this phase</th></tr>
+</thead>
+<tbody>
+<tr><td>2</td><td>Intent + intent-action alignment + autonomy drift</td><td>Lands with the effect-workers; needs alignment before risky tools execute.</td></tr>
+<tr><td>2</td><td>Observation (structured)</td><td>Lands with workers; workers emit them.</td></tr>
+<tr><td>2</td><td>Budget + delegation</td><td>Required for safe Phase 2 worker fleets.</td></tr>
+<tr><td>2</td><td>Compensation plan</td><td>Drops in alongside the file/shell workers.</td></tr>
+<tr><td>2</td><td>Session phase column + intervention</td><td>Needed the moment Studio shows live sessions.</td></tr>
+<tr><td>3</td><td>Capsule + sensitivity lineage</td><td>Requires the context engine of Phase 3.</td></tr>
+<tr><td>3</td><td>Memory conflict + memory <code>allowed_contexts</code> / <code>forbidden_contexts</code> / <code>last_verified_at</code></td><td>Requires the memory engine of Phase 3.</td></tr>
+<tr><td>3</td><td>Trust profile (initial scoring)</td><td>Needs a corpus of behavior; comes when telemetry exists.</td></tr>
+<tr><td>4</td><td>Regret event + eval case</td><td>Requires Flow Engine + Replay Engine, both Phase 4/5.</td></tr>
+<tr><td>5</td><td>Drift threshold gating</td><td>Refined once replay is in place.</td></tr>
+<tr><td>4</td><td>Model route decision</td><td>When real routing exists (multiple cloud routes).</td></tr>
+<tr><td>4</td><td>Context debt scoring</td><td>Tuned with real prompts in flight.</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="verification"><a class="header" href="#verification">Verification</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"> Every table introduced here has a column-by-column counterpart in <code>/migrations/0002_extended_primitives.sql</code>.</li>
+<li><input disabled="" type="checkbox"> Every new command appears either in a Phase 2/3/4 work package or in <code>agents/&lt;crate&gt;.md</code>’s “expanded scope” section.</li>
+<li><input disabled="" type="checkbox"> Every new event name follows the snake_case convention of <code>01-architecture.md</code> §1.</li>
+<li><input disabled="" type="checkbox"> Every cross-cutting <code>ALTER TABLE</code> is reflected in <code>/specs/02-data-model.sql</code>.</li>
+<li><input disabled="" type="checkbox"> No primitive in this file violates any invariant in <code>05-security-model.md</code> §2 (extends only).</li>
+<li><input disabled="" type="checkbox"> Every primitive is referenced from <code>13-actant-contract.md</code> (the framing remains the parent).</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../specs/13-actant-contract.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../specs/15-actant-index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../specs/13-actant-contract.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../specs/15-actant-index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

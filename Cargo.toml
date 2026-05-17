@@ -1,0 +1,176 @@
+[workspace]
+resolver = "2"
+members = [
+    # Phase 1 core
+    "crates/actant-core",
+    "crates/actant-storage",
+    "crates/actant-command",
+    "crates/actant-policy",
+    "crates/actant-effects",
+    "crates/actant-context",
+    "crates/actant-memory",
+    "crates/actant-flow",
+    "crates/actant-replay",
+    "crates/actant-subscribe",
+    "crates/actant-server",
+    "crates/actant-cli",
+    "crates/actant-sdk-codegen",
+    # Phase 2 — workers
+    "crates/actant-worker-protocol",
+    "crates/actant-worker-model",
+    "crates/actant-worker-shell",
+    "crates/actant-worker-file",
+    "crates/actant-worker-browser",
+    "crates/actant-worker-email",
+    "crates/actant-worker-mcp",
+    "crates/actant-worker-slack",
+    "crates/actant-worker-manager",
+    # Phase 3 — context/memory companions
+    "crates/actant-embed",
+    "crates/actant-capsule",
+    "crates/actant-trust",
+    # Phase 4 — triggers + evals
+    "crates/actant-trigger",
+    "crates/actant-eval",
+    # Phase 6 — cluster
+    "crates/actant-sync",
+    "crates/actant-audit-export",
+    # CLI product surface (Phase 1+, expanded through Phase 4)
+    "crates/actant-templates",
+    "crates/actant-schema-dsl",
+    "crates/actant-codegen-project",
+    # AI-native retrieval + protocols + observability (Phase 1-4)
+    "crates/actant-index",
+    "crates/actant-embedders",
+    "crates/actant-prompts",
+    "crates/actant-models",
+    "crates/actant-cache",
+    "crates/actant-trace",
+    "crates/actant-protocol",
+    # Reliability primitives (Phase 1+)
+    "crates/actant-throttle",
+    "crates/actant-circuit",
+    "crates/actant-lock",
+    "crates/actant-ingress",
+    # Hot-path coordinator (Phase 1, lands with the core kernel discipline)
+    "crates/actant-kernel",
+    # F2/F3 prevention (post-pivot, 2026-05-17) — TS-native default + contract-first build
+    "crates/actant-contracts",   # single source of truth for every public type
+    "crates/actant-napi",        # Node native addon (bundled inside @actantdb/core)
+    "crates/actant-wasm",        # WASM fallback (bundled inside @actantdb/core)
+    # Phase 6 — cloud / team
+    "crates/actant-auth",        # OIDC/JWT session minting
+    "crates/actant-tenant",      # multi-tenant boundary helpers
+    "crates/actant-drift",       # autonomy-drift detection
+    "crates/actant-compensation", # compensation-plan generator
+    # Benchmarks (cross-phase track per /specs/11-roadmap.md)
+    "bench",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.75"
+license = "Apache-2.0"
+repository = "https://github.com/actantdb/actantdb"
+authors = ["The ActantDB Authors"]
+
+[workspace.dependencies]
+# Internal crates
+actant-core         = { path = "crates/actant-core",         version = "0.0.1" }
+actant-storage      = { path = "crates/actant-storage",      version = "0.0.1" }
+actant-cli          = { path = "crates/actant-cli",          version = "0.0.1" }
+actant-command      = { path = "crates/actant-command",      version = "0.0.1" }
+actant-policy       = { path = "crates/actant-policy",       version = "0.0.1" }
+actant-effects      = { path = "crates/actant-effects",      version = "0.0.1" }
+actant-context      = { path = "crates/actant-context",      version = "0.0.1" }
+actant-memory       = { path = "crates/actant-memory",       version = "0.0.1" }
+actant-flow         = { path = "crates/actant-flow",         version = "0.0.1" }
+actant-replay       = { path = "crates/actant-replay",       version = "0.0.1" }
+actant-subscribe    = { path = "crates/actant-subscribe",    version = "0.0.1" }
+actant-server       = { path = "crates/actant-server",       version = "0.0.1" }
+actant-sdk-codegen  = { path = "crates/actant-sdk-codegen",  version = "0.0.1" }
+actant-worker-protocol = { path = "crates/actant-worker-protocol", version = "0.0.1" }
+actant-embed        = { path = "crates/actant-embed",        version = "0.0.1" }
+actant-capsule      = { path = "crates/actant-capsule",      version = "0.0.1" }
+actant-trust        = { path = "crates/actant-trust",        version = "0.0.1" }
+actant-trigger      = { path = "crates/actant-trigger",      version = "0.0.1" }
+actant-eval         = { path = "crates/actant-eval",         version = "0.0.1" }
+actant-sync         = { path = "crates/actant-sync",         version = "0.0.1" }
+actant-audit-export = { path = "crates/actant-audit-export", version = "0.0.1" }
+actant-templates       = { path = "crates/actant-templates",       version = "0.0.1" }
+actant-schema-dsl      = { path = "crates/actant-schema-dsl",      version = "0.0.1" }
+actant-codegen-project = { path = "crates/actant-codegen-project", version = "0.0.1" }
+actant-index           = { path = "crates/actant-index",           version = "0.0.1" }
+actant-embedders       = { path = "crates/actant-embedders",       version = "0.0.1" }
+actant-prompts         = { path = "crates/actant-prompts",         version = "0.0.1" }
+actant-models          = { path = "crates/actant-models",          version = "0.0.1" }
+actant-cache           = { path = "crates/actant-cache",           version = "0.0.1" }
+actant-trace           = { path = "crates/actant-trace",           version = "0.0.1" }
+actant-protocol        = { path = "crates/actant-protocol",        version = "0.0.1" }
+actant-throttle        = { path = "crates/actant-throttle",        version = "0.0.1" }
+actant-circuit         = { path = "crates/actant-circuit",         version = "0.0.1" }
+actant-lock            = { path = "crates/actant-lock",            version = "0.0.1" }
+actant-ingress         = { path = "crates/actant-ingress",         version = "0.0.1" }
+actant-kernel          = { path = "crates/actant-kernel",          version = "0.0.1" }
+actant-contracts       = { path = "crates/actant-contracts",       version = "0.0.1" }
+actant-napi            = { path = "crates/actant-napi",            version = "0.0.1" }
+actant-wasm            = { path = "crates/actant-wasm",            version = "0.0.1" }
+actant-auth            = { path = "crates/actant-auth",            version = "0.0.1" }
+actant-tenant          = { path = "crates/actant-tenant",          version = "0.0.1" }
+actant-drift           = { path = "crates/actant-drift",           version = "0.0.1" }
+actant-worker-browser  = { path = "crates/actant-worker-browser",  version = "0.0.1" }
+actant-worker-email    = { path = "crates/actant-worker-email",    version = "0.0.1" }
+actant-worker-slack    = { path = "crates/actant-worker-slack",    version = "0.0.1" }
+actant-worker-shell    = { path = "crates/actant-worker-shell",    version = "0.0.1" }
+actant-worker-file     = { path = "crates/actant-worker-file",     version = "0.0.1" }
+actant-worker-model    = { path = "crates/actant-worker-model",    version = "0.0.1" }
+actant-worker-mcp      = { path = "crates/actant-worker-mcp",      version = "0.0.1" }
+
+# External — pinned at workspace level for consistent versions across crates.
+anyhow        = "1.0"
+thiserror     = "1.0"
+serde         = { version = "1.0", features = ["derive"] }
+serde_json    = "1.0"
+tokio         = { version = "1.39", features = ["full"] }
+tracing       = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid          = { version = "1.10", features = ["v7", "serde"] }
+ulid          = { version = "1.1", features = ["serde"] }
+sha2          = "0.10"
+hex           = "0.4"
+time          = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+sqlx          = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "postgres", "macros", "migrate", "time"] }
+axum          = { version = "0.7", features = ["ws", "macros"] }
+axum-server   = { version = "0.7", features = ["tls-rustls"] }
+tower         = "0.5"
+tower-http    = { version = "0.5", features = ["trace", "cors", "limit"] }
+clap          = { version = "4.5", features = ["derive", "env"] }
+schemars      = "0.8"
+async-trait   = "0.1"
+futures       = "0.3"
+reqwest       = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+hmac          = "0.12"
+base64        = "0.22"
+regex         = "1.10"
+cron          = "0.12"
+rmcp          = "0.1"   # MCP client (Phase 2 worker-mcp); pin reviewed at phase entry
+# AI-native + observability (added with specs 15-18)
+opentelemetry = "0.27"
+opentelemetry_sdk = "0.27"
+opentelemetry-otlp = "0.27"
+tonic         = "0.12"   # gRPC for OTLP and optional vector backends
+half          = "2.4"    # f16 for embedding storage
+governor      = "0.7"    # token-bucket rate limiting primitives
+moka          = { version = "0.12", features = ["future"] }   # semantic cache
+fastembed     = "4"      # local embeddings default (feature-gated)
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+[profile.dev]
+opt-level = 0
+debug = true

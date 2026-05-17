@@ -1,0 +1,23 @@
+[package]
+name = "actant-worker-protocol"
+description = "Shared library for ActantDB worker binaries: claim/heartbeat/start/observe/complete client, lease type, idempotency helpers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+actant-core     = { workspace = true }
+actant-effects  = { workspace = true }
+actant-storage  = { workspace = true }
+anyhow          = { workspace = true }
+async-trait     = { workspace = true }
+reqwest         = { workspace = true }
+serde           = { workspace = true }
+serde_json      = { workspace = true }
+thiserror       = { workspace = true }
+time            = { workspace = true }
+tokio           = { workspace = true }
+tracing         = { workspace = true }

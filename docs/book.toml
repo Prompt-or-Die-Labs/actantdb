@@ -1,0 +1,15 @@
+[book]
+title = "ActantDB — Documentation"
+description = "The autonomous-action backend. Substrate specs, SDK references, deployment guide, SLOs."
+authors = ["The ActantDB Authors"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/actantdb/actantdb"
+edit-url-template = "https://github.com/actantdb/actantdb/edit/main/docs/src/{path}"

@@ -1,0 +1,138 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test-rust:
+    name: cargo test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --workspace --all-targets
+      - run: cargo test --workspace --all-targets
+
+  test-ts:
+    name: pnpm test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --ignore-scripts
+      - run: pnpm -r build
+      - run: pnpm -r test
+      - run: pnpm smoke
+
+  test-python:
+    name: python tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python3 -m unittest discover -s sdks/python/tests -v
+
+  bench-build:
+    name: benchmark crate compiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p actant-bench --benches
+
+  spec-verify:
+    name: spec verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every spec file has a Verification section
+        run: |
+          set -e
+          fail=0
+          for f in specs/*.md; do
+            # STATUS.md is a freeze marker, not a spec.
+            [ "$(basename "$f")" = "STATUS.md" ] && continue
+            if ! grep -q '^## Verification' "$f"; then
+              echo "::error file=$f::missing '## Verification' section"
+              fail=1
+            fi
+          done
+          exit $fail
+
+  agent-package-lint:
+    name: agent package lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every agent work package must have the required sections
+        run: |
+          set -e
+          fail=0
+          required=("## Context" "## Scope" "## Specs to read first" "## Acceptance criteria" "## Do NOT")
+          for f in agents/actant-*.md; do
+            [ -f "$f" ] || continue
+            for s in "${required[@]}"; do
+              if ! grep -qF "$s" "$f"; then
+                echo "::error file=$f::missing section '$s'"
+                fail=1
+              fi
+            done
+          done
+          exit $fail
+
+  helm-lint:
+    name: helm lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: latest
+      - run: helm lint deploy/helm/actantdb

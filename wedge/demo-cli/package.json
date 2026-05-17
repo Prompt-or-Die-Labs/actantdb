@@ -1,0 +1,22 @@
+{
+  "name": "actant-demo-cli",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Third public example for ActantDB — a hand-rolled CLI loop wrapped through @actantdb/mastra. Shows the wrapper works without any framework at all.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "demo": "node ./demo.mjs",
+    "studio": "actantdb studio --project demo-cli --store-dir ./.actantdb"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/mastra": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/studio": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

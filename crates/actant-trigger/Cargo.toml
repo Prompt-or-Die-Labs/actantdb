@@ -1,0 +1,25 @@
+[package]
+name = "actant-trigger"
+description = "ActantDB workflow triggers: cron, event-filter, webhook, manual."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+actant-core    = { workspace = true }
+actant-storage = { workspace = true }
+anyhow         = { workspace = true }
+async-trait    = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+thiserror      = { workspace = true }
+time           = { workspace = true }
+tokio          = { workspace = true }
+tracing        = { workspace = true }
+chrono         = "0.4"
+cron           = { workspace = true }
+sqlx           = { workspace = true }
+ulid           = { workspace = true }
