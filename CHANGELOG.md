@@ -135,8 +135,9 @@ verify-specs + verify-agents`) passes.
   `handler(ctx, args)` tool shape.
 - **`wedge/demo/`**, **`wedge/demo-langgraph/`**, **`wedge/demo-cli/`** —
   three runnable public examples.
-- **SVG hero**, **asciinema cast**, **publish-ready npm tarballs** in
-  `dist-publish/`.
+- **SVG hero**, **asciinema cast**, and a manual-trigger publish workflow
+  (`.github/workflows/publish-shadow.yml`) that builds + tests + publishes
+  every `@actantdb/*` package to npm under the `shadow` dist-tag.
 
 ### Added — substrate (Phases 1–6)
 
