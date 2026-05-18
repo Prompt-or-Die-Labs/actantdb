@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Actant Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/studio.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">Actant Studio</div>
+      <div class="meta" id="meta"></div>
+    </header>
+    <main>
+      <aside id="runs">
+        <h2>Runs</h2>
+        <ul id="runs-list"></ul>
+      </aside>
+      <section id="timeline">
+        <h2>Timeline</h2>
+        <div id="events"></div>
+      </section>
+      <section id="detail">
+        <h2>Detail</h2>
+        <div id="detail-body">Select an event.</div>
+      </section>
+    </main>
+    <dialog id="replay-modal">
+      <form method="dialog">
+        <h3>Replay from event</h3>
+        <p id="replay-anchor"></p>
+        <fieldset>
+          <legend>Mode</legend>
+          <label><input type="radio" name="mode" value="recorded" /> recorded (re-emit recorded outputs)</label>
+          <label><input type="radio" name="mode" value="model" checked /> model (re-evaluate model_call)</label>
+          <label><input type="radio" name="mode" value="policy" /> policy (re-evaluate Guard verdicts)</label>
+          <label><input type="radio" name="mode" value="memory" /> memory (rebuild manifest without excluded memory)</label>
+        </fieldset>
+        <label
+          ><input type="checkbox" id="opt-strict" /> Use stricter policy (no shell.run without dist
+          guard)</label
+        >
+        <label
+          ><input type="checkbox" id="opt-mem42" /> Exclude memory item mem_42 (the "/build and
+          /dist" memory)</label
+        >
+        <label
+          >Alternate memory id (optional):
+          <input id="opt-mem-other" type="text" placeholder="mem_…" />
+        </label>
+        <div class="actions">
+          <button type="button" id="run-replay">Run replay</button>
+          <button type="reset" id="cancel-replay">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/studio.js"></script>
+  </body>
+</html>

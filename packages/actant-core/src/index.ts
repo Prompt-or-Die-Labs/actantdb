@@ -1,0 +1,20 @@
+/**
+ * @actantdb/core — embedded TS runtime for ActantDB.
+ *
+ * Phase 1: pure TypeScript implementation backed by node:sqlite.
+ * NAPI / WASM acceleration paths are reserved for post-wedge.
+ */
+
+export { Ledger, openLedger, ledgerExists } from "./ledger.js";
+export type { LedgerOptions, LedgerFilter, AppendInput, LedgerListener } from "./ledger.js";
+
+export { ApprovalStore } from "./approvals.js";
+export type { ApprovalRecord } from "./approvals.js";
+
+export { createActant, buildContextManifest } from "./runtime.js";
+export type { ActantOptions, ActantHandle, RunContext } from "./runtime.js";
+
+export { ulid } from "./ulid.js";
+export { canonicalJSON, sha256, sha256OfJSON, nextChainHash } from "./hash.js";
+
+export const VERSION = "0.0.1-pre";

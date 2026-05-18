@@ -1,0 +1,37 @@
+{
+  "name": "@actantdb/convex",
+  "version": "0.0.2",
+  "description": "Wrap a Convex Agent with @actantdb: capture tool calls + approval + replay through the same withActant pattern as @actantdb/mastra.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/mastra": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4",
+    "@types/node": "^22.0.0"
+  },
+  "engines": { "node": ">=22.5" },
+  "publishConfig": { "access": "public" },
+  "repository": { "type": "git", "url": "https://github.com/actantdb/actantdb" },
+  "keywords": ["convex", "agent", "replay", "approval", "actantdb"]
+}

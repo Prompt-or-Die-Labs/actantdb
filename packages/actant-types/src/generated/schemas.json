@@ -1,0 +1,1891 @@
+{
+  "ActantEvent": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "EventKind": {
+        "description": "Causal kind for each event written to the ledger.",
+        "oneOf": [
+          {
+            "description": "Agent run started.",
+            "enum": [
+              "agent_run_started"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Inbound user message attached to the run.",
+            "enum": [
+              "user_message_received"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Model planner / generator was called.",
+            "enum": [
+              "model_call"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "A tool call was proposed.",
+            "enum": [
+              "tool_call_requested"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Guard issued a verdict on a tool call.",
+            "enum": [
+              "guard_verdict"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An approval is required for a tool call.",
+            "enum": [
+              "approval_required"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An approval decision was recorded (approve / deny / constrain).",
+            "enum": [
+              "approval_decision"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "A tool call started executing (post-Guard, post-approval if any).",
+            "enum": [
+              "tool_call_started"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "A tool call completed.",
+            "enum": [
+              "tool_call_completed"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "The context manifest fed to the model was built.",
+            "enum": [
+              "context_build"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An observation / effect was recorded back into the run.",
+            "enum": [
+              "effect_observed"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An agent run finished.",
+            "enum": [
+              "agent_run_finished"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "Sensitivity": {
+        "description": "Sensitivity classification carried with every event payload. Drives Studio rendering and replay redaction.",
+        "oneOf": [
+          {
+            "description": "Safe to expose anywhere (logs, UI, sharing).",
+            "enum": [
+              "public"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Low-risk data; default for non-PII operational events.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "User-attributable but not high-impact.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Personally identifying or business-sensitive.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Secrets, tokens, keys. Never displayed in Studio without unmask.",
+            "enum": [
+              "secret"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "One event on the Chronicle ledger. Append-only, hash-chained downstream.",
+    "properties": {
+      "chain_hash": {
+        "description": "Hash of (prev_chain_hash || payload_hash) — links events causally.",
+        "type": "string"
+      },
+      "created_at": {
+        "description": "RFC3339 timestamp.",
+        "type": "string"
+      },
+      "id": {
+        "description": "Unique event identifier (ULID; lexicographically sortable).",
+        "type": "string"
+      },
+      "kind": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/EventKind"
+          }
+        ],
+        "description": "Causal kind. Drives Studio rendering and replay routing."
+      },
+      "parent_event_id": {
+        "description": "Causal parent event, when applicable.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "payload": {
+        "description": "Event-specific payload. Schema varies by kind."
+      },
+      "payload_hash": {
+        "description": "SHA-256 hex digest of the canonical payload JSON.",
+        "type": "string"
+      },
+      "project": {
+        "description": "Owning project identifier.",
+        "type": "string"
+      },
+      "run_id": {
+        "description": "Run identifier (one agent invocation).",
+        "type": "string"
+      },
+      "sensitivity": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/Sensitivity"
+          }
+        ],
+        "description": "Sensitivity classification."
+      }
+    },
+    "required": [
+      "chain_hash",
+      "created_at",
+      "id",
+      "kind",
+      "payload",
+      "payload_hash",
+      "project",
+      "run_id",
+      "sensitivity"
+    ],
+    "title": "ActantEvent",
+    "type": "object"
+  },
+  "ApprovalDecision": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Approval outcome.",
+    "oneOf": [
+      {
+        "description": "Approved as-proposed.",
+        "properties": {
+          "approver": {
+            "description": "Approver identifier.",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approve"
+            ],
+            "type": "string"
+          },
+          "scope": {
+            "description": "Approval scope (e.g. \"once\", \"session\").",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approver",
+          "decision",
+          "scope"
+        ],
+        "type": "object"
+      },
+      {
+        "description": "Approved the constrained variant.",
+        "properties": {
+          "accepted_input": {
+            "description": "Final arguments accepted."
+          },
+          "approver": {
+            "description": "Approver identifier.",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approve_constrained"
+            ],
+            "type": "string"
+          },
+          "scope": {
+            "description": "Approval scope.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepted_input",
+          "approver",
+          "decision",
+          "scope"
+        ],
+        "type": "object"
+      },
+      {
+        "description": "Denied.",
+        "properties": {
+          "approver": {
+            "description": "Approver identifier.",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "deny"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "description": "Free-text reason.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approver",
+          "decision",
+          "reason"
+        ],
+        "type": "object"
+      }
+    ],
+    "title": "ApprovalDecision"
+  },
+  "ApprovalRequest": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "A pending or recorded approval request.",
+    "properties": {
+      "args": {
+        "description": "Original arguments (pre-constrain)."
+      },
+      "constrained_input": {
+        "description": "Constrained args the approver can accept."
+      },
+      "hint": {
+        "description": "Constrain hint, if Guard suggested one.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "reason": {
+        "description": "Reason from Guard.",
+        "type": "string"
+      },
+      "tool": {
+        "description": "Tool name.",
+        "type": "string"
+      },
+      "tool_call_id": {
+        "description": "Tool call id this approval is for.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "args",
+      "reason",
+      "tool",
+      "tool_call_id"
+    ],
+    "title": "ApprovalRequest",
+    "type": "object"
+  },
+  "ArgDenyRule": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "A simple regex-based deny rule applied to tool arguments.",
+    "properties": {
+      "pattern": {
+        "description": "Regular expression evaluated against the JSON-stringified args.",
+        "type": "string"
+      },
+      "reason": {
+        "description": "Human reason; surfaced in the verdict.",
+        "type": "string"
+      },
+      "tool": {
+        "description": "Tool name this rule applies to (e.g. \"shell.run\"). \"*\" for any tool.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "pattern",
+      "reason",
+      "tool"
+    ],
+    "title": "ArgDenyRule",
+    "type": "object"
+  },
+  "CheckpointRef": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "A checkpoint that captures everything needed to re-run from an event.",
+    "properties": {
+      "event_id": {
+        "description": "Event the checkpoint anchors to.",
+        "type": "string"
+      },
+      "manifest_hash": {
+        "description": "Hash of the context manifest at that point.",
+        "type": "string"
+      },
+      "memory_set_hash": {
+        "description": "Hash of the memory-set ids included at that point.",
+        "type": "string"
+      },
+      "policy_hash": {
+        "description": "Hash of the policy active at that point.",
+        "type": "string"
+      },
+      "prior_tool_results": {
+        "default": [],
+        "description": "Identifier(s) of prior tool results in scope, in order.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "run_id": {
+        "description": "Run identifier.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "event_id",
+      "manifest_hash",
+      "memory_set_hash",
+      "policy_hash",
+      "run_id"
+    ],
+    "title": "CheckpointRef",
+    "type": "object"
+  },
+  "ContextItem": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "Sensitivity": {
+        "description": "Sensitivity classification carried with every event payload. Drives Studio rendering and replay redaction.",
+        "oneOf": [
+          {
+            "description": "Safe to expose anywhere (logs, UI, sharing).",
+            "enum": [
+              "public"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Low-risk data; default for non-PII operational events.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "User-attributable but not high-impact.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Personally identifying or business-sensitive.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Secrets, tokens, keys. Never displayed in Studio without unmask.",
+            "enum": [
+              "secret"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "One item in a context manifest. Mirrors what was actually fed to a model.",
+    "properties": {
+      "content_hash": {
+        "description": "Hash of the content as included.",
+        "type": "string"
+      },
+      "flags": {
+        "description": "Optional flags Studio can highlight (e.g. \"stale\", \"suspect\").",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "id": {
+        "description": "Stable identifier for the source.",
+        "type": "string"
+      },
+      "kind": {
+        "description": "Kind: memory, document, conversation, tool_doc, system.",
+        "type": "string"
+      },
+      "label": {
+        "description": "Free-form label for Studio display.",
+        "type": "string"
+      },
+      "sensitivity": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/Sensitivity"
+          }
+        ],
+        "description": "Sensitivity of the content."
+      },
+      "source": {
+        "description": "Source description (URL, memory id, file path).",
+        "type": "string"
+      }
+    },
+    "required": [
+      "content_hash",
+      "id",
+      "kind",
+      "label",
+      "sensitivity",
+      "source"
+    ],
+    "title": "ContextItem",
+    "type": "object"
+  },
+  "ContextManifest": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ContextItem": {
+        "description": "One item in a context manifest. Mirrors what was actually fed to a model.",
+        "properties": {
+          "content_hash": {
+            "description": "Hash of the content as included.",
+            "type": "string"
+          },
+          "flags": {
+            "description": "Optional flags Studio can highlight (e.g. \"stale\", \"suspect\").",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Stable identifier for the source.",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Kind: memory, document, conversation, tool_doc, system.",
+            "type": "string"
+          },
+          "label": {
+            "description": "Free-form label for Studio display.",
+            "type": "string"
+          },
+          "sensitivity": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Sensitivity"
+              }
+            ],
+            "description": "Sensitivity of the content."
+          },
+          "source": {
+            "description": "Source description (URL, memory id, file path).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_hash",
+          "id",
+          "kind",
+          "label",
+          "sensitivity",
+          "source"
+        ],
+        "type": "object"
+      },
+      "Sensitivity": {
+        "description": "Sensitivity classification carried with every event payload. Drives Studio rendering and replay redaction.",
+        "oneOf": [
+          {
+            "description": "Safe to expose anywhere (logs, UI, sharing).",
+            "enum": [
+              "public"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Low-risk data; default for non-PII operational events.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "User-attributable but not high-impact.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Personally identifying or business-sensitive.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Secrets, tokens, keys. Never displayed in Studio without unmask.",
+            "enum": [
+              "secret"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "The manifest of context items presented to a model call.",
+    "properties": {
+      "blocked": {
+        "description": "Items considered but excluded (with reason).",
+        "items": {
+          "$ref": "#/definitions/ContextItem"
+        },
+        "type": "array"
+      },
+      "included": {
+        "description": "Items included in the model prompt.",
+        "items": {
+          "$ref": "#/definitions/ContextItem"
+        },
+        "type": "array"
+      },
+      "manifest_hash": {
+        "description": "Hash of the included-set (drives replay matching).",
+        "type": "string"
+      }
+    },
+    "required": [
+      "included",
+      "manifest_hash"
+    ],
+    "title": "ContextManifest",
+    "type": "object"
+  },
+  "DiffEntry": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "DiffKind": {
+        "description": "Kind of a diff entry between two event streams.",
+        "oneOf": [
+          {
+            "description": "Identical payload at this causal slot.",
+            "enum": [
+              "identical"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Payload differs but the event kind is the same.",
+            "enum": [
+              "changed"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Present in `a`, missing in `b`.",
+            "enum": [
+              "missing"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Present in `b`, not in `a`.",
+            "enum": [
+              "extra"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "One row of a replay diff (causally aligned).",
+    "properties": {
+      "a": {
+        "description": "Side A payload (original)."
+      },
+      "b": {
+        "description": "Side B payload (replay)."
+      },
+      "diff": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/DiffKind"
+          }
+        ],
+        "description": "Outcome."
+      },
+      "kind": {
+        "description": "Event kind for this row.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "diff",
+      "kind"
+    ],
+    "title": "DiffEntry",
+    "type": "object"
+  },
+  "DiffKind": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Kind of a diff entry between two event streams.",
+    "oneOf": [
+      {
+        "description": "Identical payload at this causal slot.",
+        "enum": [
+          "identical"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Payload differs but the event kind is the same.",
+        "enum": [
+          "changed"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Present in `a`, missing in `b`.",
+        "enum": [
+          "missing"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Present in `b`, not in `a`.",
+        "enum": [
+          "extra"
+        ],
+        "type": "string"
+      }
+    ],
+    "title": "DiffKind"
+  },
+  "EventKind": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Causal kind for each event written to the ledger.",
+    "oneOf": [
+      {
+        "description": "Agent run started.",
+        "enum": [
+          "agent_run_started"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Inbound user message attached to the run.",
+        "enum": [
+          "user_message_received"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Model planner / generator was called.",
+        "enum": [
+          "model_call"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "A tool call was proposed.",
+        "enum": [
+          "tool_call_requested"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Guard issued a verdict on a tool call.",
+        "enum": [
+          "guard_verdict"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "An approval is required for a tool call.",
+        "enum": [
+          "approval_required"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "An approval decision was recorded (approve / deny / constrain).",
+        "enum": [
+          "approval_decision"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "A tool call started executing (post-Guard, post-approval if any).",
+        "enum": [
+          "tool_call_started"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "A tool call completed.",
+        "enum": [
+          "tool_call_completed"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "The context manifest fed to the model was built.",
+        "enum": [
+          "context_build"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "An observation / effect was recorded back into the run.",
+        "enum": [
+          "effect_observed"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "An agent run finished.",
+        "enum": [
+          "agent_run_finished"
+        ],
+        "type": "string"
+      }
+    ],
+    "title": "EventKind"
+  },
+  "ModelCall": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "A model call event payload.",
+    "properties": {
+      "model": {
+        "description": "Model identifier (vendor:name:version).",
+        "type": "string"
+      },
+      "prompt_hash": {
+        "description": "Hash of the prompt actually sent.",
+        "type": "string"
+      },
+      "role": {
+        "description": "Logical role of the call within the run (e.g. \"planner\").",
+        "type": "string"
+      },
+      "summary": {
+        "description": "One-line human summary of the model's output (for Studio).",
+        "type": "string"
+      },
+      "tokens_in": {
+        "description": "Token usage if available.",
+        "format": "uint32",
+        "minimum": 0.0,
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "tokens_out": {
+        "description": "Token usage if available.",
+        "format": "uint32",
+        "minimum": 0.0,
+        "type": [
+          "integer",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "model",
+      "prompt_hash",
+      "role",
+      "summary"
+    ],
+    "title": "ModelCall",
+    "type": "object"
+  },
+  "Policy": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ArgDenyRule": {
+        "description": "A simple regex-based deny rule applied to tool arguments.",
+        "properties": {
+          "pattern": {
+            "description": "Regular expression evaluated against the JSON-stringified args.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Human reason; surfaced in the verdict.",
+            "type": "string"
+          },
+          "tool": {
+            "description": "Tool name this rule applies to (e.g. \"shell.run\"). \"*\" for any tool.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern",
+          "reason",
+          "tool"
+        ],
+        "type": "object"
+      },
+      "Risk": {
+        "description": "Risk classification for tool calls. Drives Guard verdicts.",
+        "oneOf": [
+          {
+            "description": "Read-only or trivial mutations.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Bounded mutations; recoverable.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Wide-blast-radius mutations.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Irreversible or out-of-process mutations (shell, network writes).",
+            "enum": [
+              "destructive"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "Sensitivity": {
+        "description": "Sensitivity classification carried with every event payload. Drives Studio rendering and replay redaction.",
+        "oneOf": [
+          {
+            "description": "Safe to expose anywhere (logs, UI, sharing).",
+            "enum": [
+              "public"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Low-risk data; default for non-PII operational events.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "User-attributable but not high-impact.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Personally identifying or business-sensitive.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Secrets, tokens, keys. Never displayed in Studio without unmask.",
+            "enum": [
+              "secret"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "ToolRiskEntry": {
+        "description": "Per-tool risk classification entry.",
+        "properties": {
+          "require_approval": {
+            "default": false,
+            "description": "If true, every call requires approval regardless of args.",
+            "type": "boolean"
+          },
+          "risk": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Risk"
+              }
+            ],
+            "description": "Risk level assigned by the policy."
+          },
+          "tool": {
+            "description": "Tool name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "risk",
+          "tool"
+        ],
+        "type": "object"
+      }
+    },
+    "description": "The v0.1 policy document. Small, opinionated, easy to read.",
+    "properties": {
+      "deny": {
+        "default": [],
+        "description": "Regex deny-list applied to args before risk evaluation.",
+        "items": {
+          "$ref": "#/definitions/ArgDenyRule"
+        },
+        "type": "array"
+      },
+      "label": {
+        "default": "",
+        "description": "Free-text label for Studio display.",
+        "type": "string"
+      },
+      "sensitivity_ceiling": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/Sensitivity"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Highest sensitivity allowed without approval."
+      },
+      "tools": {
+        "default": [],
+        "description": "Per-tool risk class. Default risk if missing: `low`.",
+        "items": {
+          "$ref": "#/definitions/ToolRiskEntry"
+        },
+        "type": "array"
+      }
+    },
+    "title": "Policy",
+    "type": "object"
+  },
+  "PolicyVerdict": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "A Guard verdict on a proposed tool call.",
+    "oneOf": [
+      {
+        "description": "Allow the call as proposed.",
+        "properties": {
+          "decision": {
+            "enum": [
+              "allow"
+            ],
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "description": "Snapshot hash of the policy that produced this verdict.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Human-readable reason for Studio display.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "policy_snapshot",
+          "reason"
+        ],
+        "type": "object"
+      },
+      {
+        "description": "Allow a rewritten variant of the call.",
+        "properties": {
+          "constrained_input": {
+            "description": "Rewritten arguments to use in place of the original."
+          },
+          "decision": {
+            "enum": [
+              "constrain"
+            ],
+            "type": "string"
+          },
+          "hint": {
+            "description": "Short hint shown to the approver if approval is requested.",
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "description": "Snapshot hash.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Reason.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "constrained_input",
+          "decision",
+          "hint",
+          "policy_snapshot",
+          "reason"
+        ],
+        "type": "object"
+      },
+      {
+        "description": "Require explicit approval before the call executes.",
+        "properties": {
+          "constrained_input": {
+            "description": "Optional constrained args the approver can choose to accept."
+          },
+          "decision": {
+            "enum": [
+              "require_approval"
+            ],
+            "type": "string"
+          },
+          "hint": {
+            "description": "Optional constrain hint to offer the approver.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "policy_snapshot": {
+            "description": "Snapshot hash.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Reason.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "policy_snapshot",
+          "reason"
+        ],
+        "type": "object"
+      },
+      {
+        "description": "Block the call. The run continues but the tool call does not execute.",
+        "properties": {
+          "decision": {
+            "enum": [
+              "block"
+            ],
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "description": "Snapshot hash.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Reason.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "policy_snapshot",
+          "reason"
+        ],
+        "type": "object"
+      },
+      {
+        "description": "Halt the entire agent run.",
+        "properties": {
+          "decision": {
+            "enum": [
+              "halt"
+            ],
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "description": "Snapshot hash.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Reason.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "policy_snapshot",
+          "reason"
+        ],
+        "type": "object"
+      }
+    ],
+    "title": "PolicyVerdict"
+  },
+  "ReplayDiff": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "DiffEntry": {
+        "description": "One row of a replay diff (causally aligned).",
+        "properties": {
+          "a": {
+            "description": "Side A payload (original)."
+          },
+          "b": {
+            "description": "Side B payload (replay)."
+          },
+          "diff": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/DiffKind"
+              }
+            ],
+            "description": "Outcome."
+          },
+          "kind": {
+            "description": "Event kind for this row.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "diff",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "DiffKind": {
+        "description": "Kind of a diff entry between two event streams.",
+        "oneOf": [
+          {
+            "description": "Identical payload at this causal slot.",
+            "enum": [
+              "identical"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Payload differs but the event kind is the same.",
+            "enum": [
+              "changed"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Present in `a`, missing in `b`.",
+            "enum": [
+              "missing"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Present in `b`, not in `a`.",
+            "enum": [
+              "extra"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "A full diff between two runs (or a run and a replay).",
+    "properties": {
+      "a": {
+        "description": "Run id of side A.",
+        "type": "string"
+      },
+      "b": {
+        "description": "Run id of side B.",
+        "type": "string"
+      },
+      "entries": {
+        "description": "Per-event entries in causal order.",
+        "items": {
+          "$ref": "#/definitions/DiffEntry"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "a",
+      "b",
+      "entries"
+    ],
+    "title": "ReplayDiff",
+    "type": "object"
+  },
+  "ReplayOverrides": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Replay overrides. Each is optional and applied independently.",
+    "properties": {
+      "model": {
+        "default": null,
+        "description": "Alternate model id.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "policy": {
+        "default": null,
+        "description": "Alternate policy hash to evaluate Guard under.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "without_memory": {
+        "default": [],
+        "description": "Memory ids to exclude from the rebuilt manifest.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "title": "ReplayOverrides",
+    "type": "object"
+  },
+  "ReplayRun": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ActantEvent": {
+        "description": "One event on the Chronicle ledger. Append-only, hash-chained downstream.",
+        "properties": {
+          "chain_hash": {
+            "description": "Hash of (prev_chain_hash || payload_hash) — links events causally.",
+            "type": "string"
+          },
+          "created_at": {
+            "description": "RFC3339 timestamp.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique event identifier (ULID; lexicographically sortable).",
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/EventKind"
+              }
+            ],
+            "description": "Causal kind. Drives Studio rendering and replay routing."
+          },
+          "parent_event_id": {
+            "description": "Causal parent event, when applicable.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payload": {
+            "description": "Event-specific payload. Schema varies by kind."
+          },
+          "payload_hash": {
+            "description": "SHA-256 hex digest of the canonical payload JSON.",
+            "type": "string"
+          },
+          "project": {
+            "description": "Owning project identifier.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Run identifier (one agent invocation).",
+            "type": "string"
+          },
+          "sensitivity": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Sensitivity"
+              }
+            ],
+            "description": "Sensitivity classification."
+          }
+        },
+        "required": [
+          "chain_hash",
+          "created_at",
+          "id",
+          "kind",
+          "payload",
+          "payload_hash",
+          "project",
+          "run_id",
+          "sensitivity"
+        ],
+        "type": "object"
+      },
+      "EventKind": {
+        "description": "Causal kind for each event written to the ledger.",
+        "oneOf": [
+          {
+            "description": "Agent run started.",
+            "enum": [
+              "agent_run_started"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Inbound user message attached to the run.",
+            "enum": [
+              "user_message_received"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Model planner / generator was called.",
+            "enum": [
+              "model_call"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "A tool call was proposed.",
+            "enum": [
+              "tool_call_requested"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Guard issued a verdict on a tool call.",
+            "enum": [
+              "guard_verdict"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An approval is required for a tool call.",
+            "enum": [
+              "approval_required"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An approval decision was recorded (approve / deny / constrain).",
+            "enum": [
+              "approval_decision"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "A tool call started executing (post-Guard, post-approval if any).",
+            "enum": [
+              "tool_call_started"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "A tool call completed.",
+            "enum": [
+              "tool_call_completed"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "The context manifest fed to the model was built.",
+            "enum": [
+              "context_build"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An observation / effect was recorded back into the run.",
+            "enum": [
+              "effect_observed"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "An agent run finished.",
+            "enum": [
+              "agent_run_finished"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "ReplayOverrides": {
+        "description": "Replay overrides. Each is optional and applied independently.",
+        "properties": {
+          "model": {
+            "default": null,
+            "description": "Alternate model id.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "policy": {
+            "default": null,
+            "description": "Alternate policy hash to evaluate Guard under.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "without_memory": {
+            "default": [],
+            "description": "Memory ids to exclude from the rebuilt manifest.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Sensitivity": {
+        "description": "Sensitivity classification carried with every event payload. Drives Studio rendering and replay redaction.",
+        "oneOf": [
+          {
+            "description": "Safe to expose anywhere (logs, UI, sharing).",
+            "enum": [
+              "public"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Low-risk data; default for non-PII operational events.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "User-attributable but not high-impact.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Personally identifying or business-sensitive.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Secrets, tokens, keys. Never displayed in Studio without unmask.",
+            "enum": [
+              "secret"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "One replay run record.",
+    "properties": {
+      "created_at": {
+        "description": "RFC3339 creation timestamp.",
+        "type": "string"
+      },
+      "events": {
+        "description": "Events produced by the replay, in order.",
+        "items": {
+          "$ref": "#/definitions/ActantEvent"
+        },
+        "type": "array"
+      },
+      "from_event": {
+        "description": "Source checkpoint event id.",
+        "type": "string"
+      },
+      "id": {
+        "description": "Replay run identifier.",
+        "type": "string"
+      },
+      "original_run": {
+        "description": "Original run this replay derives from.",
+        "type": "string"
+      },
+      "overrides": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/ReplayOverrides"
+          }
+        ],
+        "description": "Overrides applied."
+      }
+    },
+    "required": [
+      "created_at",
+      "events",
+      "from_event",
+      "id",
+      "original_run",
+      "overrides"
+    ],
+    "title": "ReplayRun",
+    "type": "object"
+  },
+  "Risk": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Risk classification for tool calls. Drives Guard verdicts.",
+    "oneOf": [
+      {
+        "description": "Read-only or trivial mutations.",
+        "enum": [
+          "low"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Bounded mutations; recoverable.",
+        "enum": [
+          "medium"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Wide-blast-radius mutations.",
+        "enum": [
+          "high"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Irreversible or out-of-process mutations (shell, network writes).",
+        "enum": [
+          "destructive"
+        ],
+        "type": "string"
+      }
+    ],
+    "title": "Risk"
+  },
+  "Sensitivity": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Sensitivity classification carried with every event payload. Drives Studio rendering and replay redaction.",
+    "oneOf": [
+      {
+        "description": "Safe to expose anywhere (logs, UI, sharing).",
+        "enum": [
+          "public"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Low-risk data; default for non-PII operational events.",
+        "enum": [
+          "low"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "User-attributable but not high-impact.",
+        "enum": [
+          "medium"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Personally identifying or business-sensitive.",
+        "enum": [
+          "high"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Secrets, tokens, keys. Never displayed in Studio without unmask.",
+        "enum": [
+          "secret"
+        ],
+        "type": "string"
+      }
+    ],
+    "title": "Sensitivity"
+  },
+  "ToolCallCompleted": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ToolCallStatus": {
+        "description": "Outcome of a tool call.",
+        "oneOf": [
+          {
+            "description": "Completed successfully.",
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Failed during execution.",
+            "enum": [
+              "error"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Skipped because Guard blocked it.",
+            "enum": [
+              "blocked"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Skipped because approval was denied.",
+            "enum": [
+              "denied"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Replayed against the recorded result (no real execution).",
+            "enum": [
+              "replayed"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "A tool call completion payload.",
+    "properties": {
+      "duration_ms": {
+        "description": "Duration in milliseconds.",
+        "format": "uint64",
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "result": {
+        "description": "Tool result, serialized."
+      },
+      "status": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/ToolCallStatus"
+          }
+        ],
+        "description": "Execution status."
+      },
+      "tool_call_id": {
+        "description": "Tool call identifier (matches the request).",
+        "type": "string"
+      }
+    },
+    "required": [
+      "duration_ms",
+      "result",
+      "status",
+      "tool_call_id"
+    ],
+    "title": "ToolCallCompleted",
+    "type": "object"
+  },
+  "ToolCallRequest": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "Risk": {
+        "description": "Risk classification for tool calls. Drives Guard verdicts.",
+        "oneOf": [
+          {
+            "description": "Read-only or trivial mutations.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Bounded mutations; recoverable.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Wide-blast-radius mutations.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Irreversible or out-of-process mutations (shell, network writes).",
+            "enum": [
+              "destructive"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "A tool call request payload.",
+    "properties": {
+      "args": {
+        "description": "Tool arguments as proposed by the planner."
+      },
+      "risk": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/Risk"
+          }
+        ],
+        "description": "Inferred risk from policy classification."
+      },
+      "tool": {
+        "description": "Tool name (e.g. \"shell.run\", \"file.write\").",
+        "type": "string"
+      },
+      "tool_call_id": {
+        "description": "Stable identifier of this tool call.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "args",
+      "risk",
+      "tool",
+      "tool_call_id"
+    ],
+    "title": "ToolCallRequest",
+    "type": "object"
+  },
+  "ToolCallStatus": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Outcome of a tool call.",
+    "oneOf": [
+      {
+        "description": "Completed successfully.",
+        "enum": [
+          "ok"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Failed during execution.",
+        "enum": [
+          "error"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Skipped because Guard blocked it.",
+        "enum": [
+          "blocked"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Skipped because approval was denied.",
+        "enum": [
+          "denied"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Replayed against the recorded result (no real execution).",
+        "enum": [
+          "replayed"
+        ],
+        "type": "string"
+      }
+    ],
+    "title": "ToolCallStatus"
+  },
+  "ToolRiskEntry": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "Risk": {
+        "description": "Risk classification for tool calls. Drives Guard verdicts.",
+        "oneOf": [
+          {
+            "description": "Read-only or trivial mutations.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Bounded mutations; recoverable.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Wide-blast-radius mutations.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Irreversible or out-of-process mutations (shell, network writes).",
+            "enum": [
+              "destructive"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "Per-tool risk classification entry.",
+    "properties": {
+      "require_approval": {
+        "default": false,
+        "description": "If true, every call requires approval regardless of args.",
+        "type": "boolean"
+      },
+      "risk": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/Risk"
+          }
+        ],
+        "description": "Risk level assigned by the policy."
+      },
+      "tool": {
+        "description": "Tool name.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "risk",
+      "tool"
+    ],
+    "title": "ToolRiskEntry",
+    "type": "object"
+  }
+}

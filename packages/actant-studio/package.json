@@ -1,0 +1,52 @@
+{
+  "name": "@actantdb/studio",
+  "version": "0.0.2",
+  "description": "Local UI + CLI for ActantDB: timeline, context manifest, approval, replay.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "actantdb": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "ui",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-ui.mjs",
+    "dev": "tsc -p tsconfig.json --watch",
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/replay": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/actantdb/actantdb"
+  },
+  "keywords": [
+    "actantdb",
+    "agent",
+    "studio",
+    "replay",
+    "approval",
+    "ui"
+  ]
+}

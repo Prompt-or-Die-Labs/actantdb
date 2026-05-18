@@ -40,9 +40,11 @@ build/
 *.tsbuildinfo
 
 # Swift / Xcode
+# (no `Packages/` rule — APFS is case-insensitive so it would also catch the
+# lowercase `packages/` npm tree. SwiftPM downloads into `.build/`, so the
+# legacy `Packages/` rule is unneeded.)
 .build/
 DerivedData/
-Packages/
 *.xcodeproj/
 *.xcworkspace/
 

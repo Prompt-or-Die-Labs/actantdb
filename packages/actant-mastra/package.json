@@ -1,0 +1,58 @@
+{
+  "name": "@actantdb/mastra",
+  "version": "0.0.2",
+  "description": "Wrap a Mastra agent: capture model + tool + approval events, expose to Actant Studio, support replay.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@mastra/core": ">=1.0.0 <3.0.0"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/actant/actant"
+  },
+  "keywords": [
+    "mastra",
+    "agent",
+    "replay",
+    "approval",
+    "audit",
+    "observability",
+    "governance"
+  ]
+}
