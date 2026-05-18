@@ -1,4 +1,4 @@
-# PIVOT — repository state
+# Where are we? — repository state
 
 The earlier "freeze everything but two features" framing (2026-05-17, premortem-driven) was a hypothetical. It was lifted the same day. The substrate was unfrozen and built out. This file is the current state, not a plan.
 
