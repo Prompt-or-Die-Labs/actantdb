@@ -1,0 +1,9 @@
+{
+  "name": "minimal",
+  "tools": [
+    { "name": "shell.run", "kind": "shell" }
+  ],
+  "models": [
+    { "name": "planner", "provider": "anthropic", "model": "sonnet" }
+  ]
+}

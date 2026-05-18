@@ -1,0 +1,22 @@
+{
+  "name": "{{project_name}}",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Minimal ActantDB project — embedded ledger + withActant wrapper, no real agent.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "node ./index.mjs",
+    "studio": "actantdb studio --project {{project_name}} --store-dir ./.actantdb --port {{studio_port}}"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/mastra": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/studio": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

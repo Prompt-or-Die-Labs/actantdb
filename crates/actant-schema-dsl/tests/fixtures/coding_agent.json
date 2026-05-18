@@ -1,0 +1,14 @@
+{
+  "name": "coding-agent",
+  "tools": [
+    { "name": "shell.run",   "kind": "shell", "risk": "critical" },
+    { "name": "file.write",  "kind": "file",  "risk": "high" },
+    { "name": "file.read",   "kind": "file",  "risk": "low" },
+    { "name": "browser.open","kind": "browser","risk": "medium" }
+  ],
+  "models": [
+    { "name": "planner",  "provider": "anthropic", "model": "sonnet" },
+    { "name": "executor", "provider": "anthropic", "model": "haiku" },
+    { "name": "reviewer", "provider": "openai",    "model": "gpt-4o" }
+  ]
+}
