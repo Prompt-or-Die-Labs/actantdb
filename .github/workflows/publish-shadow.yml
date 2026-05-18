@@ -1,0 +1,84 @@
+name: publish-shadow
+
+# Publishes every @actantdb/* package under the `shadow` npm dist-tag.
+# Runs only on manual trigger so a routine push to main can never publish.
+#
+# Requirements (configured in repo Settings → Secrets and variables → Actions):
+#   - NPM_TOKEN  npm automation token with publish rights to the @actantdb scope.
+#
+# After clicking "Run workflow" the job:
+#   1. installs the workspace,
+#   2. builds every package,
+#   3. runs every package's test + the cross-package smoke test,
+#   4. dry-runs the publish (so a 403 / scope problem fails fast),
+#   5. publishes each public package to the `shadow` tag.
+#
+# A publish under `shadow` does NOT become the `latest` tag, so consumers
+# running `npm install @actantdb/foo` keep getting whatever `latest` currently
+# points at (initially: nothing — the scope is empty until a `latest` is
+# promoted later via `npm dist-tag add @actantdb/foo@<version> latest`).
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "npm dist-tag to publish under"
+        required: true
+        default: "shadow"
+        type: string
+      dry_run:
+        description: "Skip the actual publish step (build + dry-run only)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.5"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: build all packages
+        run: pnpm -r build
+
+      - name: test all packages
+        run: pnpm -r test
+
+      - name: smoke test (workspace E2E)
+        run: pnpm smoke
+
+      - name: dry-run publish (per package, topological order)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm -r publish --tag ${{ inputs.tag }} --no-git-checks --access public --dry-run
+
+      - name: publish (per package, topological order)
+        if: ${{ !inputs.dry_run }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm -r publish --tag ${{ inputs.tag }} --no-git-checks --access public
+
+      - name: summarize what shipped
+        if: ${{ !inputs.dry_run }}
+        run: |
+          echo "## Published under \`${{ inputs.tag }}\` tag" >> "$GITHUB_STEP_SUMMARY"
+          for f in packages/*/package.json; do
+            name=$(jq -r .name "$f")
+            ver=$(jq -r .version "$f")
+            echo "- \`$name@$ver\` → npm install $name@${{ inputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+          done
