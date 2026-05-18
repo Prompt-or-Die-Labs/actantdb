@@ -2,7 +2,7 @@
 
 The autonomous-action backend.
 
-This documentation is generated from the canonical specs under [`/specs`](https://github.com/actantdb/actantdb/tree/main/specs) and the operational docs at the repo root (CHANGELOG, GATES, RELEASE_CHECKLIST, SPECS_STATUS).
+This documentation is generated from the canonical specs under [`/specs`](https://github.com/Prompt-or-Die-Labs/actantdb/tree/main/specs) and the operational docs at the repo root (CHANGELOG, GATES, RELEASE_CHECKLIST, SPECS_STATUS).
 
 Build locally with:
 

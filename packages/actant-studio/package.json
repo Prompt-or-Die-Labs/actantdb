@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/studio",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Local UI + CLI for ActantDB: timeline, context manifest, approval, replay.",
   "type": "module",
   "license": "Apache-2.0",
@@ -39,7 +39,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/actantdb/actantdb"
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb"
   },
   "keywords": [
     "actantdb",
@@ -48,5 +48,9 @@
     "replay",
     "approval",
     "ui"
-  ]
+  ],
+  "homepage": "https://github.com/Prompt-or-Die-Labs/actantdb#readme",
+  "bugs": {
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb/issues"
+  }
 }

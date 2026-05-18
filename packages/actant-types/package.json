@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/types",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Generated TypeScript bindings of actant-contracts (the single source of truth for all public types). Hand-edits forbidden.",
   "type": "module",
   "license": "Apache-2.0",
@@ -35,6 +35,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/actantdb/actantdb"
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb"
+  },
+  "homepage": "https://github.com/Prompt-or-Die-Labs/actantdb#readme",
+  "bugs": {
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb/issues"
   }
 }

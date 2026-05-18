@@ -11,5 +11,5 @@ build-dir = "book"
 [output.html]
 default-theme = "rust"
 preferred-dark-theme = "ayu"
-git-repository-url = "https://github.com/actantdb/actantdb"
-edit-url-template = "https://github.com/actantdb/actantdb/edit/main/docs/src/{path}"
+git-repository-url = "https://github.com/Prompt-or-Die-Labs/actantdb"
+edit-url-template = "https://github.com/Prompt-or-Die-Labs/actantdb/edit/main/docs/src/{path}"

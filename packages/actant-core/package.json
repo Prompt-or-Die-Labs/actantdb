@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/core",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Embedded TypeScript runtime for ActantDB. NAPI-RS native addon + WASM fallback. No separate server in the install path.",
   "type": "module",
   "license": "Apache-2.0",
@@ -45,7 +45,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/actantdb/actantdb"
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb"
   },
   "keywords": [
     "actantdb",
@@ -54,5 +54,9 @@
     "replay",
     "ledger",
     "embedded"
-  ]
+  ],
+  "homepage": "https://github.com/Prompt-or-Die-Labs/actantdb#readme",
+  "bugs": {
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb/issues"
+  }
 }

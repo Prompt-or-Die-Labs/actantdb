@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/replay",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Replay engine: checkpoint, run-from-event, diff, override (policy / memory / model).",
   "type": "module",
   "license": "Apache-2.0",
@@ -40,6 +40,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/actantdb/actantdb"
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb"
+  },
+  "homepage": "https://github.com/Prompt-or-Die-Labs/actantdb#readme",
+  "bugs": {
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb/issues"
   }
 }

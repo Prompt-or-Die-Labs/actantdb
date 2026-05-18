@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/convex",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Wrap a Convex Agent with @actantdb: capture tool calls + approval + replay through the same withActant pattern as @actantdb/mastra.",
   "type": "module",
   "license": "Apache-2.0",
@@ -12,7 +12,11 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -30,8 +34,25 @@
     "vitest": "^3.2.4",
     "@types/node": "^22.0.0"
   },
-  "engines": { "node": ">=22.5" },
-  "publishConfig": { "access": "public" },
-  "repository": { "type": "git", "url": "https://github.com/actantdb/actantdb" },
-  "keywords": ["convex", "agent", "replay", "approval", "actantdb"]
+  "engines": {
+    "node": ">=22.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb"
+  },
+  "keywords": [
+    "convex",
+    "agent",
+    "replay",
+    "approval",
+    "actantdb"
+  ],
+  "homepage": "https://github.com/Prompt-or-Die-Labs/actantdb#readme",
+  "bugs": {
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb/issues"
+  }
 }
