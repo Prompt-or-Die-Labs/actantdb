@@ -21,3 +21,6 @@ thiserror       = { workspace = true }
 time            = { workspace = true }
 tokio           = { workspace = true }
 tracing         = { workspace = true }
+
+[dev-dependencies]
+sqlx = { workspace = true }

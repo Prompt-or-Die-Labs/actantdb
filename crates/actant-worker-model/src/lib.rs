@@ -23,6 +23,42 @@ pub enum Provider {
         /// Bearer token.
         api_key: String,
     },
+    /// Local Ollama server. Ollama exposes an OpenAI-compatible chat-completions
+    /// endpoint at `<base_url>/v1/chat/completions` and does not require an
+    /// API key.
+    Ollama {
+        /// Base URL like `http://localhost:11434`.
+        base_url: String,
+    },
+}
+
+impl Provider {
+    /// Constructor for [`Provider::Ollama`] pointing at the default
+    /// `http://localhost:11434` endpoint.
+    pub fn ollama() -> Self {
+        Self::Ollama {
+            base_url: "http://localhost:11434".to_string(),
+        }
+    }
+}
+
+/// Per-1k token rate table used by [`compute_cost_usd`].
+#[derive(Debug, Clone, Copy)]
+pub struct CostRates {
+    /// Dollars per 1,000 input tokens.
+    pub input_per_1k: f64,
+    /// Dollars per 1,000 output tokens.
+    pub output_per_1k: f64,
+}
+
+/// Linear cost formula: `(tokens_in/1000)*input_per_1k + (tokens_out/1000)*output_per_1k`.
+///
+/// Pure function over the inputs — no provider call, no allocation. Sealed
+/// here so every worker that wants to charge a model_call uses the same math.
+pub fn compute_cost_usd(tokens_in: u32, tokens_out: u32, rates: CostRates) -> f64 {
+    let cin = (tokens_in as f64 / 1000.0) * rates.input_per_1k;
+    let cout = (tokens_out as f64 / 1000.0) * rates.output_per_1k;
+    cin + cout
 }
 
 /// Handler for `model.call` effects.
@@ -82,6 +118,23 @@ impl Handler for ModelHandler {
                     .json()
                     .await
                     .map_err(|e| ActantError::Internal(format!("openai parse: {e}")))?;
+                Ok(body)
+            }
+            Provider::Ollama { base_url } => {
+                let client = reqwest::Client::new();
+                let resp = client
+                    .post(format!("{base_url}/v1/chat/completions"))
+                    .json(&serde_json::json!({
+                        "model": model,
+                        "messages": [{"role":"user","content": prompt}],
+                    }))
+                    .send()
+                    .await
+                    .map_err(|e| ActantError::Internal(format!("ollama: {e}")))?;
+                let body: serde_json::Value = resp
+                    .json()
+                    .await
+                    .map_err(|e| ActantError::Internal(format!("ollama parse: {e}")))?;
                 Ok(body)
             }
         }

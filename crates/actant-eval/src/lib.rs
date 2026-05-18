@@ -3,6 +3,10 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod dsl;
+
+pub use dsl::{AssertOp, Criterion, EvalResult, Event, SuccessCriteria};
+
 use serde::{Deserialize, Serialize};
 
 /// Eval case — replay-derived test that runs forever after.

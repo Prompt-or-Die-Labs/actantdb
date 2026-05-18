@@ -3,6 +3,15 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod registry;
+pub mod render;
+
+pub use registry::{
+    RenderOutput, RenderRequest, Template, TemplateError, TemplateRegistry, DEFAULT_PORT,
+    DEFAULT_STUDIO_PORT,
+};
+pub use render::substitute;
+
 /// Returns a minimal package.json content.
 pub fn package_json(name: &str) -> String {
     serde_json::json!({
