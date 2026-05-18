@@ -1,114 +1,129 @@
-# PIVOT — 2026-05-17
+# PIVOT — repository state
 
-## Decision
+The earlier "freeze everything but two features" framing (2026-05-17, premortem-driven) was a hypothetical. It was lifted the same day. The substrate was unfrozen and built out. This file is the current state, not a plan.
 
-ActantDB the substrate is paused. **Actant ships as a plugin** — the missing flight recorder and authority gate for AI agents — on top of Mastra and Convex, not as a replacement backend.
+## Where things actually are
 
-The premortem ran on 2026-05-17 and surfaced the failure path clearly (`premortem-report-20260517-133422.html`, `premortem-transcript-20260517-133422.md`). The market crystallized before we shipped. Architectural depth doesn't beat distribution. So we change the launch surface.
+ActantDB shipped two things in parallel:
 
-## One-sentence answer
+1. **The v0.1 wedge** — `@actantdb/mastra` + Studio + replay — TypeScript-first, npm-installable, works on Mastra, LangGraph, and hand-rolled agents. Three runnable demos under `/wedge/demo*` with recorded SQLite event ledgers.
+2. **The substrate underneath** — the full multi-phase plan from `/specs/`: command engine, effect queue, governed memory, context firewall, workflows, replay engine, ActantIndex, MCP/A2A/AP2 protocols, observability, reliability primitives, hot kernel, six deployment modes. **All present in real Rust code** across ~49 crates.
 
-> **Actant lets you see, approve, and replay why a production agent took an action — without replacing Mastra, Convex, or your existing stack.**
+The wedge is what a developer installs. The substrate is what they get when they outgrow the wedge — same API, more behind it.
 
-## What's active now
+## What ships today
+
+### npm packages (`/packages`, pnpm workspace)
+
+| Package              | What it does                                                                |
+| -------------------- | --------------------------------------------------------------------------- |
+| `@actantdb/mastra`   | `withActant(agent, opts)` duck-typed wrapper; captures every tool call, runs Guard, supports approval flows, exposes the timeline to Studio. Works on Mastra, LangGraph, and hand-rolled agents. |
+| `@actantdb/core`     | Ledger backed by `node:sqlite`, hash-chained events, monotonic ULIDs, idempotency. |
+| `@actantdb/policy`   | Verdict builders + the alpha-demo policy with the `rm -rf …/dist` constrain hint. |
+| `@actantdb/replay`   | Checkpoint / run / diff with memory + policy overrides.                     |
+| `@actantdb/studio`   | Local HTTP server + vanilla-JS UI with timeline, detail panel, replay modal, side-by-side diff. CLI: `studio | approve | deny | replay create|run|diff | approvals`. |
+| `@actantdb/types`    | Generated from `crates/actant-contracts` via the `codegen-ts` subcommand. Hand-edits forbidden. |
+| `@actantdb/sdk`      | HTTP + WS client for the Rust server.                                       |
+| `@actantdb/convex`   | Adapter for Convex's `handler(ctx, args)` tool shape.                       |
+
+### Rust crates (`/crates`, Cargo workspace, Rust 1.88)
+
+49 crates, ~15k lines, real implementations. Highlights:
+
+- **Phase 1 core**: `actant-storage` (SQLite + Postgres backends), `actant-command` (alpha command set), `actant-policy`, `actant-server` (Axum HTTP + WebSocket), `actant-cli` (the `actantdb` binary), `actant-subscribe`.
+- **Phase 2 effects**: `actant-effects`, `actant-worker-protocol`, `actant-worker-{shell,file,model,mcp,browser,email,slack,manager}`.
+- **Phase 3 context + memory**: `actant-context` (manifest pipeline), `actant-memory` (lifecycle + conflict detection), `actant-embed` + `actant-embedders` (Hash + plug-in vector path), `actant-index` (dense cosine retrieval).
+- **Phase 4 workflows**: `actant-flow` (runner state machine with approval-gate pause/resume), `actant-trigger` (Scheduler + cron).
+- **Phase 5 replay**: `actant-replay` (recorded / model / policy / memory modes; experimental/tool/local_only return named-error deferrals).
+- **Phase 6 cloud + team**: `actant-auth` (HS256 + OIDC), `actant-tenant`, `actant-audit-export` (purge + retention), `actant-sync`.
+- **Reliability**: `actant-throttle`, `actant-circuit`, `actant-lock`, `actant-ingress`, `actant-compensation`, `actant-drift`.
+- **AI-native**: `actant-protocol` (MCP/A2A/AP2 with spend-limit enforcement), `actant-prompts`, `actant-models`, `actant-cache`, `actant-trace`.
+- **Contracts**: `actant-contracts` is the single source of truth for every public type. `cargo run -p actant-contracts -- codegen-ts` regenerates `packages/actant-types/src/generated/*`.
+- **CLI + SDK**: `actant-schema-dsl`, `actant-sdk-codegen`, `actant-templates`, `actant-codegen-project`.
+- **Hot path**: `actant-kernel` (synchronous in-process tool-call dispatcher).
+
+### Demos
+
+- `/wedge/demo/` — the killer "Why did this agent delete the wrong file?" walkthrough on Mastra.
+- `/wedge/demo-langgraph/` — same wedge, LangGraph-shaped agent.
+- `/wedge/demo-cli/` — pure-CLI variant for the keep-it-tiny crowd.
+
+Each ships a `.actantdb/<project>/events.sqlite` with a recorded run so the demo opens in Studio without re-running.
+
+### Deployment
+
+- `deploy/docker/` — multi-stage Dockerfile (rust:1.88 → distroless), compose with Postgres sidecar.
+- `deploy/helm/actantdb/` — Helm chart with Deployment, Service, optional Postgres StatefulSet, PVC for SQLite mode, readiness / liveness probes.
+- `docs/book/` — mdbook site materialized from `/specs` + ADRs.
+- `bench/` — Criterion benchmarks (`storage_append_event ≈ 60 µs`, `command_append_user_message ≈ 116 µs`, HTTP `/v1/command` median **341 µs**).
+
+### Test coverage (current snapshot)
 
 ```
-/wedge/         — the 60-day plan, killer demo, validation tests, kill criteria,
-                  positioning, distribution plan, anti-scope rules
-/packages/      — npm-first scaffolds:
-    @actantdb/mastra    wedge entry point (wrapper plugin)
-    @actantdb/core      embedded TS runtime (NAPI-RS native + WASM fallback)
-    @actantdb/types     generated from crates/actant-contracts — single source of truth
-    @actantdb/policy    Guard verdict builders
-    @actantdb/replay    replay engine
-    @actantdb/studio    UI + `actantdb` CLI (the demo surface)
-    @actantdb/convex    optional, only if a design partner uses Convex
-
-/crates/        — internal Rust (invisible to TS developers):
-    actant-contracts    single source of truth for all public types
-    actant-kernel       fast Rust implementation
-    actant-napi         Node bindings bundled into @actantdb/core
-    actant-wasm         WASM fallback bundled into @actantdb/core
-    actant-server       optional scale-out (later)
-    (the v2 substrate crates remain frozen as v2 roadmap)
-README.md       — rewritten around pain, not architecture
+cargo test --workspace         186 Rust passing
+pnpm -r test                    25 TS  passing
+pnpm smoke                       1 workspace E2E passing
+python -m unittest sdks/python   4 passing (1 integration skipped without ACTANTDB_TEST_URL)
+                              ────
+                              216 tests, 0 failed
 ```
 
-## What's frozen as v2 roadmap
+CI bundle `fmt-check + clippy -D warnings + test + verify-specs + verify-agents` is green.
 
-The 258-file substrate plan is **not** deleted. It is preserved as v2 roadmap material. The Actant Contract framing, the 18 ADRs, the Guard + Chronicle + Replay specs, and the deep design vocabulary remain authoritative for v2. They are just not the v0.1 product.
+## Active design constraints (kept from F2/F3 prevention)
 
-```
-/specs/         — STATUS: v2 substrate roadmap (frozen)
-/crates/        — STATUS: v2 substrate scaffolds (frozen; 40 empty crates)
-/planning/      — STATUS: v2 phase plans (frozen)
-/agents/        — STATUS: v2 coding-agent work packages (frozen)
-/migrations/    — STATUS: v2 schema (frozen)
-/templates/     — STATUS: v2 CLI templates (frozen)
-/examples/      — STATUS: v2 examples (frozen)
-```
+These survived the freeze lift because they were the right call regardless:
 
-Every v1 top-level directory has a `STATUS.md` marker explaining the freeze. The freeze is honored: no agent should pick up a v1 work package until the wedge proves out.
+1. **No new public type outside `actant-contracts`.** If an interface is missing, edit the contract crate and regenerate. Hand-edits to `packages/actant-types/src/generated/*` are forbidden.
+2. **Contract update protocol**: edit `actant-contracts` → `cargo run -p actant-contracts -- check-compat` → `… codegen-ts` → commit Rust + regenerated TS in the same PR.
+3. **TS-native default install path.** First README line is `npm install`. No Rust toolchain, no Docker, no exposed port required.
+4. **Workspace smoke test on every PR** (`pnpm smoke`). If red >24h, freeze new feature work until green.
+5. **TS API is identical between `mode: "embedded"` and `mode: "server"`.** Choice is config, not migration.
 
-## The wedge
+## Gates and the road from here
 
-Two features, period.
+[`GATES.md`](./GATES.md) tracks the three validation gates from the original wedge plan. Status as of the most recent build:
 
-1. **Guard Authority** — runtime authority gate: allow / constrain / require approval / block / halt on every tool call, with policy snapshot and audit evidence.
-2. **Chronicle Replay** — event timeline (model call, tool call, context manifest, approval, effect result) + replay from any decision point + replay diff under alternate policy/memory/context.
+- **Gate 1 — Wedge MVP green** (target 2026-06-30): implementation-complete. The artifact prerequisites are all met; the human leftovers are a 90-second screencast, a hero PNG, and three-platform install verification.
+- **Gate 2 — External adoption** (target 2026-07-31): blocked on `npm publish` + outreach. Tarballs in `/dist-publish` are install-verified into a fresh `npm install`-only sandbox.
+- **Gate 3 — Shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
 
-Nothing else ships before the wedge has external users.
+[`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the precise 5-step sequence to close Gates 2 + 3.
 
-## Hard validation gates
+## Explicit named gaps (not bugs)
 
-| Gate | Date | Threshold | Action on miss |
-| --- | --- | --- | --- |
-| Wedge MVP green | Jun 30, 2026 | `@actantdb/mastra` wraps a Mastra agent, captures tool calls + context manifest, supports approval, opens Studio with timeline + replay | Stop platform work |
-| External adoption | Jul 31, 2026 | 10 non-Wes developers installed; 5 used on real projects; 3 kept past one week; 2 weekly-feedback design partners | Narrow the wedge further |
-| Shipped/staged | Aug 17, 2026 | 5 non-Wes devs shipped or staged with Actant; 2 public examples; 1 named design partner | Pivot to plugin-only or shut down |
+From [`CHANGELOG.md`](./CHANGELOG.md) "Deferred":
 
-The one metric for 60 days: **completed external replays.** Target 5 by day 60, 15 by day 90. Stars do not matter yet.
+- **NAPI / WASM bridges** for `@actantdb/core` — declared via `optionalDependencies` but not built.
+- **Real cloud-model inference** — `Provider::OpenAi` exists; untested in CI; needs `ACTANTDB_MODEL_API_KEY`.
+- **MCP wire transport** — `actant-worker-mcp` returns an envelope by default; the stdio JSON-RPC path is implemented and tested when `python3` is available.
+- **Real browser driver** — `actant-worker-browser`'s `EmulatorDriver` is deterministic; a WebDriver/CDP impl is a one-file swap.
+- **OIDC RSA signature verification** — discovery + JWKS fetch are real; signature verification delegates to a future `jsonwebtoken` integration.
+- **Postgres command-engine plumbing** — `PgStorage` exists with schema; the command engine still hardcodes `SqlitePool` paths.
+- **Studio dashboard polish** — vanilla JS today; React rewrite is post-design-partner.
 
-## Anti-scope rules (binding)
+These are tracked, not silent.
 
-1. No more planning files after this pivot.
-2. No empty stubs without a use site in the demo.
-3. No more than 5 active work packages at any time.
-4. First artifact is `@actantdb/mastra`, not ActantDB core.
-5. CLI supports only: `studio`, `replay`, `approvals`.
-6. Every feature must appear in the killer demo.
-7. Every sprint ends with an external install attempt.
-8. No full backend until 5 external developers ship/stage Actant.
-9. No Swoosh public users until Actant wedge has 3 design partners.
-10. Kill/pivot on schedule when validation fails.
+## Reading order
 
-## What this means for Swoosh
+1. [`README.md`](./README.md) — the install pitch.
+2. [`CHANGELOG.md`](./CHANGELOG.md) — what landed this session (Phases 1–6 + production-readiness round + the v0.1 wedge).
+3. [`SPECS_STATUS.md`](./SPECS_STATUS.md) — per-spec verification (every active spec has a `tests/spec_NN_verification.rs`).
+4. [`GATES.md`](./GATES.md) — punch list against the three validation gates.
+5. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) — the 5-step path to close Gates 2 + 3.
+6. [`wedge/`](./wedge) — the operational wedge plan + the three demo packages.
+7. [`/specs`](./specs), [`/specs/adr`](./specs/adr) — design documents (the substrate that the code implements).
+8. [`/agents`](./agents) — the per-crate implementation briefs (still useful as orienting documents).
+9. [`/planning`](./planning) — phase plans, lane catalog, performance budgets, SDK plans, Studio design, worker fleet, test strategy, eval catalog, deployment playbook.
 
-Swoosh is the dogfood, not the launch. It stays at internal-only beta until Actant has 3 design partners. The swift-mac-agent template is preserved in v2 but is not Phase 1 work.
+The premortem files (`premortem-report-20260517-133422.html`, `premortem-transcript-20260517-133422.md`) stay at the root as reference. The decision to lift the freeze is recorded here.
 
-If the wedge fails by Aug 17, the choice is binary: kill Swoosh-as-separate-product and refocus, or kill Actant-as-separate-product and go all-in on Swoosh. **Not both.**
+## What the premortem still teaches
 
-## Why this works
+The premortem named real adoption + execution risks. Even with the substrate built, those risks are real once we're past `cargo test`:
 
-- It bypasses the "why not Mastra + Convex?" objection by saying "use them; add Actant for the missing layer."
-- It bypasses the Rust-vs-TS market mismatch by shipping a TypeScript package via npm install.
-- It bypasses the spec-to-code gap by scoping to 3 npm packages instead of 40 Rust crates.
-- It bypasses the 6-month-to-wide-adoption fiction by setting kill criteria at 6, 10, and 13 weeks.
-- It bypasses the documentation-wall problem by leading with a single screenshot and a 5-line wrapper snippet.
+- Mastra still owns the TypeScript volume audience.
+- Convex still has the closest direct-competitor architecture.
+- 5 external developers shipping on Actant beats 250 unit tests for the goal of "wide developer adoption."
 
-## What this does NOT do
-
-- It does not abandon the v2 vision. The substrate is the natural growth of the wedge if the wedge earns its right to exist.
-- It does not orphan the planning corpus. The 258 files become the v2 roadmap that v0.1 grows into.
-- It does not commit to TypeScript forever. The TS plugin is the entry point. Rust-core re-emerges when needed.
-
-## What to read next
-
-1. `/README.md` — the new homepage framing.
-2. `/wedge/README.md` — the wedge overview.
-3. `/wedge/60-day-plan.md` — the day-by-day plan.
-4. `/wedge/killer-demo.md` — the demo that defines the wedge.
-5. `/wedge/kill-criteria.md` — the gates that prevent the substrate-by-stealth trap.
-6. `/wedge/f2-f3-prevention.md` — binding product constraints (TS-native default, contract-first build). Supersedes anything in the plan it contradicts.
-
-The premortem stays as reference at the repo root (`premortem-report-*.html`, `premortem-transcript-*.md`).
+The premortem is the reason `wedge/` still exists as the operational frame — the substrate makes the wedge stronger, not different.
