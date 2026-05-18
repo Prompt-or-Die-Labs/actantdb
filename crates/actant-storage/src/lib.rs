@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+mod backend;
 mod postgres;
 mod repo;
 
@@ -21,6 +22,7 @@ use actant_core::ActantError;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use sqlx::SqlitePool;
 
+pub use backend::{StorageBackend, PG_NOT_IMPLEMENTED_HINT};
 pub use postgres::PgStorage;
 
 // `repo` extends `Storage` with inherent impls; the module itself doesn't

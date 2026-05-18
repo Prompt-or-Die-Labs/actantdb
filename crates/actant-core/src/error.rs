@@ -44,6 +44,10 @@ pub enum ActantError {
     /// Internal invariant violation.
     #[error("internal error: {0}")]
     Internal(String),
+
+    /// Feature recognized but not implemented on the active backend.
+    #[error("not implemented: {0}")]
+    NotImplemented(String),
 }
 
 impl From<serde_json::Error> for ActantError {

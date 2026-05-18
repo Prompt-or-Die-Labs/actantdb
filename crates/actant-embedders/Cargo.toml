@@ -22,4 +22,12 @@ thiserror      = { workspace = true }
 time           = { workspace = true }
 tokio          = { workspace = true }
 tracing        = { workspace = true }
-reqwest        = { workspace = true }
+reqwest        = { workspace = true, optional = true }
+fastembed      = { workspace = true, optional = true }
+
+[features]
+default = []
+fastembed = ["dep:fastembed"]
+sparse-bm25 = []
+rerank-local = []
+openai = ["dep:reqwest"]

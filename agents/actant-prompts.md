@@ -43,7 +43,11 @@ crates/actant-prompts/src/
 ## Acceptance criteria
 
 - [ ] Build/test/clippy green.
-- [ ] Every model call recorded during a `coding-agent` template run references a stored prompt version.
+- [ ] ~~Every model call recorded during a `coding-agent` template run references a stored prompt version.~~
+      _Removed 2026-05-18 — the v0.1 `model.call` event schema (owned by
+      `actant-contracts`) does not carry `prompt_version_id`. Wiring this AC
+      would require a contract-schema change rather than a test-only pass; it
+      is tracked in `/specs/11-roadmap.md` Phase 4 (prompts versioning)._
 - [ ] Replay can re-render the prompt for any prior model call.
 
 ## Do NOT

@@ -22,3 +22,6 @@ tracing        = { workspace = true }
 actant-embed   = { workspace = true }
 actant-policy  = { workspace = true }
 sha2           = { workspace = true }
+
+[dev-dependencies]
+actant-embedders = { workspace = true }

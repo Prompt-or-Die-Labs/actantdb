@@ -10,7 +10,7 @@
 
 use actant_core::*;
 use actant_policy::{alpha_demo_policy, evaluate, GuardInput, PolicyDoc, Verdict};
-use actant_storage::Storage;
+use actant_storage::{PgStorage, Storage, StorageBackend};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -26,34 +26,102 @@ pub struct CommandOutcome {
 }
 
 /// The command engine.
+///
+/// Wraps a [`StorageBackend`] so the same engine can be constructed against
+/// either the SQLite-backed [`Storage`] or the Postgres-backed [`PgStorage`].
+/// SQLite remains the production path today; the Postgres path is wired
+/// through the abstraction but every command dispatch returns
+/// [`ActantError::NotImplemented`] with a pointer to `/specs/11-roadmap.md`
+/// Phase 6. See `GAPS.md` row #5 for the deferred dialect-translation work.
 #[derive(Clone)]
 pub struct Engine {
-    storage: Storage,
+    backend: StorageBackend,
     policy: PolicyDoc,
 }
 
 impl Engine {
-    /// Construct an engine wrapping `storage` with the default alpha-demo policy.
+    /// Construct an engine wrapping a SQLite [`Storage`] with the default
+    /// alpha-demo policy. Equivalent to `Engine::from_backend(storage.into())`.
     pub fn new(storage: Storage) -> Self {
+        Self::from_backend(StorageBackend::Sqlite(storage))
+    }
+
+    /// Construct with an explicit policy against a SQLite [`Storage`].
+    pub fn with_policy(storage: Storage, policy: PolicyDoc) -> Self {
         Self {
-            storage,
+            backend: StorageBackend::Sqlite(storage),
+            policy,
+        }
+    }
+
+    /// Construct an engine wrapping a [`PgStorage`] with the default policy.
+    ///
+    /// **Today every dispatch returns [`ActantError::NotImplemented`]** —
+    /// the abstraction is wired but per-command SQL dialect translation
+    /// (`?` -> `$N`, `INSERT OR IGNORE` -> `ON CONFLICT DO NOTHING`,
+    /// schema parity for `tool`, `tool_call`, `approval_request`,
+    /// `memory_candidate`, `memory`) is deferred to Phase 6. See
+    /// `GAPS.md` row #5.
+    pub fn postgres(pg: PgStorage) -> Self {
+        Self::from_backend(StorageBackend::Postgres(pg))
+    }
+
+    /// Construct an engine from any [`StorageBackend`] with the default policy.
+    pub fn from_backend(backend: StorageBackend) -> Self {
+        Self {
+            backend,
             policy: alpha_demo_policy(),
         }
     }
 
-    /// Construct with an explicit policy.
-    pub fn with_policy(storage: Storage, policy: PolicyDoc) -> Self {
-        Self { storage, policy }
+    /// Construct an engine from any [`StorageBackend`] with an explicit policy.
+    pub fn from_backend_with_policy(backend: StorageBackend, policy: PolicyDoc) -> Self {
+        Self { backend, policy }
     }
 
-    /// Underlying storage handle.
+    /// Underlying SQLite storage handle.
+    ///
+    /// **Panics** if the engine was constructed against a Postgres backend.
+    /// Callers that need to be backend-agnostic should use [`Self::backend`]
+    /// or [`Self::storage_opt`] instead. Every existing call site is
+    /// SQLite-only today, so this preserves the prior signature.
     pub fn storage(&self) -> &Storage {
-        &self.storage
+        match &self.backend {
+            StorageBackend::Sqlite(s) => s,
+            StorageBackend::Postgres(_) => panic!(
+                "Engine::storage() called on a Postgres-backed Engine; use \
+                 Engine::backend() or Engine::storage_opt() instead. {}",
+                actant_storage::PG_NOT_IMPLEMENTED_HINT
+            ),
+        }
+    }
+
+    /// Underlying SQLite storage handle, if the backend is SQLite.
+    pub fn storage_opt(&self) -> Option<&Storage> {
+        self.backend.as_sqlite()
+    }
+
+    /// Underlying backend handle (works for both SQLite and Postgres).
+    pub fn backend(&self) -> &StorageBackend {
+        &self.backend
     }
 
     /// Active policy.
     pub fn policy(&self) -> &PolicyDoc {
         &self.policy
+    }
+
+    /// Internal helper: borrow the SQLite [`Storage`] or surface
+    /// [`ActantError::NotImplemented`]. Every command-dispatch method below
+    /// funnels through here so the Postgres path fails with a single,
+    /// well-named error instead of a panic or a silent bug.
+    fn sqlite_storage(&self) -> Result<&Storage, ActantError> {
+        match &self.backend {
+            StorageBackend::Sqlite(s) => Ok(s),
+            StorageBackend::Postgres(_) => Err(ActantError::NotImplemented(
+                actant_storage::PG_NOT_IMPLEMENTED_HINT.to_string(),
+            )),
+        }
     }
 
     /// Dispatch a command by type name + JSON input.
@@ -66,7 +134,11 @@ impl Engine {
         idempotency_key: Option<&str>,
     ) -> Result<CommandOutcome, ActantError> {
         if let Some(key) = idempotency_key {
-            if let Some(prior) = self.storage.idempotency_lookup(workspace_id, key).await? {
+            if let Some(prior) = self
+                .sqlite_storage()?
+                .idempotency_lookup(workspace_id, key)
+                .await?
+            {
                 return Ok(CommandOutcome {
                     command_id: CommandId::from_string(prior),
                     event_id: None,
@@ -92,7 +164,7 @@ impl Engine {
             created_at: now_rfc3339(),
             committed_at: None,
         };
-        self.storage.insert_command(&cmd).await?;
+        self.sqlite_storage()?.insert_command(&cmd).await?;
 
         let result = match command_type {
             "create_session" => {
@@ -155,17 +227,18 @@ impl Engine {
         }?;
 
         if let Some(key) = idempotency_key {
-            let _ = self
-                .storage
-                .idempotency_record(
-                    workspace_id,
-                    actor_id,
-                    key,
-                    command_type,
-                    &input_hash,
-                    Some(cmd.id.as_str()),
-                )
-                .await;
+            if let Ok(s) = self.sqlite_storage() {
+                let _ = s
+                    .idempotency_record(
+                        workspace_id,
+                        actor_id,
+                        key,
+                        command_type,
+                        &input_hash,
+                        Some(cmd.id.as_str()),
+                    )
+                    .await;
+            }
         }
 
         Ok(result)
@@ -186,7 +259,7 @@ impl Engine {
         let payload_canon = canonical_json(payload);
         let payload_hash = sha256_hex(payload_canon.as_bytes());
         let prev = self
-            .storage
+            .sqlite_storage()?
             .last_event_hash(workspace_id, session_id)
             .await?
             .unwrap_or_else(|| "0".repeat(64));
@@ -215,7 +288,7 @@ impl Engine {
             effect_id: backrefs.effect_id,
         };
         let id = e.id.clone();
-        self.storage.append_event(&e).await?;
+        self.sqlite_storage()?.append_event(&e).await?;
         Ok(id)
     }
 
@@ -244,7 +317,7 @@ impl Engine {
             created_at: now_rfc3339(),
             closed_at: None,
         };
-        self.storage.insert_session(&session).await?;
+        self.sqlite_storage()?.insert_session(&session).await?;
         let event_id = self
             .append_chronicle(
                 ws,
@@ -292,7 +365,7 @@ impl Engine {
         .bind(&text)
         .bind(&body_hash)
         .bind(now_rfc3339())
-        .execute(self.storage.pool())
+        .execute(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
         let event_id = self
@@ -330,7 +403,7 @@ impl Engine {
         let arguments_canon = canonical_json(&arguments);
         let arguments_hash = sha256_hex(arguments_canon.as_bytes());
 
-        let tool_id = upsert_tool(self.storage.pool(), ws, &tool_name).await?;
+        let tool_id = upsert_tool(self.backend.sqlite_pool()?, ws, &tool_name).await?;
 
         let v = evaluate(
             &self.policy,
@@ -370,7 +443,7 @@ impl Engine {
         .bind(json_enum(&status))
         .bind(json_enum(&risk_for(&tool_name, &self.policy)))
         .bind(now_rfc3339())
-        .execute(self.storage.pool())
+        .execute(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
 
@@ -393,13 +466,13 @@ impl Engine {
             .bind(format!("{tool_name}: {arguments_canon}"))
             .bind("pending")
             .bind(now_rfc3339())
-            .execute(self.storage.pool())
+            .execute(self.backend.sqlite_pool()?)
             .await
             .map_err(|e| ActantError::Storage(e.to_string()))?;
             sqlx::query("UPDATE tool_call SET approval_request_id = ? WHERE id = ?")
                 .bind(ar_id.as_str())
                 .bind(tool_call_id.as_str())
-                .execute(self.storage.pool())
+                .execute(self.backend.sqlite_pool()?)
                 .await
                 .map_err(|e| ActantError::Storage(e.to_string()))?;
             Some(ar_id)
@@ -454,7 +527,7 @@ impl Engine {
             .and_then(|v| v.as_str())
             .unwrap_or("once")
             .to_string();
-        let session_id = session_for_tool_call(self.storage.pool(), &tool_call_id).await?;
+        let session_id = session_for_tool_call(self.backend.sqlite_pool()?, &tool_call_id).await?;
 
         sqlx::query(
             "UPDATE approval_request
@@ -465,12 +538,12 @@ impl Engine {
         .bind(actor.as_str())
         .bind(&scope)
         .bind(&tool_call_id)
-        .execute(self.storage.pool())
+        .execute(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
         sqlx::query("UPDATE tool_call SET status='approved' WHERE id=?")
             .bind(&tool_call_id)
-            .execute(self.storage.pool())
+            .execute(self.backend.sqlite_pool()?)
             .await
             .map_err(|e| ActantError::Storage(e.to_string()))?;
 
@@ -514,7 +587,7 @@ impl Engine {
             .and_then(|v| v.as_str())
             .unwrap_or("denied")
             .to_string();
-        let session_id = session_for_tool_call(self.storage.pool(), &tool_call_id).await?;
+        let session_id = session_for_tool_call(self.backend.sqlite_pool()?, &tool_call_id).await?;
 
         sqlx::query(
             "UPDATE approval_request
@@ -525,12 +598,12 @@ impl Engine {
         .bind(actor.as_str())
         .bind(&reason)
         .bind(&tool_call_id)
-        .execute(self.storage.pool())
+        .execute(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
         sqlx::query("UPDATE tool_call SET status='denied' WHERE id=?")
             .bind(&tool_call_id)
-            .execute(self.storage.pool())
+            .execute(self.backend.sqlite_pool()?)
             .await
             .map_err(|e| ActantError::Storage(e.to_string()))?;
 
@@ -571,7 +644,7 @@ impl Engine {
             .unwrap_or(serde_json::json!({}));
         let result_canon = canonical_json(&result);
         let result_hash = sha256_hex(result_canon.as_bytes());
-        let session_id = session_for_tool_call(self.storage.pool(), &tool_call_id).await?;
+        let session_id = session_for_tool_call(self.backend.sqlite_pool()?, &tool_call_id).await?;
 
         sqlx::query(
             "UPDATE tool_call
@@ -582,7 +655,7 @@ impl Engine {
         .bind(&result_hash)
         .bind(now_rfc3339())
         .bind(&tool_call_id)
-        .execute(self.storage.pool())
+        .execute(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
 
@@ -652,7 +725,7 @@ impl Engine {
         .bind(&sensitivity_s)
         .bind("pending_review")
         .bind(now_rfc3339())
-        .execute(self.storage.pool())
+        .execute(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
 
@@ -692,7 +765,7 @@ impl Engine {
              FROM memory_candidate WHERE id = ?",
         )
         .bind(&mc_id)
-        .fetch_optional(self.storage.pool())
+        .fetch_optional(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
         let (_, text, category, confidence, sensitivity_s, source_event_ids) =
@@ -715,12 +788,12 @@ impl Engine {
         .bind(&source_event_ids)
         .bind(0i64)
         .bind(now_rfc3339())
-        .execute(self.storage.pool())
+        .execute(self.backend.sqlite_pool()?)
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
         sqlx::query("UPDATE memory_candidate SET status='approved' WHERE id=?")
             .bind(&mc_id)
-            .execute(self.storage.pool())
+            .execute(self.backend.sqlite_pool()?)
             .await
             .map_err(|e| ActantError::Storage(e.to_string()))?;
         let event_id = self
@@ -765,7 +838,7 @@ impl Engine {
         sqlx::query("UPDATE memory_candidate SET status='rejected', review_reason=? WHERE id=?")
             .bind(&reason)
             .bind(&mc_id)
-            .execute(self.storage.pool())
+            .execute(self.backend.sqlite_pool()?)
             .await
             .map_err(|e| ActantError::Storage(e.to_string()))?;
         let event_id = self

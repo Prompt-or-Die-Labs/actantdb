@@ -164,6 +164,11 @@ half          = "2.4"    # f16 for embedding storage
 governor      = "0.7"    # token-bucket rate limiting primitives
 moka          = { version = "0.12", features = ["future"] }   # semantic cache
 fastembed     = "4"      # local embeddings default (feature-gated)
+include_dir   = "0.7"    # compile-time directory embedding (template bundles)
+tempfile      = "3"      # transient dirs for tests
+
+# Dev-only (referenced from crate [dev-dependencies] sections)
+proptest      = "1.5"    # property-based testing
 
 [profile.release]
 opt-level = 3
