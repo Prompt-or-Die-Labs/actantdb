@@ -33,7 +33,10 @@ async fn one_hundred_duplicates_produce_exactly_one_row() {
             None => dedup_count += 1,
         }
     }
-    assert_eq!(new_count, 1, "exactly one ingest call should produce a new row");
+    assert_eq!(
+        new_count, 1,
+        "exactly one ingest call should produce a new row"
+    );
     assert_eq!(dedup_count, 99, "remaining 99 calls should dedupe");
 
     let (row_count,): (i64,) = sqlx::query_as(
@@ -70,12 +73,11 @@ async fn distinct_keys_still_produce_distinct_rows() {
         };
         assert!(ingest(&s, &ws.id, &event).await.unwrap().is_some());
     }
-    let (row_count,): (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM ingress_event WHERE workspace_id = ?",
-    )
-    .bind(ws.id.as_str())
-    .fetch_one(s.pool())
-    .await
-    .unwrap();
+    let (row_count,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM ingress_event WHERE workspace_id = ?")
+            .bind(ws.id.as_str())
+            .fetch_one(s.pool())
+            .await
+            .unwrap();
     assert_eq!(row_count, 100);
 }

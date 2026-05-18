@@ -195,7 +195,11 @@ impl SparseEncoder for Bm25Encoder {
                 let idf = self.idf(id);
                 let denom = f + self.k1 * (1.0 - self.b + self.b * (dl / avgdl));
                 let numer = f * (self.k1 + 1.0);
-                let weight = if denom > 0.0 { idf * (numer / denom) } else { 0.0 };
+                let weight = if denom > 0.0 {
+                    idf * (numer / denom)
+                } else {
+                    0.0
+                };
                 (id, weight)
             })
             .collect();
@@ -231,7 +235,10 @@ mod tests {
 
     #[test]
     fn token_id_is_stable() {
-        assert_eq!(Bm25Encoder::token_id("hello"), Bm25Encoder::token_id("hello"));
+        assert_eq!(
+            Bm25Encoder::token_id("hello"),
+            Bm25Encoder::token_id("hello")
+        );
         assert_ne!(Bm25Encoder::token_id("a"), Bm25Encoder::token_id("b"));
     }
 }

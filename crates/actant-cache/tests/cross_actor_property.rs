@@ -26,10 +26,10 @@ use proptest::prelude::*;
 /// One simulated put.
 #[derive(Debug, Clone)]
 struct Put {
-    actor: u8,         // 0..16 — restricted alphabet so collisions on key happen.
-    key: String,       // 1..16 chars, ascii alphanumeric.
-    sensitivity: u8,   // 0..6 — mirrors the Sensitivity enum cardinality.
-    value: String,     // 0..32 chars.
+    actor: u8,       // 0..16 — restricted alphabet so collisions on key happen.
+    key: String,     // 1..16 chars, ascii alphanumeric.
+    sensitivity: u8, // 0..6 — mirrors the Sensitivity enum cardinality.
+    value: String,   // 0..32 chars.
 }
 
 prop_compose! {

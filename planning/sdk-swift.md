@@ -9,7 +9,16 @@ Package: `swift-actantdb` (SwiftPM).
 - `Codable` types for all inputs/outputs. Generated.
 - macOS 14+, iOS 17+, visionOS 1+. Foundation-on-Linux supported.
 
-## API
+## Two-tier API
+
+The SDK ships two modules. Consumers pick the level that matches the
+shape of the code they already have.
+
+### Low tier — `ActantDB`
+
+Direct HTTP/WS client. Mirrors `actant-server::router` 1:1. Use when you
+already have your own session/memory/approval abstractions and just want a
+wire client.
 
 ```swift
 import ActantDB
@@ -19,15 +28,59 @@ let client = ActantClient(
     token: ProcessInfo.processInfo.environment["ACTANT_TOKEN"]!
 )
 
-let session = try await client.command.createSession(
-    agentActorId: "agent_123",
-    title: "Fix failing tests"
+let sessionID = try await client.createSession(
+    workspaceID: "ws_default", actorID: "act_user", title: "Fix failing tests"
 )
 
-for try await event in client.subscribe(.approvalRequest, where: .status(.pending)) {
+for try await msg in try await client.subscribe(
+    workspaceID: "ws_default", sessionID: sessionID, kind: "events"
+) {
     // ...
 }
 ```
+
+### High tier — `ActantAgent` (opinionated facade)
+
+Use when you're building a Swift agent and want to add ActantDB by
+extending your own types with one-line conformances rather than wiring
+adapters. The facade is **generic over the consumer's data shapes** so
+the SDK never has to know what `YourCore.ChatMessage` is.
+
+```swift
+import ActantAgent
+
+let supervisor = ActantDBSupervisor()
+let url = try await supervisor.start(
+    dbPath: URL(fileURLWithPath: "~/Library/Application Support/swoosh/actantdb")
+)
+
+let backend = AgentBackend(
+    client: ActantClient(baseURL: url),
+    workspaceID: "ws_default",
+    actorID: "act_user"
+)
+
+// Consumer plugs in its own ChatMessage shape — no adapter needed.
+let session = Session<SwooshCore.ChatMessage>(
+    backend: backend,
+    sessionID: "sess_123",
+    encode: { ($0.role.toActant, $0.text) },
+    decode: { role, text, _ in SwooshCore.ChatMessage(role: .init(role), text: text) }
+)
+try await session.appendMessage(myMessage)
+
+let memory = MemoryStore(backend: backend)
+let approved = try await memory.listApproved()
+
+let relations = RelationshipStore(backend: backend)
+let alice = try await relations.upsertEntity(type: "person", canonicalName: "Alice")
+let bob   = try await relations.upsertEntity(type: "person", canonicalName: "Bob")
+_ = try await relations.link(source: alice, relation: "knows", target: bob)
+```
+
+The five other facade types — `Auditor<Record>`, `ApprovalCenter`,
+`ReplayClient`, `RelationshipStore`, `ActantDBSupervisor` — follow the same
+shape. See `sdks/swift/README.md` for the full surface.
 
 ## Distribution
 

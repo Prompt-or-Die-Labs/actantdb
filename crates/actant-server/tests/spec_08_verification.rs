@@ -108,6 +108,13 @@ fn openapi_documents_every_endpoint_in_spec() {
         "/v1/replay/run",
         "/v1/metrics",
         "/v1/ws",
+        "/v1/memories",
+        "/v1/memories/conflicts",
+        "/v1/permissions",
+        "/v1/setup-reports",
+        "/v1/scout-records",
+        "/v1/entities",
+        "/v1/entity-relations",
     ] {
         assert!(openapi.contains(path), "OpenAPI missing path {path}");
     }

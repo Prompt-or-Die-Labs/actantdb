@@ -37,7 +37,9 @@ async fn restart_does_not_refire_already_fired_cron() {
     let now = OffsetDateTime::now_utc().unix_timestamp();
     let first_fires = sched_a.tick(now).await;
     assert_eq!(first_fires.len(), 1, "expected one cron fire on cold start");
-    assert!(matches!(&first_fires[0], FireAction::Fire { trigger_id, .. } if trigger_id == "t-restart"));
+    assert!(
+        matches!(&first_fires[0], FireAction::Fire { trigger_id, .. } if trigger_id == "t-restart")
+    );
 
     // Snapshot the registration AFTER fire (carrying the new last_fired_at).
     let regs_after = sched_a.list().await;

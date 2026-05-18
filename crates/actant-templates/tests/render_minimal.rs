@@ -32,7 +32,12 @@ fn renders_minimal_into_temp_dir() {
     }
 
     // File count matches.
-    assert_eq!(out.files_written.len(), 4, "expected 4 files, got {:?}", out.files_written);
+    assert_eq!(
+        out.files_written.len(),
+        4,
+        "expected 4 files, got {:?}",
+        out.files_written
+    );
 
     // package.json parses as JSON and contains the substituted name.
     let pkg_text = fs::read_to_string(&pkg_path).expect("read package.json");
@@ -64,7 +69,10 @@ fn registry_lists_minimal() {
         .into_iter()
         .map(|t| t.name)
         .collect();
-    assert!(names.contains(&"minimal".to_string()), "missing minimal: {names:?}");
+    assert!(
+        names.contains(&"minimal".to_string()),
+        "missing minimal: {names:?}"
+    );
 }
 
 #[test]

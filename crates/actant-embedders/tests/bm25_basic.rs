@@ -3,7 +3,10 @@
 
 use actant_embedders::{Bm25Encoder, SparseEncoder};
 
-fn score(query_vec: &actant_embedders::SparseVector, doc_vec: &actant_embedders::SparseVector) -> f32 {
+fn score(
+    query_vec: &actant_embedders::SparseVector,
+    doc_vec: &actant_embedders::SparseVector,
+) -> f32 {
     query_vec.dot(doc_vec)
 }
 

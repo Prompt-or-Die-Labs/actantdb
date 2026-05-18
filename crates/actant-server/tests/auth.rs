@@ -130,3 +130,64 @@ async fn bad_signature_is_rejected() {
         .unwrap();
     assert_eq!(r.status(), 401);
 }
+
+#[tokio::test]
+async fn permissions_get_requires_auth_when_secret_set() {
+    // The new endpoints share enforce_auth() with /v1/command, so cover one
+    // GET, one POST, and one DELETE here. If the helper is dropped from any
+    // handler, this fails.
+    let secret = b"shared-secret";
+    let base = start_with_secret(secret).await;
+    let c = reqwest::Client::new();
+
+    // Unauthenticated GET => 401.
+    let r = c
+        .get(format!("{base}/v1/permissions?workspace_id=ws_default"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(r.status(), 401, "GET /v1/permissions should require auth");
+
+    // Unauthenticated POST => 401.
+    let r = c
+        .post(format!("{base}/v1/setup-reports"))
+        .json(&serde_json::json!({
+            "workspace_id": "ws_default",
+            "actor_id": "act_system",
+            "content": "x",
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        401,
+        "POST /v1/setup-reports should require auth"
+    );
+
+    // Unauthenticated DELETE => 401.
+    let r = c
+        .delete(format!("{base}/v1/permissions"))
+        .json(&serde_json::json!({
+            "workspace_id": "ws_default",
+            "authority_scope_id": "auth_nope",
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        401,
+        "DELETE /v1/permissions should require auth"
+    );
+
+    // With a valid token, GET succeeds.
+    let token = fresh_token(secret, "ws_default");
+    let r = c
+        .get(format!("{base}/v1/permissions?workspace_id=ws_default"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap();
+    assert!(r.status().is_success(), "got {}", r.status());
+}

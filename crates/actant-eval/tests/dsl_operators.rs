@@ -16,7 +16,12 @@ fn ev(t: &str) -> Event {
     }
 }
 
-fn ev_full(t: &str, cost: Option<f64>, latency_ms: Option<u64>, payload: serde_json::Value) -> Event {
+fn ev_full(
+    t: &str,
+    cost: Option<f64>,
+    latency_ms: Option<u64>,
+    payload: serde_json::Value,
+) -> Event {
     Event {
         event_type: t.into(),
         cost,
@@ -80,7 +85,11 @@ fn cost_le_positive() {
         ev_full("model_call_finished", Some(0.02), None, json!({})),
     ];
     let r = crit.evaluate(&events);
-    assert!(r.passed, "expected pass at 0.03 <= 0.05, got: {:?}", r.failures);
+    assert!(
+        r.passed,
+        "expected pass at 0.03 <= 0.05, got: {:?}",
+        r.failures
+    );
 }
 
 #[test]
@@ -107,7 +116,11 @@ fn latency_le_ms_positive() {
         ev_full("tool_call_finished", None, Some(4800), json!({})),
     ];
     let r = crit.evaluate(&events);
-    assert!(r.passed, "expected pass with max=4800 <= 5000, got: {:?}", r.failures);
+    assert!(
+        r.passed,
+        "expected pass with max=4800 <= 5000, got: {:?}",
+        r.failures
+    );
 }
 
 #[test]
@@ -211,7 +224,12 @@ fn multiple_criteria_aggregate_failures() {
             Criterion::LatencyLeMs(100),
         ],
     };
-    let events = vec![ev_full("model_call_finished", Some(1.0), Some(500), json!({}))];
+    let events = vec![ev_full(
+        "model_call_finished",
+        Some(1.0),
+        Some(500),
+        json!({}),
+    )];
     let r = crit.evaluate(&events);
     assert!(!r.passed);
     assert_eq!(r.failures.len(), 3, "all three criteria should fail");

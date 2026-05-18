@@ -6,7 +6,9 @@ use actant_embedders::Registry;
 #[tokio::test]
 async fn defaults_embedder_returns_32_dim_vector() {
     let r = Registry::with_defaults();
-    let e = r.embedder("hash").expect("hash embedder is wired by default");
+    let e = r
+        .embedder("hash")
+        .expect("hash embedder is wired by default");
     assert_eq!(e.dimension(), 32);
     let emb = e.embed("the quick brown fox").await.unwrap();
     assert_eq!(emb.vector.len(), 32);

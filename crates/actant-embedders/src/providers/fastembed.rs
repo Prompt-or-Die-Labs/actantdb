@@ -52,9 +52,9 @@ impl Embedder for FastEmbedEmbedder {
             .lock()
             .map_err(|e| anyhow::anyhow!("fastembed mutex poisoned: {e}"))?;
         let mut out = guard.embed(vec![text.to_string()], None)?;
-        let vector = out.pop().ok_or_else(|| {
-            anyhow::anyhow!("fastembed returned no rows for input")
-        })?;
+        let vector = out
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("fastembed returned no rows for input"))?;
         Ok(Embedding {
             provider: "fastembed".into(),
             model: self.model_name.into(),

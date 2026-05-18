@@ -20,12 +20,10 @@ pub struct RecallQuery {
 }
 
 pub fn load_fixture() -> RecallFixture {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/recall_queries.json");
-    let raw = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-    serde_json::from_str(&raw)
-        .unwrap_or_else(|e| panic!("parse {}: {e}", path.display()))
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/recall_queries.json");
+    let raw =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    serde_json::from_str(&raw).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()))
 }
 
 /// Build a corpus that pairs every gold doc id with the query text that

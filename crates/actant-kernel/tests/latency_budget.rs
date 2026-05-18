@@ -28,9 +28,7 @@
 use std::time::{Duration, Instant};
 
 use actant_command::Engine;
-use actant_core::{
-    now_rfc3339, Actor, ActorId, ActorKind, SessionId, Workspace, WorkspaceId,
-};
+use actant_core::{now_rfc3339, Actor, ActorId, ActorKind, SessionId, Workspace, WorkspaceId};
 use actant_kernel::{dispatch_tool_call, HotToolCall};
 use actant_storage::{Storage, StorageConfig};
 

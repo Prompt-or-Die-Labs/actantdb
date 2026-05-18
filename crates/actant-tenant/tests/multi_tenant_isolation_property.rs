@@ -8,7 +8,7 @@
 //! owned by that tenant — across the whole cartesian product.
 
 use actant_auth::Principal;
-use actant_core::{now_rfc3339, ActorId, ActorKind, Actor, ActantError, Workspace, WorkspaceId};
+use actant_core::{now_rfc3339, ActantError, Actor, ActorId, ActorKind, Workspace, WorkspaceId};
 use actant_storage::{Storage, StorageConfig};
 use actant_tenant::TenantContext;
 use proptest::prelude::*;

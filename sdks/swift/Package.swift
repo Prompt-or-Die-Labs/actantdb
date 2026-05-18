@@ -13,16 +13,27 @@ let package = Package(
     ],
     products: [
         .library(name: "ActantDB", targets: ["ActantDB"]),
+        .library(name: "ActantAgent", targets: ["ActantAgent"]),
     ],
     targets: [
         .target(
             name: "ActantDB",
             path: "Sources/ActantDB"
         ),
+        .target(
+            name: "ActantAgent",
+            dependencies: ["ActantDB"],
+            path: "Sources/ActantAgent"
+        ),
         .testTarget(
             name: "ActantDBTests",
             dependencies: ["ActantDB"],
             path: "Tests/ActantDBTests"
+        ),
+        .testTarget(
+            name: "ActantAgentTests",
+            dependencies: ["ActantAgent"],
+            path: "Tests/ActantAgentTests"
         ),
     ]
 )

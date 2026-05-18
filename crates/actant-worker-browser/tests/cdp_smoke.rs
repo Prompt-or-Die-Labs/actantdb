@@ -66,10 +66,7 @@ async fn navigate_and_screenshot_real_chrome() {
         .expect("navigate");
     assert!(nav.get("title").is_some(), "nav result missing title");
 
-    let shot = driver
-        .run(Action::Screenshot)
-        .await
-        .expect("screenshot");
+    let shot = driver.run(Action::Screenshot).await.expect("screenshot");
     let bytes = shot
         .get("bytes")
         .and_then(|v| v.as_u64())

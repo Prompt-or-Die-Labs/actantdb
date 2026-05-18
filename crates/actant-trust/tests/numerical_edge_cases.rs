@@ -40,7 +40,10 @@ fn nan_outcome_loop_does_not_panic() {
     for i in 0..10_000 {
         p.observe(i % 2 == 0);
         assert!(p.score.is_finite(), "score went non-finite at i={i}");
-        assert!(p.confidence.is_finite(), "confidence went non-finite at i={i}");
+        assert!(
+            p.confidence.is_finite(),
+            "confidence went non-finite at i={i}"
+        );
         assert!(
             (0.0..=1.0).contains(&p.score),
             "score escaped [0,1] at i={i}: {}",
@@ -61,7 +64,11 @@ fn all_failures_drives_score_to_zero_without_panic() {
         p.observe(false);
     }
     assert!(p.score.is_finite());
-    assert!(p.score < 0.01, "expected score near 0 after 1k failures, got {}", p.score);
+    assert!(
+        p.score < 0.01,
+        "expected score near 0 after 1k failures, got {}",
+        p.score
+    );
     assert!(!p.auto_approve_at(0.5, 0.5));
 }
 
@@ -72,7 +79,11 @@ fn all_successes_drives_score_to_one_without_panic() {
         p.observe(true);
     }
     assert!(p.score.is_finite());
-    assert!(p.score > 0.99, "expected score near 1 after 1k successes, got {}", p.score);
+    assert!(
+        p.score > 0.99,
+        "expected score near 1 after 1k successes, got {}",
+        p.score
+    );
 }
 
 #[test]

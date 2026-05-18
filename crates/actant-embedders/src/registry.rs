@@ -101,13 +101,13 @@ impl Registry {
     /// Reject mixing two embedders whose `provider()` strings disagree. The
     /// retrieval planner uses this before feeding two stores into the same
     /// similarity computation.
-    pub fn check_cross_space(
-        &self,
-        lhs: &str,
-        rhs: &str,
-    ) -> Result<(), RegistryError> {
-        let l = self.embedder(lhs).ok_or_else(|| RegistryError::Unknown(lhs.into()))?;
-        let r = self.embedder(rhs).ok_or_else(|| RegistryError::Unknown(rhs.into()))?;
+    pub fn check_cross_space(&self, lhs: &str, rhs: &str) -> Result<(), RegistryError> {
+        let l = self
+            .embedder(lhs)
+            .ok_or_else(|| RegistryError::Unknown(lhs.into()))?;
+        let r = self
+            .embedder(rhs)
+            .ok_or_else(|| RegistryError::Unknown(rhs.into()))?;
         cross_space_check(l.provider(), r.provider()).map_err(RegistryError::Space)
     }
 }

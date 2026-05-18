@@ -77,7 +77,10 @@ fn ten_k_row_fixture_leaks_no_private_capsule() {
         let bucket = i % 20;
         let (sens, payload) = match bucket {
             0 => (Sensitivity::Secret, Some("{\"text\":\"shh\"}".to_string())),
-            1 => (Sensitivity::Regulated, Some("{\"text\":\"hipaa\"}".to_string())),
+            1 => (
+                Sensitivity::Regulated,
+                Some("{\"text\":\"hipaa\"}".to_string()),
+            ),
             2 | 3 => (
                 Sensitivity::Low,
                 Some("{\"text\":\"info\",\"label\":\"capsule:private\"}".to_string()),
@@ -97,7 +100,10 @@ fn ten_k_row_fixture_leaks_no_private_capsule() {
 
     // Every exported row MUST be non-private.
     let leaked = exported.iter().filter(|e| is_private_capsule(e)).count();
-    assert_eq!(leaked, 0, "{leaked} private-capsule rows leaked into export");
+    assert_eq!(
+        leaked, 0,
+        "{leaked} private-capsule rows leaked into export"
+    );
 
     // The export count plus the private count MUST equal the input — no
     // ghost rows, no duplicate suppression.

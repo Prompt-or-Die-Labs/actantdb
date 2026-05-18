@@ -141,6 +141,109 @@ swift test
 
 25 tests, ~0.03s, zero external dependencies. Tests use `MockURLProtocol` with an actor-based cross-suite mutex so handler state never races.
 
+## ActantAgent (opinionated facade)
+
+Sitting on top of `ActantDB` is a second library product, `ActantAgent`,
+that exposes a smaller, opinionated surface. The shape is chosen so a
+consumer can wire ActantDB into its own types via one-line conformance
+extensions instead of writing adapters. The facade is **generic over the
+consumer's data shapes** — the SDK never needs to know what
+`YourCore.ChatMessage` is.
+
+```swift
+import ActantAgent
+
+let supervisor = ActantDBSupervisor()           // spawns + lifecycles the
+                                                // actantdb Rust subprocess
+let url = try await supervisor.start(
+    dbPath: URL(fileURLWithPath: "/path/to/db")
+)
+
+let backend = AgentBackend(
+    client: ActantClient(baseURL: url),
+    workspaceID: "ws_default",
+    actorID: "act_user"
+)
+try await backend.waitForReady(timeout: 5)
+
+// Session, generic over your message type.
+let session = Session<YourCore.ChatMessage>(
+    backend: backend,
+    sessionID: "sess_123",
+    encode: { ($0.role.toActant, $0.text) },
+    decode: { role, text, _ in YourCore.ChatMessage(role: .init(role), text: text) }
+)
+try await session.appendMessage(myMessage)
+let transcript = try await session.loadTranscript()
+
+// Governed memory.
+let memory = MemoryStore(backend: backend)
+let candidateID = try await memory.propose(
+    text: "User prefers dark mode", category: "preference",
+    sensitivity: .low, confidence: 0.9, evidence: .null
+)
+try await memory.approve(candidateID: candidateID)
+let approved = try await memory.listApproved()      // [ApprovedMemory]
+let pending  = try await memory.listPending()       // [MemoryCandidate]
+let clashes  = try await memory.listConflicts()     // [MemoryConflict]
+
+// Audit, generic over your record type.
+struct DecisionRecord: Codable, Sendable { let action: String; let why: String }
+let auditor = Auditor<DecisionRecord>(
+    backend: backend, sessionID: "sess_123", sentinelKey: "swoosh.decision"
+)
+try await auditor.log(DecisionRecord(action: "skip", why: "user paused"))
+let last = try await auditor.last()                  // DecisionRecord?
+
+// Approvals.
+let approvals = ApprovalCenter(backend: backend)
+let pending2 = try await approvals.pending()
+try await approvals.approve(toolCallID: pending2[0].toolCallID, scope: "once")
+
+// Relationships — small directed knowledge graph.
+let rels = RelationshipStore(backend: backend)
+let alice = try await rels.upsertEntity(type: "person", canonicalName: "Alice")
+let bob   = try await rels.upsertEntity(type: "person", canonicalName: "Bob")
+_ = try await rels.link(source: alice, relation: "knows", target: bob, confidence: 0.9)
+let neighbors = try await rels.neighbors(of: bob)    // [EntityRelationRow]
+
+// Replay.
+let replay = ReplayClient(backend: backend)
+let cp = try await replay.checkpoint(eventID: "evt_xyz")
+let diff = try await replay.run(actorID: "act_user", checkpointID: cp, mode: .memory)
+```
+
+The intended consumer-side pattern is to extend the facade types with
+your own protocol conformances:
+
+```swift
+extension ActantAgent.Session: SwooshCore.TranscriptStore {}
+extension ActantAgent.MemoryStore: SwooshCore.GovernedMemory {}
+extension ActantAgent.ApprovalCenter: SwooshCore.ApprovalQueue {}
+extension ActantAgent.RelationshipStore: SwooshCore.KnowledgeGraph {}
+```
+
+No adapter classes, no wrapper layer.
+
+### Subprocess supervisor
+
+`ActantDBSupervisor` spawns and lifecycles the `actantdb` Rust binary for
+local-first deployments. Binary discovery order: `binaryPath` argument →
+`SWOOSH_ACTANTDB_PATH` env → `PATH` → `~/.cargo/bin/actantdb` →
+`extraSearchPaths` (consumer-supplied, e.g. `Bundle.main.resourceURL`). If
+nothing matches, throws `Error.binaryNotFound` whose
+`localizedDescription` carries the exact `cargo install` command.
+
+```swift
+let sup = ActantDBSupervisor(
+    binaryPath: nil,
+    extraSearchPaths: [Bundle.main.resourceURL!],
+    logOutputTo: URL(fileURLWithPath: "/tmp/actantdb.log")
+)
+let url = try await sup.start(dbPath: ..., port: nil)   // ephemeral port
+defer { Task { await sup.stop() } }                     // SIGTERM, then SIGKILL after 10s
+```
+
 ## Status
 
 Hand-written. Codegen-from-contracts (`cargo run -p actant-contracts -- codegen-swift`) is a follow-up; until then, keep these types in sync with `crates/actant-contracts/src/{events,policy,replay}.rs` and `crates/actant-core/src/model.rs`.

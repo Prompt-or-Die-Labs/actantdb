@@ -4,6 +4,69 @@ This file accumulates the visible changes shipped through this work session.
 Cross-reference: [SPECS_STATUS.md](./SPECS_STATUS.md), [GATES.md](./GATES.md),
 [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md).
 
+## Unreleased — 2026-05-18
+
+### Swift SDK opinionated facade + extra storage endpoints
+
+Built to back the Swoosh consumer (`planning/sdk-swift.md`) with minimum
+glue code on the consumer side.
+
+- **New high-level Swift module `ActantAgent`** (`sdks/swift/Sources/ActantAgent/`)
+  on top of the existing low-level `ActantDB` SDK. Six surfaces — consumers
+  add ActantDB by one-line conformance extensions, not by writing adapters:
+  - `AgentBackend` (actor) — holds the `ActantClient`, exposes `waitForReady`.
+  - `Session<Message>` — generic over the consumer's message type; round-trips
+    transcripts via injected `encode`/`decode` closures.
+  - `MemoryStore` — propose / approve / reject + `listApproved / listPending /
+    listConflicts`.
+  - `Auditor<Record>` — generic over a Codable audit record type; round-trips
+    through a JSON sentinel in the session ledger.
+  - `ApprovalCenter` — pending list + approve / deny / approve-with-constraint.
+  - `ReplayClient` — checkpoint / run / diff wrapper.
+  - `RelationshipStore` — `upsertEntity / link / entities / neighbors` over
+    the new `/v1/entities` and `/v1/entity-relations` endpoints.
+  - `ActantDBSupervisor` (actor) — spawns + lifecycles the `actantdb` Rust
+    server subprocess for local-first mode; binary discovery (env override,
+    `PATH`, `~/.cargo/bin`, app-bundle search paths), stderr port parsing,
+    readiness polling, SIGTERM-then-SIGKILL stop.
+- **Ten new server endpoints** on `actant-server`, no schema migrations
+  (reuse existing `memory`, `memory_candidate`, `memory_conflict`,
+  `authority_scope`, `artifact`, `agent_event`, `entity`, `entity_relation`
+  tables):
+  - `GET    /v1/memories?workspace_id=&status=approved|pending|rejected|all`
+  - `GET    /v1/memories/conflicts?workspace_id=`
+  - `GET    /v1/permissions?workspace_id=`
+  - `POST   /v1/permissions   { workspace_id, actor_id, permission, level, scope?, allowed_actions? }`
+  - `DELETE /v1/permissions   { workspace_id, authority_scope_id }`
+  - `POST   /v1/setup-reports { workspace_id, actor_id, content }`
+  - `GET    /v1/setup-reports?workspace_id=&latest=true`
+  - `POST   /v1/scout-records { workspace_id, actor_id, source_id, kind, sensitivity, content, metadata? }`
+  - `GET    /v1/scout-records?workspace_id=&source=`
+  - `GET    /v1/entities?workspace_id=&type=` / `POST /v1/entities { workspace_id, type, canonical_name, aliases?, sensitivity?, capsule_id?, source_events? }`
+  - `GET    /v1/entity-relations?workspace_id=&entity=&relation_type=` / `POST /v1/entity-relations { workspace_id, source_entity, relation_type, target_entity, confidence?, evidence_events? }`
+- **Eleven new methods on the low-level `ActantClient`** mirroring those
+  endpoints, plus matching Codable row types in `Sources/ActantDB/Types/Storage.swift`
+  (`ApprovedMemory`, `MemoryCandidate`, `MemoryConflict`, `MemoryRow`,
+  `AuthorityScopeRow`, `SetupReportRow`, `ScoutRecordRow`, `EntityRow`,
+  `EntityRelationRow`).
+- **OpenAPI** (`crates/actant-server/openapi.yaml`) extended with the 10 new
+  paths.
+- **Storage shape deviation surfaced**: setup_reports + scout_records each
+  append an `agent_event` (event_type `setup_report` / `scout_record`,
+  content in `payload_inline`) AND insert an `artifact` row whose `uri` is
+  `actantdb://event/<event_id>`. `artifact` is NOT NULL on `uri` with no
+  inline body column, and `context_item` requires a NOT NULL
+  `context_build_id` — neither is a natural home for free-form caller
+  content without a migration.
+- **Tests**:
+  - Rust workspace: actant-server grew from 20 → 44 passing.
+  - Swift SDK: 25 → 62 passing across 12 suites (10 new ActantDBTests for
+    the storage endpoints + entities, 27 new ActantAgentTests for the
+    facade modules + supervisor + RelationshipStore).
+- **Repo baseline fix**: `crates/actant-tenant/Cargo.toml` was missing a
+  `[dev-dependencies] proptest = { workspace = true }` declaration its test
+  file expects (introduced in `ed21078`). Added.
+
 ## Unreleased — 2026-05-17
 
 The substrate was unfrozen and built out from the wedge through every

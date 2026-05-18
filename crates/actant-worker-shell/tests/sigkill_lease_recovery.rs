@@ -168,16 +168,10 @@ async fn sigkill_then_second_worker_claims_and_completes() {
         .await
         .expect("ShellHandler should execute");
     assert_eq!(result["exit"], 0);
-    assert!(result["stdout"]
-        .as_str()
-        .unwrap()
-        .contains("recovered"));
+    assert!(result["stdout"].as_str().unwrap().contains("recovered"));
 
     queue.start(&lease_b.effect_id).await.unwrap();
-    queue
-        .complete(&lease_b.effect_id, &result)
-        .await
-        .unwrap();
+    queue.complete(&lease_b.effect_id, &result).await.unwrap();
 
     // (6) The effect row must end in `succeeded` with a deterministic
     //     result_hash. We also re-call `complete` and confirm the hash
@@ -195,16 +189,12 @@ async fn sigkill_then_second_worker_claims_and_completes() {
     assert!(!hash_before.is_empty(), "result_hash must be populated");
 
     // Re-issuing complete with the same payload must produce the same hash.
-    queue
-        .complete(&lease_b.effect_id, &result)
+    queue.complete(&lease_b.effect_id, &result).await.unwrap();
+    let (hash_after,): (String,) = sqlx::query_as("SELECT result_hash FROM effect WHERE id = ?")
+        .bind(effect_id.as_str())
+        .fetch_one(storage.pool())
         .await
         .unwrap();
-    let (hash_after,): (String,) =
-        sqlx::query_as("SELECT result_hash FROM effect WHERE id = ?")
-            .bind(effect_id.as_str())
-            .fetch_one(storage.pool())
-            .await
-            .unwrap();
     assert_eq!(
         hash_before, hash_after,
         "result_hash must be stable across repeated complete calls"

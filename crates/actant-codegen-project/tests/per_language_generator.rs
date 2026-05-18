@@ -74,9 +74,7 @@ fn python_path_fixture_documented_as_pending() {
     if tool_present("python3") {
         // When a Python generator lands, generate `commands/demo_cmd.py`
         // here and assert `python3 -c "import commands.demo_cmd"` exits 0.
-        eprintln!(
-            "python3 available; per-language Python generator not yet implemented in crate"
-        );
+        eprintln!("python3 available; per-language Python generator not yet implemented in crate");
     } else {
         eprintln!("skipping python import check; python3 not on PATH");
     }
@@ -89,9 +87,7 @@ fn swift_path_fixture_documented_as_pending() {
     assert!(dir.path().join("package.json").exists());
 
     if tool_present("swift") {
-        eprintln!(
-            "swift available; per-language Swift generator not yet implemented in crate"
-        );
+        eprintln!("swift available; per-language Swift generator not yet implemented in crate");
     } else {
         eprintln!("skipping swift build check; swift not on PATH");
     }

@@ -25,6 +25,26 @@ The product ships as **npm packages**; the Rust workspace is the substrate.
 @actantdb/convex    Convex adapter
 ```
 
+### Swift SDK (`/sdks/swift`, SwiftPM, Swift 6.3, macOS 26 / iOS 26)
+
+Two-tier consumer surface — the consumer (Swoosh and friends) plugs
+ActantDB in by declaring conformances on the high-level types, not by
+writing adapters:
+
+```
+ActantDB     low-level HTTP+WS client; covers every actant-server endpoint
+ActantAgent  opinionated facade — AgentBackend, Session<Message>,
+             MemoryStore, Auditor<Record>, ApprovalCenter, ReplayClient,
+             RelationshipStore, ActantDBSupervisor (spawn/lifecycle the
+             actantdb Rust subprocess for local-first mode)
+```
+
+ActantAgent's API shape is the consumer contract; methods are chosen so a
+consumer satisfies their own protocols via one-line extensions. When in
+doubt about a new high-level method, ask whether the consumer can express
+it as `extension ActantAgent.X: ConsumerProtocol {}` — if not, push more
+work down into ActantAgent.
+
 ### Rust crates (`/crates`, Cargo workspace, Rust 1.88)
 
 ```

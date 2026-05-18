@@ -180,3 +180,128 @@ class ActantClient:
         return self._request(
             "GET", "/v1/approvals", params=[("workspace_id", workspace_id)]
         )
+
+    # ------------------------------------------------------------------
+    # Memories
+
+    def memories(
+        self,
+        *,
+        workspace_id: str,
+        status: str = "approved",
+    ) -> Dict[str, Any]:
+        return self._request(
+            "GET",
+            "/v1/memories",
+            params=[("workspace_id", workspace_id), ("status", status)],
+        )
+
+    def memory_conflicts(self, *, workspace_id: str) -> Dict[str, Any]:
+        return self._request(
+            "GET",
+            "/v1/memories/conflicts",
+            params=[("workspace_id", workspace_id)],
+        )
+
+    # ------------------------------------------------------------------
+    # Permissions
+
+    def permissions(self, *, workspace_id: str) -> Dict[str, Any]:
+        return self._request(
+            "GET", "/v1/permissions", params=[("workspace_id", workspace_id)]
+        )
+
+    def grant_permission(
+        self,
+        *,
+        workspace_id: str,
+        actor_id: str,
+        permission: str,
+        level: str,
+        scope: Optional[str] = None,
+        allowed_actions: Optional[Iterable[str]] = None,
+    ) -> Dict[str, Any]:
+        body: Dict[str, Any] = {
+            "workspace_id": workspace_id,
+            "actor_id": actor_id,
+            "permission": permission,
+            "level": level,
+        }
+        if scope is not None:
+            body["scope"] = scope
+        if allowed_actions is not None:
+            body["allowed_actions"] = list(allowed_actions)
+        return self._request("POST", "/v1/permissions", body=body)
+
+    def revoke_permission(
+        self, *, workspace_id: str, authority_scope_id: str
+    ) -> Dict[str, Any]:
+        return self._request(
+            "DELETE",
+            "/v1/permissions",
+            body={"workspace_id": workspace_id, "authority_scope_id": authority_scope_id},
+        )
+
+    # ------------------------------------------------------------------
+    # Setup reports
+
+    def save_setup_report(
+        self, *, workspace_id: str, actor_id: str, content: str
+    ) -> Dict[str, Any]:
+        return self._request(
+            "POST",
+            "/v1/setup-reports",
+            body={
+                "workspace_id": workspace_id,
+                "actor_id": actor_id,
+                "content": content,
+            },
+        )
+
+    def latest_setup_report(self, *, workspace_id: str) -> Dict[str, Any]:
+        return self._request(
+            "GET",
+            "/v1/setup-reports",
+            params=[("workspace_id", workspace_id), ("latest", "true")],
+        )
+
+    def setup_reports(self, *, workspace_id: str) -> Dict[str, Any]:
+        return self._request(
+            "GET",
+            "/v1/setup-reports",
+            params=[("workspace_id", workspace_id)],
+        )
+
+    # ------------------------------------------------------------------
+    # Scout records
+
+    def save_scout_record(
+        self,
+        *,
+        workspace_id: str,
+        actor_id: str,
+        source_id: str,
+        kind: str,
+        sensitivity: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        body: Dict[str, Any] = {
+            "workspace_id": workspace_id,
+            "actor_id": actor_id,
+            "source_id": source_id,
+            "kind": kind,
+            "sensitivity": sensitivity,
+            "content": content,
+        }
+        if metadata is not None:
+            body["metadata"] = metadata
+        return self._request("POST", "/v1/scout-records", body=body)
+
+    def scout_records(
+        self, *, workspace_id: str, source: Optional[str] = None
+    ) -> Dict[str, Any]:
+        params: list[tuple[str, str]] = [("workspace_id", workspace_id)]
+        if source is not None:
+            params.append(("source", source))
+        return self._request("GET", "/v1/scout-records", params=params)

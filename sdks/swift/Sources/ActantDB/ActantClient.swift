@@ -310,6 +310,281 @@ public struct ActantClient: Sendable {
         )
     }
 
+    // MARK: - Memories
+
+    /// `GET /v1/memories?workspace_id=...&status=approved|pending|rejected|all`.
+    /// Returns a discriminated union of approved memories and pending /
+    /// rejected candidate rows.
+    public func memories(
+        workspaceID: String,
+        status: String = "approved"
+    ) async throws -> [MemoryRow] {
+        let r: MemoriesResponse = try await request(
+            "GET", path: "/v1/memories",
+            query: [
+                URLQueryItem(name: "workspace_id", value: workspaceID),
+                URLQueryItem(name: "status",       value: status),
+            ]
+        )
+        return r.memories
+    }
+
+    /// `GET /v1/memories/conflicts?workspace_id=...`.
+    public func memoryConflicts(workspaceID: String) async throws -> [MemoryConflict] {
+        let r: MemoryConflictsResponse = try await request(
+            "GET", path: "/v1/memories/conflicts",
+            query: [URLQueryItem(name: "workspace_id", value: workspaceID)]
+        )
+        return r.conflicts
+    }
+
+    // MARK: - Permissions
+
+    /// `GET /v1/permissions?workspace_id=...`. Non-revoked rows only.
+    public func permissions(workspaceID: String) async throws -> [AuthorityScopeRow] {
+        let r: PermissionsResponse = try await request(
+            "GET", path: "/v1/permissions",
+            query: [URLQueryItem(name: "workspace_id", value: workspaceID)]
+        )
+        return r.permissions
+    }
+
+    /// `POST /v1/permissions`. Returns the new `authority_scope` row ID.
+    @discardableResult
+    public func grantPermission(
+        workspaceID: String,
+        actorID: String,
+        permission: String,
+        level: String,
+        scope: String? = nil,
+        allowedActions: [String]? = nil
+    ) async throws -> String {
+        struct Body: Encodable {
+            let workspace_id: String
+            let actor_id: String
+            let permission: String
+            let level: String
+            let scope: String?
+            let allowed_actions: [String]?
+        }
+        let r: GrantPermissionResponse = try await request(
+            "POST", path: "/v1/permissions",
+            body: Body(
+                workspace_id: workspaceID,
+                actor_id: actorID,
+                permission: permission,
+                level: level,
+                scope: scope,
+                allowed_actions: allowedActions
+            )
+        )
+        return r.id
+    }
+
+    /// `DELETE /v1/permissions` with a JSON body. Marks the row revoked.
+    public func revokePermission(
+        workspaceID: String, authorityScopeID: String
+    ) async throws {
+        struct Body: Encodable {
+            let workspace_id: String
+            let authority_scope_id: String
+        }
+        let _: RevokePermissionResponse = try await request(
+            "DELETE", path: "/v1/permissions",
+            body: Body(workspace_id: workspaceID, authority_scope_id: authorityScopeID)
+        )
+    }
+
+    // MARK: - Setup reports
+
+    /// `POST /v1/setup-reports`. Writes an `audit` event + `setup_report`
+    /// artifact and returns both IDs.
+    @discardableResult
+    public func saveSetupReport(
+        workspaceID: String, actorID: String, content: String
+    ) async throws -> SaveArtifactResponse {
+        struct Body: Encodable {
+            let workspace_id: String
+            let actor_id: String
+            let content: String
+        }
+        return try await request(
+            "POST", path: "/v1/setup-reports",
+            body: Body(workspace_id: workspaceID, actor_id: actorID, content: content)
+        )
+    }
+
+    /// `GET /v1/setup-reports?workspace_id=...&latest=true`. Returns nil when
+    /// no setup report exists yet for the workspace.
+    public func latestSetupReport(workspaceID: String) async throws -> SetupReportRow? {
+        let r: SetupReportLatestResponse = try await request(
+            "GET", path: "/v1/setup-reports",
+            query: [
+                URLQueryItem(name: "workspace_id", value: workspaceID),
+                URLQueryItem(name: "latest",       value: "true"),
+            ]
+        )
+        return r.report
+    }
+
+    /// `GET /v1/setup-reports?workspace_id=...` (no `latest` flag) — up to
+    /// the 100 most recent reports.
+    public func setupReports(workspaceID: String) async throws -> [SetupReportRow] {
+        let r: SetupReportsResponse = try await request(
+            "GET", path: "/v1/setup-reports",
+            query: [URLQueryItem(name: "workspace_id", value: workspaceID)]
+        )
+        return r.reports
+    }
+
+    // MARK: - Scout records
+
+    /// `POST /v1/scout-records`. Writes an `audit` event + `scout_record`
+    /// artifact carrying the supplied content + metadata.
+    @discardableResult
+    public func saveScoutRecord(
+        workspaceID: String,
+        actorID: String,
+        sourceID: String,
+        kind: String,
+        sensitivity: Sensitivity,
+        content: String,
+        metadata: JSONValue? = nil
+    ) async throws -> SaveArtifactResponse {
+        struct Body: Encodable {
+            let workspace_id: String
+            let actor_id: String
+            let source_id: String
+            let kind: String
+            let sensitivity: String
+            let content: String
+            let metadata: JSONValue?
+        }
+        return try await request(
+            "POST", path: "/v1/scout-records",
+            body: Body(
+                workspace_id: workspaceID,
+                actor_id: actorID,
+                source_id: sourceID,
+                kind: kind,
+                sensitivity: sensitivity.rawValue,
+                content: content,
+                metadata: metadata
+            )
+        )
+    }
+
+    /// `GET /v1/scout-records?workspace_id=...[&source=...]`. Up to 100 rows.
+    public func scoutRecords(
+        workspaceID: String, source: String? = nil
+    ) async throws -> [ScoutRecordRow] {
+        var query: [URLQueryItem] = [URLQueryItem(name: "workspace_id", value: workspaceID)]
+        if let source { query.append(URLQueryItem(name: "source", value: source)) }
+        let r: ScoutRecordsResponse = try await request(
+            "GET", path: "/v1/scout-records",
+            query: query
+        )
+        return r.records
+    }
+
+    // MARK: - Entities + relations
+
+    public func entities(
+        workspaceID: String, type entityType: String? = nil
+    ) async throws -> [EntityRow] {
+        var query: [URLQueryItem] = [URLQueryItem(name: "workspace_id", value: workspaceID)]
+        if let entityType {
+            query.append(URLQueryItem(name: "type", value: entityType))
+        }
+        let r: EntitiesResponse = try await request(
+            "GET", path: "/v1/entities",
+            query: query
+        )
+        return r.entities
+    }
+
+    @discardableResult
+    public func createEntity(
+        workspaceID: String,
+        type entityType: String,
+        canonicalName: String,
+        aliases: [String] = [],
+        sensitivity: Sensitivity? = nil,
+        capsuleID: String? = nil,
+        sourceEvents: [String] = []
+    ) async throws -> String {
+        struct Body: Encodable {
+            let workspace_id: String
+            let `type`: String
+            let canonical_name: String
+            let aliases: [String]
+            let sensitivity: String?
+            let capsule_id: String?
+            let source_events: [String]
+        }
+        let r: CreateEntityResponse = try await request(
+            "POST", path: "/v1/entities",
+            body: Body(
+                workspace_id: workspaceID,
+                type: entityType,
+                canonical_name: canonicalName,
+                aliases: aliases,
+                sensitivity: sensitivity?.rawValue,
+                capsule_id: capsuleID,
+                source_events: sourceEvents
+            )
+        )
+        return r.id
+    }
+
+    public func entityRelations(
+        workspaceID: String,
+        entity: String? = nil,
+        relationType: String? = nil
+    ) async throws -> [EntityRelationRow] {
+        var query: [URLQueryItem] = [URLQueryItem(name: "workspace_id", value: workspaceID)]
+        if let entity { query.append(URLQueryItem(name: "entity", value: entity)) }
+        if let relationType {
+            query.append(URLQueryItem(name: "relation_type", value: relationType))
+        }
+        let r: EntityRelationsResponse = try await request(
+            "GET", path: "/v1/entity-relations",
+            query: query
+        )
+        return r.relations
+    }
+
+    @discardableResult
+    public func linkEntities(
+        workspaceID: String,
+        source: String,
+        relation: String,
+        target: String,
+        confidence: Double = 1.0,
+        evidenceEvents: [String] = []
+    ) async throws -> String {
+        struct Body: Encodable {
+            let workspace_id: String
+            let source_entity: String
+            let relation_type: String
+            let target_entity: String
+            let confidence: Double
+            let evidence_events: [String]
+        }
+        let r: CreateEntityRelationResponse = try await request(
+            "POST", path: "/v1/entity-relations",
+            body: Body(
+                workspace_id: workspaceID,
+                source_entity: source,
+                relation_type: relation,
+                target_entity: target,
+                confidence: confidence,
+                evidence_events: evidenceEvents
+            )
+        )
+        return r.id
+    }
+
     // MARK: - Sync
 
     public func syncSince(

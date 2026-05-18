@@ -32,7 +32,12 @@ fn renders_coding_agent_into_temp_dir() {
         assert!(p.exists(), "expected file missing: {}", p.display());
     }
 
-    assert_eq!(out.files_written.len(), 4, "expected 4 files, got {:?}", out.files_written);
+    assert_eq!(
+        out.files_written.len(),
+        4,
+        "expected 4 files, got {:?}",
+        out.files_written
+    );
 
     // package.json parses + contains substituted name.
     let pkg_text = fs::read_to_string(&pkg_path).expect("read package.json");
@@ -84,7 +89,10 @@ fn caller_supplied_vars_override_canonical_fields() {
     TemplateRegistry::render(req).expect("render");
 
     let agent = fs::read_to_string(dest.join("agent.mjs")).expect("read agent.mjs");
-    assert!(agent.contains("overridden-name"), "vars did not override canonical project_name");
+    assert!(
+        agent.contains("overridden-name"),
+        "vars did not override canonical project_name"
+    );
     assert!(!agent.contains("ignored-name"));
 }
 

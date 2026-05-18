@@ -204,5 +204,8 @@ fn absolute_escape_is_rejected() {
 fn ok_for_clean_relative_path() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let res = validate_path(tmp.path(), Path::new("sub/dir/file.txt"));
-    assert!(res.is_ok(), "expected clean relative path to validate: {res:?}");
+    assert!(
+        res.is_ok(),
+        "expected clean relative path to validate: {res:?}"
+    );
 }

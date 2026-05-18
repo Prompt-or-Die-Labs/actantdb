@@ -31,8 +31,8 @@ fn repo_root() -> PathBuf {
 /// identifier — that pattern matches the `| \`workflow.run\`` table rows
 /// in §1 but skips headers and prose.
 fn parse_span_names() -> Vec<String> {
-    let spec = fs::read_to_string(repo_root().join("specs/17-observability.md"))
-        .expect("read spec 17");
+    let spec =
+        fs::read_to_string(repo_root().join("specs/17-observability.md")).expect("read spec 17");
     let mut names = Vec::new();
     for raw in spec.lines() {
         let line = raw.trim();
@@ -47,7 +47,9 @@ fn parse_span_names() -> Vec<String> {
                 // Span names are dotted identifiers like `model.call`.
                 // Header rows have `Span name` (with space) — filter those.
                 if candidate.contains('.')
-                    || candidate.chars().all(|c| c.is_ascii_lowercase() || c == '_')
+                    || candidate
+                        .chars()
+                        .all(|c| c.is_ascii_lowercase() || c == '_')
                 {
                     if !candidate.contains(' ') && !candidate.is_empty() {
                         names.push(candidate.to_string());
