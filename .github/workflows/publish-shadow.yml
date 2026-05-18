@@ -47,7 +47,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.5"
+          # @actantdb/core uses node:sqlite, which is unflagged starting at
+          # Node 24. Earlier Node 22 builds need `--experimental-sqlite`.
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: pnpm install
