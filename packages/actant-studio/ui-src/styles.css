@@ -1,0 +1,396 @@
+/* Actant Studio — React UI.
+ * Theme variables track crates/actant-server/assets/{link,login}.html so
+ * Studio and the auth flow feel like one product. Dark by default,
+ * light via prefers-color-scheme.
+ */
+
+:root {
+  color-scheme: light dark;
+  --bg: #0e0f12;
+  --panel: #15171c;
+  --panel-soft: #1a1d24;
+  --text: #e9ecf2;
+  --muted: #8b93a3;
+  --accent: #6cb6ff;
+  --accent-soft: rgba(108, 182, 255, 0.18);
+  --error: #ff7676;
+  --ok: #69d28a;
+  --warn: #e3b341;
+  --border: #262932;
+  --selection: rgba(108, 182, 255, 0.22);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f8fb;
+    --panel: #ffffff;
+    --panel-soft: #f1f3f8;
+    --text: #161821;
+    --muted: #5d6373;
+    --accent: #1f5fff;
+    --accent-soft: rgba(31, 95, 255, 0.12);
+    --error: #d23131;
+    --ok: #239d4a;
+    --warn: #b07900;
+    --border: #d9dde6;
+    --selection: rgba(31, 95, 255, 0.14);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font:
+    14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  background: var(--accent);
+  color: #000;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-weight: 600;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.secondary {
+  background: var(--panel-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+button.danger {
+  background: var(--error);
+  color: #000;
+}
+
+input[type="text"],
+input[type="search"] {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+}
+input[type="text"]:focus,
+input[type="search"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.app {
+  display: grid;
+  grid-template-rows: 48px 1fr;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-size: 14px;
+}
+.meta {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1px;
+  background: var(--border);
+  min-height: 0;
+}
+
+.pane {
+  background: var(--bg);
+  padding: 12px 14px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.pane-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pane-title .actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Runs panel */
+.runs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.runs-list li {
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.runs-list li:hover {
+  background: var(--panel-soft);
+}
+.runs-list li.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.runs-list li .runid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.runs-list li small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* Timeline / events */
+.event {
+  display: grid;
+  grid-template-columns: 70px 170px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.event:hover {
+  background: var(--panel-soft);
+}
+.event.selected {
+  background: var(--selection);
+  border-left-color: var(--accent);
+}
+.event .ts {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.event .kind {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.event .summary {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event .badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--panel-soft);
+  color: var(--muted);
+}
+.event .badge.guard {
+  background: rgba(227, 179, 65, 0.18);
+  color: var(--warn);
+}
+.event .badge.approval {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.event .badge.completed {
+  background: rgba(105, 210, 138, 0.16);
+  color: var(--ok);
+}
+.event .badge.blocked {
+  background: rgba(255, 118, 118, 0.16);
+  color: var(--error);
+}
+
+/* Approvals panel inline */
+.approvals {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.approvals h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.approvals .row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.approvals .row:last-child {
+  border-bottom: 0;
+}
+.approvals .row .info {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.approvals .row .actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Detail panel */
+.detail-body {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.detail-body pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.detail-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.section-h {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+/* Replay diff */
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.diff-table th,
+.diff-table td {
+  text-align: left;
+  padding: 5px 7px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.diff-table th {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+.diff-table td.identical {
+  color: var(--muted);
+}
+.diff-table td.changed {
+  color: var(--warn);
+}
+.diff-table td.missing {
+  color: var(--error);
+}
+.diff-table td.extra {
+  color: var(--ok);
+}
+
+.callout {
+  margin-top: 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+}
+
+/* Replay form */
+.replay-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.replay-form fieldset {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+}
+.replay-form fieldset legend {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 0 4px;
+}
+.replay-form label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.replay-form input[type="text"] {
+  flex: 1;
+}
+
+.errbar {
+  background: rgba(255, 118, 118, 0.15);
+  color: var(--error);
+  padding: 6px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}

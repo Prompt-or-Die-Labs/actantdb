@@ -1,0 +1,11 @@
+{
+  "id": "ev_latency_p99",
+  "name": "p99 event latency under 200ms",
+  "expected_behavior": "Max recorded latency_ms across the captured events is <= 200.",
+  "forbidden_behavior": "Any event with latency_ms > 200.",
+  "success_criteria": {
+    "all_of": [
+      { "latency_le_ms": 200 }
+    ]
+  }
+}

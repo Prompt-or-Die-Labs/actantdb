@@ -26,7 +26,7 @@ async fn start_with_limit(limit: u32) -> String {
         })
         .await
         .unwrap();
-    let state = AppState::new(storage).with_rate_limit(actant_throttle::Policy {
+    let state = AppState::new(storage).with_rate_limit(actant_reliability::throttle::Policy {
         limit,
         // Very slow refill so the burst is the only resource.
         refill_per_second: 0.001,

@@ -40,3 +40,14 @@ mod tests {
         assert!(p.contains("\"hello\""));
     }
 }
+
+/// Write a minimal project under `root`. Closes the
+/// `actant-codegen-project` consolidation — that crate was a 30-line
+/// wrapper around `package_json` + `readme` above; collapsed into this
+/// crate to drop one workspace member.
+pub fn scaffold(root: &std::path::Path, name: &str) -> std::io::Result<()> {
+    std::fs::create_dir_all(root)?;
+    std::fs::write(root.join("package.json"), package_json(name))?;
+    std::fs::write(root.join("README.md"), readme(name))?;
+    Ok(())
+}

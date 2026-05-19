@@ -62,42 +62,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-cache"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "hex",
- "proptest",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "actant-capsule"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "actant-circuit"
 version = "0.0.10"
 dependencies = [
  "actant-core",
@@ -130,21 +95,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ulid",
-]
-
-[[package]]
-name = "actant-codegen-project"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-schema-dsl",
- "actant-templates",
- "anyhow",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 1.0.69",
- "tracing",
 ]
 
 [[package]]
@@ -357,27 +307,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-ingress"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "hmac",
- "reqwest",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
- "ulid",
-]
-
-[[package]]
 name = "actant-kernel"
 version = "0.0.10"
 dependencies = [
@@ -399,24 +328,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-lock"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
- "ulid",
-]
-
-[[package]]
 name = "actant-memory"
 version = "0.0.10"
 dependencies = [
@@ -432,32 +343,6 @@ dependencies = [
  "tokio",
  "tracing",
  "ulid",
-]
-
-[[package]]
-name = "actant-models"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "actant-napi"
-version = "0.0.10"
-dependencies = [
- "actant-contracts",
- "actant-kernel",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -499,36 +384,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-prompts"
+name = "actant-reliability"
 version = "0.0.10"
 dependencies = [
  "actant-core",
  "actant-storage",
  "anyhow",
  "async-trait",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "actant-protocol"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
+ "base64 0.22.1",
+ "hmac",
  "reqwest",
  "serde",
  "serde_json",
+ "sqlx",
  "thiserror 1.0.69",
  "time",
  "tokio",
  "tracing",
+ "ulid",
 ]
 
 [[package]]
@@ -545,6 +418,27 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlx",
+ "thiserror 1.0.69",
+ "time",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "actant-runtime"
+version = "0.0.10"
+dependencies = [
+ "actant-core",
+ "actant-storage",
+ "anyhow",
+ "async-trait",
+ "hex",
+ "proptest",
+ "rand 0.9.4",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "time",
  "tokio",
@@ -590,10 +484,10 @@ dependencies = [
  "actant-flow",
  "actant-memory",
  "actant-policy",
+ "actant-reliability",
  "actant-replay",
  "actant-storage",
  "actant-subscribe",
- "actant-throttle",
  "actant-worker-protocol",
  "anyhow",
  "async-trait",
@@ -662,11 +556,16 @@ name = "actant-sync"
 version = "0.0.10"
 dependencies = [
  "actant-core",
+ "actant-objectstore",
  "actant-storage",
  "anyhow",
  "async-trait",
+ "bytes",
+ "object_store",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "thiserror 1.0.69",
  "time",
  "tokio",
@@ -699,41 +598,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "actant-throttle"
-version = "0.0.10"
-dependencies = [
- "actant-circuit",
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "actant-trace"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "hex",
- "rand 0.9.4",
- "serde",
- "serde_json",
  "thiserror 1.0.69",
  "time",
  "tokio",
@@ -777,133 +641,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-wasm"
-version = "0.0.10"
-dependencies = [
- "actant-contracts",
- "actant-kernel",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "actant-worker-browser"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-effects",
- "actant-storage",
- "actant-worker-protocol",
- "anyhow",
- "async-trait",
- "clap",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "actant-worker-email"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-effects",
- "actant-storage",
- "actant-worker-protocol",
- "anyhow",
- "async-trait",
- "clap",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "actant-worker-file"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-effects",
- "actant-storage",
- "actant-worker-protocol",
- "anyhow",
- "async-trait",
- "clap",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "actant-worker-manager"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-effects",
- "actant-storage",
- "actant-worker-browser",
- "actant-worker-email",
- "actant-worker-file",
- "actant-worker-mcp",
- "actant-worker-model",
- "actant-worker-protocol",
- "actant-worker-shell",
- "actant-worker-slack",
- "anyhow",
- "clap",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "actant-worker-mcp"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-effects",
- "actant-storage",
- "actant-worker-protocol",
- "anyhow",
- "async-trait",
- "clap",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "actant-worker-model"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-effects",
- "actant-storage",
- "actant-worker-protocol",
- "anyhow",
- "async-trait",
- "clap",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "actant-worker-protocol"
 version = "0.0.10"
 dependencies = [
@@ -923,7 +660,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-worker-shell"
+name = "actant-workers"
 version = "0.0.10"
 dependencies = [
  "actant-core",
@@ -933,31 +670,67 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "actant-worker-slack"
-version = "0.0.10"
-dependencies = [
- "actant-core",
- "actant-effects",
- "actant-storage",
- "actant-worker-protocol",
- "anyhow",
- "async-trait",
- "clap",
+ "futures-util",
  "reqwest",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "tokio",
+ "tokio-tungstenite",
  "tracing",
  "tracing-subscriber",
+ "url",
+]
+
+[[package]]
+name = "actantdb"
+version = "0.0.10"
+dependencies = [
+ "actant-audit-export",
+ "actant-auth",
+ "actant-capsule",
+ "actant-command",
+ "actant-compensation",
+ "actant-contracts",
+ "actant-drift",
+ "actant-effects",
+ "actant-embed",
+ "actant-eval",
+ "actant-kernel",
+ "actant-memory",
+ "actant-objectstore",
+ "actant-policy",
+ "actant-reliability",
+ "actant-replay",
+ "actant-runtime",
+ "actant-storage",
+ "actant-subscribe",
+ "actant-sync",
+ "actant-templates",
+ "actant-tenant",
+ "actant-trigger",
+ "actant-trust",
+ "actant-workers",
+]
+
+[[package]]
+name = "actantdb-client"
+version = "0.0.10"
+dependencies = [
+ "actant-contracts",
+ "async-trait",
+ "futures",
+ "futures-util",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "url",
+ "wiremock",
 ]
 
 [[package]]
@@ -1135,6 +908,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "516b6b4f0e40d50dcda9365d53964ec74560ad4284da2e7fc97122cd83174516"
 dependencies = [
  "stable_deref_trait",
+]
+
+[[package]]
+name = "assert-json-diff"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47e4f2b81832e72834d7518d8487a0396a28cc408186a2e8854c0f98011faf12"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1828,6 +1611,24 @@ name = "data-encoding"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4ae5f15dda3c708c0ade84bfee31ccab44a3da4f88015ed22f63732abe300c8"
+
+[[package]]
+name = "deadpool"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0be2b1d1d6ec8d846f05e137292d0b89133caf95ef33695424c09568bdd39b1b"
+dependencies = [
+ "deadpool-runtime",
+ "lazy_static",
+ "num_cpus",
+ "tokio",
+]
+
+[[package]]
+name = "deadpool-runtime"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "092966b41edc516079bdf31ec78a2e0588d1d0c08f78b91d8307215928642b2b"
 
 [[package]]
 name = "der"
@@ -3337,6 +3138,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "num_cpus"
+version = "1.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91df4bbde75afed763b708b7eee1e8e7651e02d97f6d5dd763e89367e957b23b"
+dependencies = [
+ "hermit-abi",
+ "libc",
+]
+
+[[package]]
 name = "number_prefix"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3353,6 +3164,7 @@ dependencies = [
  "bytes",
  "chrono",
  "futures",
+ "httparse",
  "humantime",
  "hyper",
  "itertools 0.13.0",
@@ -3363,6 +3175,7 @@ dependencies = [
  "rand 0.8.6",
  "reqwest",
  "ring",
+ "rustls-pemfile",
  "serde",
  "serde_json",
  "snafu",
@@ -6024,6 +5837,29 @@ name = "windows_x86_64_msvc"
 version = "0.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
+
+[[package]]
+name = "wiremock"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08db1edfb05d9b3c1542e521aea074442088292f00b5f28e435c714a98f85031"
+dependencies = [
+ "assert-json-diff",
+ "base64 0.22.1",
+ "deadpool",
+ "futures",
+ "http",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "log",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+]
 
 [[package]]
 name = "wit-bindgen"

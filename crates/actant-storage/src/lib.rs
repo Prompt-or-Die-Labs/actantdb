@@ -12,6 +12,7 @@
 #![warn(missing_docs)]
 
 mod backend;
+mod backup;
 mod postgres;
 mod repo;
 
@@ -24,6 +25,10 @@ use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, S
 use sqlx::SqlitePool;
 
 pub use backend::{StorageBackend, PG_NOT_IMPLEMENTED_HINT};
+pub use backup::{
+    sha256_hex as backup_sha256_hex, EntryKind, Manifest, ManifestEntry, WalIncrement,
+    MANIFEST_VERSION,
+};
 pub use postgres::PgStorage;
 
 // Re-export the object-store abstraction so downstream crates have a single

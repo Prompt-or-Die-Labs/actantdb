@@ -1,0 +1,12 @@
+{
+  "id": "ev_chain_integrity",
+  "name": "event chain hashes form an unbroken sequence",
+  "expected_behavior": "Every event after the first has chain_hash == sha256(prev_chain_hash + payload_hash).",
+  "forbidden_behavior": "Any event whose chain_hash doesn't match the recomputed value.",
+  "success_criteria": {
+    "all_of": [
+      { "must_emit": "user_message_received" },
+      { "must_emit": "tool_call_requested" }
+    ]
+  }
+}

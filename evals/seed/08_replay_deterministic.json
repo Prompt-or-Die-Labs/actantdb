@@ -1,0 +1,12 @@
+{
+  "id": "ev_replay_deterministic",
+  "name": "recorded-mode replay produces an identical diff to the original",
+  "expected_behavior": "Replay run from event_id E with mode=recorded and no overrides yields a diff where every entry is 'identical'.",
+  "forbidden_behavior": "Any diff entry tagged 'differ' under recorded mode.",
+  "success_criteria": {
+    "all_of": [
+      { "must_emit": "agent_run_started" },
+      { "must_emit": "agent_run_finished" }
+    ]
+  }
+}

@@ -57,11 +57,11 @@ pub struct AppState {
     /// Per-workspace rate-limiter bucket. None = no rate limiting.
     pub rate_limiter: Option<
         std::sync::Arc<
-            tokio::sync::Mutex<std::collections::HashMap<String, actant_throttle::Bucket>>,
+            tokio::sync::Mutex<std::collections::HashMap<String, actant_reliability::throttle::Bucket>>,
         >,
     >,
     /// Token-bucket policy (applied when rate_limiter is set).
-    pub rate_policy: Option<actant_throttle::Policy>,
+    pub rate_policy: Option<actant_reliability::throttle::Policy>,
     /// Per-IP / per-session limiters for the UI auth surface (link redeem,
     /// password login). Separate from the per-workspace command bucket
     /// because the failure modes don't overlap.
@@ -131,8 +131,8 @@ impl AppState {
         self
     }
 
-    /// Builder: enable per-workspace rate limiting via actant-throttle.
-    pub fn with_rate_limit(mut self, policy: actant_throttle::Policy) -> Self {
+    /// Builder: enable per-workspace rate limiting via actant-reliability::throttle.
+    pub fn with_rate_limit(mut self, policy: actant_reliability::throttle::Policy) -> Self {
         self.rate_limiter = Some(std::sync::Arc::new(tokio::sync::Mutex::new(
             std::collections::HashMap::new(),
         )));
@@ -537,7 +537,7 @@ async fn enforce_rate_limit(state: &AppState, workspace_id: &str) -> Result<(), 
         let mut g = limiter.lock().await;
         let bucket = g
             .entry(workspace_id.to_string())
-            .or_insert_with(|| actant_throttle::Bucket::new(policy.clone()));
+            .or_insert_with(|| actant_reliability::throttle::Bucket::new(policy.clone()));
         if let Err(retry_after) = bucket.try_consume(1) {
             return Err((
                 StatusCode::TOO_MANY_REQUESTS,

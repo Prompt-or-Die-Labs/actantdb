@@ -8,16 +8,40 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[features]
+default = []
+# S3 destination — wraps `actant_objectstore::S3Store`. Off by default so the
+# lean build does not pull the AWS SDK.
+s3 = ["actant-objectstore/s3"]
+# GCS destination — talks to Google Cloud Storage via `object_store::gcp`.
+# `actant-objectstore` does not currently expose GCS, so the sync crate uses
+# `object_store::gcp::GoogleCloudStorageBuilder` directly.
+gcs = ["dep:object_store", "object_store/gcp"]
+# Azure Blob Storage destination via `object_store::azure`.
+azure = ["dep:object_store", "object_store/azure"]
+# IPFS destination — wraps `actant_objectstore::IpfsStore`.
+ipfs = ["actant-objectstore/ipfs"]
+
 [dependencies]
-actant-core    = { workspace = true }
-actant-storage = { workspace = true }
+actant-core        = { workspace = true }
+actant-storage     = { workspace = true }
+actant-objectstore = { workspace = true }
 anyhow         = { workspace = true }
 async-trait    = { workspace = true }
+bytes          = { workspace = true }
 serde          = { workspace = true }
 serde_json     = { workspace = true }
+sqlx           = { workspace = true }
 thiserror      = { workspace = true }
 time           = { workspace = true }
 tokio          = { workspace = true }
 tracing        = { workspace = true }
 ulid           = { workspace = true }
 
+# Used directly for GCS / Azure destinations; pulled in only via the matching
+# feature flag.
+object_store = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio    = { workspace = true }

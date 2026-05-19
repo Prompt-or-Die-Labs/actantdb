@@ -1,0 +1,99 @@
+[package]
+name = "actantdb"
+description = "ActantDB — the all-in-one umbrella crate. Re-exports every public ActantDB primitive behind feature flags so consumers can take everything or just the piece they need with a single `cargo add actantdb` (or `cargo add actantdb --features storage`)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["actant", "actantdb", "agents", "ledger", "policy"]
+categories = ["database", "asynchronous", "api-bindings"]
+
+[lib]
+name = "actantdb"
+path = "src/lib.rs"
+
+# Default features = every primitive ("all-in"). Consumers who only need
+# storage do `cargo add actantdb --no-default-features --features storage`.
+[features]
+default = [
+    "storage",
+    "policy",
+    "command",
+    "replay",
+    "subscribe",
+    "auth",
+    "reliability",
+    "runtime",
+    "objectstore",
+    "sync",
+    "workers",
+    "memory",
+    "effects",
+    "trigger",
+    "eval",
+    "embed",
+    "capsule",
+    "trust",
+    "templates",
+    "audit-export",
+    "tenant",
+    "drift",
+    "compensation",
+    "kernel",
+    "contracts",
+]
+storage      = ["dep:actant-storage"]
+policy       = ["dep:actant-policy"]
+command      = ["dep:actant-command"]
+replay       = ["dep:actant-replay"]
+subscribe    = ["dep:actant-subscribe"]
+auth         = ["dep:actant-auth"]
+reliability  = ["dep:actant-reliability"]
+runtime      = ["dep:actant-runtime"]
+objectstore  = ["dep:actant-objectstore"]
+sync         = ["dep:actant-sync"]
+workers      = ["dep:actant-workers"]
+memory       = ["dep:actant-memory"]
+effects      = ["dep:actant-effects"]
+trigger      = ["dep:actant-trigger"]
+eval         = ["dep:actant-eval"]
+embed        = ["dep:actant-embed"]
+capsule      = ["dep:actant-capsule"]
+trust        = ["dep:actant-trust"]
+templates    = ["dep:actant-templates"]
+audit-export = ["dep:actant-audit-export"]
+tenant       = ["dep:actant-tenant"]
+drift        = ["dep:actant-drift"]
+compensation = ["dep:actant-compensation"]
+kernel       = ["dep:actant-kernel"]
+contracts    = ["dep:actant-contracts"]
+
+[dependencies]
+actant-storage      = { workspace = true, optional = true }
+actant-policy       = { workspace = true, optional = true }
+actant-command      = { workspace = true, optional = true }
+actant-replay       = { workspace = true, optional = true }
+actant-subscribe    = { workspace = true, optional = true }
+actant-auth         = { workspace = true, optional = true }
+actant-reliability  = { workspace = true, optional = true }
+actant-runtime      = { workspace = true, optional = true }
+actant-objectstore  = { workspace = true, optional = true }
+actant-sync         = { workspace = true, optional = true }
+actant-workers      = { workspace = true, optional = true }
+actant-memory       = { workspace = true, optional = true }
+actant-effects      = { workspace = true, optional = true }
+actant-trigger      = { workspace = true, optional = true }
+actant-eval         = { workspace = true, optional = true }
+actant-embed        = { workspace = true, optional = true }
+actant-capsule      = { workspace = true, optional = true }
+actant-trust        = { workspace = true, optional = true }
+actant-templates    = { workspace = true, optional = true }
+actant-audit-export = { workspace = true, optional = true }
+actant-tenant       = { workspace = true, optional = true }
+actant-drift        = { workspace = true, optional = true }
+actant-compensation = { workspace = true, optional = true }
+actant-kernel       = { workspace = true, optional = true }
+actant-contracts    = { workspace = true, optional = true }

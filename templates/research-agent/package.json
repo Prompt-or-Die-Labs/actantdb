@@ -1,0 +1,16 @@
+{
+  "name": "{{project_name}}",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "node ./agent.mjs",
+    "studio": "ACTANTDB_STORE_DIR=$PWD/.actantdb npx actantdb studio --project {{project_name}} --port {{studio_port}}"
+  },
+  "dependencies": {
+    "@actantdb/core": "^0.0.10",
+    "@actantdb/mastra": "^0.0.10",
+    "@actantdb/policy": "^0.0.10"
+  },
+  "engines": { "node": ">=22.5" }
+}

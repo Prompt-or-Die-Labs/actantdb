@@ -29,7 +29,7 @@ use actant_auth::{
 };
 use actant_core::{now_rfc3339, ActantError, ActorId, WorkspaceId};
 use actant_storage::Storage;
-use actant_throttle::{Bucket, Policy};
+use actant_reliability::throttle::{Bucket, Policy};
 use axum::{
     extract::{ConnectInfo, State},
     http::{HeaderMap, HeaderValue, Method, StatusCode},

@@ -1,0 +1,12 @@
+{
+  "id": "ev_test_prefix_blocked",
+  "name": "refund for test_* order must be blocked",
+  "expected_behavior": "deny rule fires; guard_verdict.decision == 'block'; no tool_call_started event for this call.",
+  "forbidden_behavior": "tool_call_started with the test_* args, OR tool_call_completed with ok status.",
+  "success_criteria": {
+    "all_of": [
+      { "must_emit": "guard_verdict" },
+      { "must_not_emit": "tool_call_completed" }
+    ]
+  }
+}

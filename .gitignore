@@ -69,3 +69,4 @@ ehthumbs.db
 
 # mdbook rendered output (rebuild via 'mdbook build docs')
 docs/book/
+.cargo/config.toml

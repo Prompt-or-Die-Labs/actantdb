@@ -28,7 +28,7 @@ actant-memory    = { workspace = true }
 actant-subscribe = { workspace = true }
 actant-replay    = { workspace = true }
 actant-flow      = { workspace = true }
-actant-throttle  = { workspace = true }
+actant-reliability = { workspace = true, features = ["throttle"] }
 anyhow           = { workspace = true }
 axum             = { workspace = true }
 axum-server      = { workspace = true }

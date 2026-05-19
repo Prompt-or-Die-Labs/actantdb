@@ -1,0 +1,34 @@
+{
+  "name": "actantdb",
+  "version": "0.0.10",
+  "description": "ActantDB — every primitive in one import. Or install just the piece you need: @actantdb/core for storage, @actantdb/policy for Guard, @actantdb/mastra for the agent wrapper, etc.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./core": "./dist/core.js",
+    "./policy": "./dist/policy.js",
+    "./mastra": "./dist/mastra.js",
+    "./replay": "./dist/replay.js",
+    "./sdk": "./dist/sdk.js",
+    "./types": "./dist/types.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "echo '(umbrella package — see individual @actantdb/* packages for tests)'"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/mastra": "workspace:*",
+    "@actantdb/replay": "workspace:*",
+    "@actantdb/sdk": "workspace:*",
+    "@actantdb/types": "workspace:*"
+  },
+  "engines": { "node": ">=22.5" },
+  "repository": "https://github.com/Prompt-or-Die-Labs/actantdb",
+  "license": "Apache-2.0",
+  "keywords": ["actantdb", "agent", "ledger", "replay", "guard", "policy"],
+  "files": ["dist", "README.md"]
+}

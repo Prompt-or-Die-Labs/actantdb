@@ -17,14 +17,7 @@ members = [
     "crates/actant-sdk-codegen",
     # Phase 2 — workers
     "crates/actant-worker-protocol",
-    "crates/actant-worker-model",
-    "crates/actant-worker-shell",
-    "crates/actant-worker-file",
-    "crates/actant-worker-browser",
-    "crates/actant-worker-email",
-    "crates/actant-worker-mcp",
-    "crates/actant-worker-slack",
-    "crates/actant-worker-manager",
+    "crates/actant-workers",
     # Phase 3 — context/memory companions
     "crates/actant-embed",
     "crates/actant-capsule",
@@ -39,26 +32,19 @@ members = [
     # CLI product surface (Phase 1+, expanded through Phase 4)
     "crates/actant-templates",
     "crates/actant-schema-dsl",
-    "crates/actant-codegen-project",
-    # AI-native retrieval + protocols + observability (Phase 1-4)
+    # AI-native retrieval + protocols + observability (Phase 1-4) — the
+    # five small observability/protocol crates (prompts, models, cache,
+    # trace, protocol) were merged into a single feature-flagged crate.
     "crates/actant-index",
     "crates/actant-embedders",
-    "crates/actant-prompts",
-    "crates/actant-models",
-    "crates/actant-cache",
-    "crates/actant-trace",
-    "crates/actant-protocol",
-    # Reliability primitives (Phase 1+)
-    "crates/actant-throttle",
-    "crates/actant-circuit",
-    "crates/actant-lock",
-    "crates/actant-ingress",
+    "crates/actant-runtime",
+    # Reliability primitives (Phase 1+) — merged into a single crate with
+    # one feature flag per primitive (throttle/circuit/lock/ingress).
+    "crates/actant-reliability",
     # Hot-path coordinator (Phase 1, lands with the core kernel discipline)
     "crates/actant-kernel",
     # F2/F3 prevention (post-pivot, 2026-05-17) — TS-native default + contract-first build
     "crates/actant-contracts",   # single source of truth for every public type
-    "crates/actant-napi",        # Node native addon (bundled inside @actantdb/core)
-    "crates/actant-wasm",        # WASM fallback (bundled inside @actantdb/core)
     # Phase 6 — cloud / team
     "crates/actant-auth",        # OIDC/JWT session minting
     "crates/actant-tenant",      # multi-tenant boundary helpers
@@ -66,6 +52,10 @@ members = [
     "crates/actant-compensation", # compensation-plan generator
     # Benchmarks (cross-phase track per /specs/11-roadmap.md)
     "bench",
+    # First-class Rust client SDK (closes GAPS #2 + #23).
+    "sdks/rust",
+    # All-in-one umbrella crate (closes the "one dep for everything" UX gap).
+    "crates/actantdb",
 ]
 
 [workspace.package]
@@ -92,6 +82,7 @@ actant-subscribe    = { path = "crates/actant-subscribe",    version = "0.0.10" 
 actant-server       = { path = "crates/actant-server",       version = "0.0.10" }
 actant-sdk-codegen  = { path = "crates/actant-sdk-codegen",  version = "0.0.10" }
 actant-worker-protocol = { path = "crates/actant-worker-protocol", version = "0.0.10" }
+actant-workers         = { path = "crates/actant-workers",         version = "0.0.10" }
 actant-embed        = { path = "crates/actant-embed",        version = "0.0.10" }
 actant-capsule      = { path = "crates/actant-capsule",      version = "0.0.10" }
 actant-trust        = { path = "crates/actant-trust",        version = "0.0.10" }
@@ -102,32 +93,16 @@ actant-audit-export = { path = "crates/actant-audit-export", version = "0.0.10" 
 actant-objectstore  = { path = "crates/actant-objectstore",  version = "0.0.10" }
 actant-templates       = { path = "crates/actant-templates",       version = "0.0.10" }
 actant-schema-dsl      = { path = "crates/actant-schema-dsl",      version = "0.0.10" }
-actant-codegen-project = { path = "crates/actant-codegen-project", version = "0.0.10" }
 actant-index           = { path = "crates/actant-index",           version = "0.0.10" }
 actant-embedders       = { path = "crates/actant-embedders",       version = "0.0.10" }
-actant-prompts         = { path = "crates/actant-prompts",         version = "0.0.10" }
-actant-models          = { path = "crates/actant-models",          version = "0.0.10" }
-actant-cache           = { path = "crates/actant-cache",           version = "0.0.10" }
-actant-trace           = { path = "crates/actant-trace",           version = "0.0.10" }
-actant-protocol        = { path = "crates/actant-protocol",        version = "0.0.10" }
-actant-throttle        = { path = "crates/actant-throttle",        version = "0.0.10" }
-actant-circuit         = { path = "crates/actant-circuit",         version = "0.0.10" }
-actant-lock            = { path = "crates/actant-lock",            version = "0.0.10" }
-actant-ingress         = { path = "crates/actant-ingress",         version = "0.0.10" }
+actant-runtime         = { path = "crates/actant-runtime",         version = "0.0.10" }
+actant-reliability     = { path = "crates/actant-reliability",     version = "0.0.10", default-features = true }
 actant-kernel          = { path = "crates/actant-kernel",          version = "0.0.10" }
 actant-contracts       = { path = "crates/actant-contracts",       version = "0.0.10" }
-actant-napi            = { path = "crates/actant-napi",            version = "0.0.10" }
-actant-wasm            = { path = "crates/actant-wasm",            version = "0.0.10" }
 actant-auth            = { path = "crates/actant-auth",            version = "0.0.10" }
 actant-tenant          = { path = "crates/actant-tenant",          version = "0.0.10" }
 actant-drift           = { path = "crates/actant-drift",           version = "0.0.10" }
-actant-worker-browser  = { path = "crates/actant-worker-browser",  version = "0.0.10" }
-actant-worker-email    = { path = "crates/actant-worker-email",    version = "0.0.10" }
-actant-worker-slack    = { path = "crates/actant-worker-slack",    version = "0.0.10" }
-actant-worker-shell    = { path = "crates/actant-worker-shell",    version = "0.0.10" }
-actant-worker-file     = { path = "crates/actant-worker-file",     version = "0.0.10" }
-actant-worker-model    = { path = "crates/actant-worker-model",    version = "0.0.10" }
-actant-worker-mcp      = { path = "crates/actant-worker-mcp",      version = "0.0.10" }
+actant-compensation    = { path = "crates/actant-compensation",    version = "0.0.10" }
 
 # External — pinned at workspace level for consistent versions across crates.
 anyhow        = "1.0"
@@ -199,4 +174,25 @@ codegen-units = 1
 
 [profile.dev]
 opt-level = 0
-debug = true
+# Line-table debuginfo only (file:line in backtraces) instead of full
+# DWARF (which carries every type description and balloons target/ from
+# ~3 GB to ~25–30 GB across the workspace). Cuts disk by ~10×. If you
+# need full symbols for a debugger session, build that one crate with
+# `RUSTFLAGS="-Cdebuginfo=2" cargo build -p <crate>`.
+debug = "line-tables-only"
+# Don't strip — incremental compilation needs the symbol table.
+strip = false
+# More codegen units = more parallelism + smaller per-unit caches.
+# Default is 256 for dev anyway, but make it explicit so any future
+# perf-tuning doesn't accidentally drop this.
+codegen-units = 256
+
+# Tests and dev-deps inherit `dev` by default; pin them here so a
+# `cargo test --workspace` doesn't unwind into a `dev-rich` profile
+# somewhere downstream.
+[profile.test]
+debug = "line-tables-only"
+strip = false
+
+[profile.bench]
+debug = "line-tables-only"

@@ -1,0 +1,44 @@
+[package]
+name = "actantdb-client"
+description = "Rust HTTP + WebSocket client for an ActantDB server."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["actantdb", "agents", "client", "sdk"]
+categories = ["api-bindings", "asynchronous", "database"]
+
+[lib]
+name = "actantdb_client"
+path = "src/lib.rs"
+
+[dependencies]
+# Domain types — single source of truth per CLAUDE.md binding rule #1.
+# Wire envelopes (CommandRequest/Response, events query response, etc.) are
+# defined locally because they are *transport* types, not domain types — same
+# pattern the Swift SDK uses.
+actant-contracts.workspace = true
+
+reqwest        = { workspace = true }
+tokio          = { workspace = true }
+tokio-tungstenite = "0.24"
+futures        = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+thiserror      = { workspace = true }
+url            = { workspace = true }
+tracing        = { workspace = true, optional = true }
+async-trait    = { workspace = true }
+
+[features]
+default = []
+tracing = ["dep:tracing"]
+
+[dev-dependencies]
+tokio           = { workspace = true }
+wiremock        = "0.6"
+serde_json      = { workspace = true }
+futures-util    = "0.3"

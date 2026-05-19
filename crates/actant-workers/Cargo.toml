@@ -1,0 +1,97 @@
+[package]
+name = "actant-workers"
+description = "Bundled effect workers for ActantDB. One crate, one feature per worker; binaries are gated by required-features so `cargo install --features mcp actant-workers` produces only the `actant-worker-mcp` binary."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+name = "actant_workers"
+path = "src/lib.rs"
+
+# ---------------------------------------------------------------------------
+# Binaries — one per worker. Each `required-features` gate means only the
+# binaries whose features were enabled at build time get built. The manager
+# binary `actant-workers` aggregates whatever workers are enabled at compile
+# time (its handler registrations are themselves cfg-gated).
+# ---------------------------------------------------------------------------
+
+[[bin]]
+name = "actant-worker-shell"
+path = "src/bin/actant-worker-shell.rs"
+required-features = ["shell"]
+
+[[bin]]
+name = "actant-worker-file"
+path = "src/bin/actant-worker-file.rs"
+required-features = ["file"]
+
+[[bin]]
+name = "actant-worker-browser"
+path = "src/bin/actant-worker-browser.rs"
+required-features = ["browser"]
+
+[[bin]]
+name = "actant-worker-email"
+path = "src/bin/actant-worker-email.rs"
+required-features = ["email"]
+
+[[bin]]
+name = "actant-worker-mcp"
+path = "src/bin/actant-worker-mcp.rs"
+required-features = ["mcp"]
+
+[[bin]]
+name = "actant-worker-slack"
+path = "src/bin/actant-worker-slack.rs"
+required-features = ["slack"]
+
+[[bin]]
+name = "actant-worker-model"
+path = "src/bin/actant-worker-model.rs"
+required-features = ["model"]
+
+[[bin]]
+name = "actant-workers"
+path = "src/bin/actant-workers.rs"
+required-features = ["manager"]
+
+[features]
+default = ["shell", "file", "mcp", "manager"]
+all     = ["shell", "file", "browser", "email", "mcp", "slack", "model", "manager", "cdp"]
+shell   = []
+file    = []
+browser = []
+email   = []
+mcp     = ["dep:reqwest"]
+slack   = ["dep:reqwest"]
+model   = ["dep:reqwest"]
+manager = []
+cdp     = ["browser", "dep:tokio-tungstenite", "dep:reqwest", "dep:futures-util", "dep:url"]
+
+[dependencies]
+actant-core            = { workspace = true }
+actant-effects         = { workspace = true }
+actant-storage         = { workspace = true }
+actant-worker-protocol = { workspace = true }
+anyhow                 = { workspace = true }
+async-trait            = { workspace = true }
+clap                   = { workspace = true }
+serde                  = { workspace = true }
+serde_json             = { workspace = true }
+tokio                  = { workspace = true }
+tracing                = { workspace = true }
+tracing-subscriber     = { workspace = true }
+
+# Optional — only built when a feature that needs network/IO is enabled.
+reqwest                = { workspace = true, optional = true }
+tokio-tungstenite      = { version = "0.24", optional = true }
+futures-util           = { version = "0.3", optional = true }
+url                    = { workspace = true, optional = true }
+
+[dev-dependencies]
+sqlx     = { workspace = true }
+tempfile = "3"

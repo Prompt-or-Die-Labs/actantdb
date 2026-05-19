@@ -164,3 +164,49 @@ jobs:
         with:
           version: latest
       - run: helm lint deploy/helm/actantdb
+
+  migrations-parity:
+    name: postgres migrations parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SQLite vs Postgres migration table sets must not diverge silently
+        # GAPS.md row #22 — Postgres schema parity check. The Postgres
+        # backend (GAPS row #5) is still catching up to SQLite's schema;
+        # this gate makes the diff visible so adding a table to SQLite
+        # without mirroring it in `migrations/pg/` fails CI loudly
+        # instead of silently widening the gap.
+        run: |
+          set -e
+          extract() {
+            cat "$@" 2>/dev/null \
+              | sed -nE 's/^CREATE TABLE[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\1/p' \
+              | sort -u
+          }
+          sqlite_tables=$(extract migrations/[0-9]*.sql)
+          pg_tables=$(extract migrations/pg/*.sql)
+          missing_in_pg=$(comm -23 <(echo "$sqlite_tables") <(echo "$pg_tables"))
+          missing_in_sqlite=$(comm -13 <(echo "$sqlite_tables") <(echo "$pg_tables"))
+          if [ -n "$missing_in_sqlite" ]; then
+            echo "::error::Tables in migrations/pg/ that don't exist in SQLite:"
+            echo "$missing_in_sqlite" | sed 's/^/  - /'
+            exit 1
+          fi
+          # Track Postgres lag explicitly: write the count to the run log
+          # so reviewers see whether the gap is widening or closing.
+          sqlite_n=$(echo "$sqlite_tables" | wc -l)
+          pg_n=$(echo "$pg_tables" | wc -l)
+          missing_n=$(echo "$missing_in_pg" | wc -l)
+          [ -z "$missing_in_pg" ] && missing_n=0
+          echo "::notice::Schema parity: pg=$pg_n / sqlite=$sqlite_n; missing in pg=$missing_n"
+          if [ -n "$missing_in_pg" ]; then
+            echo "Tables defined in migrations/*.sql but MISSING from migrations/pg/:"
+            echo "$missing_in_pg" | sed 's/^/  - /'
+            echo ""
+            echo "This is GAPS.md row #5 (Postgres command-engine). The pg backend"
+            echo "is catching up — the parity job will tighten to a hard fail once"
+            echo "the SQLite count and the pg count converge."
+          fi
+          # Soft-fail for now: the job records the gap loudly but doesn't
+          # block CI yet. Flip to `exit 1 if missing_n > 0` when the
+          # backlog clears.

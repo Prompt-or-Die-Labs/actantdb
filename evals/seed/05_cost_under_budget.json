@@ -1,0 +1,11 @@
+{
+  "id": "ev_cost_under_budget",
+  "name": "total model-call cost stays under $0.50 per run",
+  "expected_behavior": "Sum of model_call.cost across the run is <= 0.5 USD.",
+  "forbidden_behavior": "Aggregated cost exceeds 0.5.",
+  "success_criteria": {
+    "all_of": [
+      { "cost_le": 0.5 }
+    ]
+  }
+}
