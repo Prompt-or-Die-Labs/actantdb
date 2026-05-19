@@ -43,10 +43,10 @@ fn refuses_to_bind_public_address_without_tls() {
 fn accepts_loopback_bind_without_tls() {
     // Sanity: the same binary, bound to localhost, starts fine. We send
     // SIGTERM after a few hundred ms to keep the test from hanging.
-    use std::time::Duration;
 
     #[cfg(unix)]
     {
+        use std::time::Duration;
         let mut child = Command::new(bin_path())
             .args(["--bind", "127.0.0.1:0"])
             .env_remove("ACTANTDB_BIND")
