@@ -23,6 +23,15 @@
 #![warn(missing_docs)]
 
 pub mod auth_routes;
+pub mod prom;
+pub mod pubsub_routes;
+
+#[cfg(feature = "auto-rest")]
+pub mod auto_rest;
+#[cfg(feature = "graphql")]
+pub mod graphql_api;
+#[cfg(any(feature = "auto-rest", feature = "graphql"))]
+pub mod schema_introspect;
 
 use std::sync::Arc;
 
@@ -32,7 +41,7 @@ use actant_core::{
     AgentEvent, CausalityKind, EventId, Sensitivity, SessionId, WorkspaceId,
 };
 use actant_storage::Storage;
-use actant_subscribe::{SubscribeHub, Topic};
+use actant_subscribe::{Broker, SubscribeHub, Topic};
 use axum::{
     extract::{ws::WebSocket, Query, State, WebSocketUpgrade},
     http::StatusCode,
@@ -80,6 +89,14 @@ pub struct AppState {
     /// (`reverse_proxy_detected`) so a misconfigured reverse proxy can't
     /// trivially bypass the "loopback = trusted" assumption.
     pub trust_proxy: bool,
+    /// Persistent named-topic pub/sub broker (DEVX_GAPS X93). Backs the
+    /// `/v1/pubsub/<workspace>/<topic>` WebSocket route.
+    pub broker: Broker,
+    /// Schema introspection cache used by the optional `auto-rest` and
+    /// `graphql` surfaces. `None` when those features aren't enabled or
+    /// when the cache hasn't been initialized yet.
+    #[cfg(any(feature = "auto-rest", feature = "graphql"))]
+    pub schema_cache: Option<Arc<schema_introspect::SchemaCache>>,
 }
 
 impl AppState {
@@ -87,6 +104,7 @@ impl AppState {
     /// fresh command engine + subscribe hub. Auth is off by default.
     pub fn new(storage: Storage) -> Self {
         let engine = Engine::new(storage.clone());
+        let broker = Broker::new(storage.clone());
         Self {
             engine,
             storage,
@@ -100,7 +118,19 @@ impl AppState {
             local_mode: true,
             tls_enabled: false,
             trust_proxy: false,
+            broker,
+            #[cfg(any(feature = "auto-rest", feature = "graphql"))]
+            schema_cache: None,
         }
+    }
+
+    /// Builder: install a schema cache so the auto-rest / graphql routes
+    /// can introspect the database. Use [`schema_introspect::SchemaCache::introspect`]
+    /// at boot to build it.
+    #[cfg(any(feature = "auto-rest", feature = "graphql"))]
+    pub fn with_schema_cache(mut self, cache: schema_introspect::SchemaCache) -> Self {
+        self.schema_cache = Some(Arc::new(cache));
+        self
     }
 
     /// Builder: explicitly mark this state as remote (`/link` flow + cookies
@@ -143,7 +173,7 @@ impl AppState {
 
 /// Construct the axum router with every endpoint registered.
 pub fn router(state: AppState) -> Router {
-    Router::new()
+    let r: Router<Arc<AppState>> = Router::new()
         .route("/v1/healthz", get(healthz))
         .route("/v1/healthz/startup", get(healthz_startup))
         .route("/v1/healthz/live", get(healthz_live))
@@ -188,6 +218,20 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/auth/login", post(auth_routes::login))
         .route("/v1/auth/logout", post(auth_routes::logout))
         .route("/v1/auth/me", get(auth_routes::whoami))
+        // Prometheus exposition (in addition to the older /v1/metrics view).
+        .route("/metrics", get(prom_metrics))
+        // Pub/sub broker WS surface (DEVX_GAPS X93).
+        .route(
+            "/v1/pubsub/{workspace}/{topic}",
+            get(pubsub_routes::ws_pubsub).post(pubsub_routes::http_publish),
+        );
+
+    #[cfg(feature = "auto-rest")]
+    let r = auto_rest::mount(r);
+    #[cfg(feature = "graphql")]
+    let r = graphql_api::mount(r);
+
+    r.layer(axum::middleware::from_fn(prom::record_http_middleware))
         .layer(axum::middleware::from_fn(request_id_middleware))
         .with_state(Arc::new(state))
 }
@@ -490,6 +534,27 @@ fn escape_label(s: &str) -> String {
         .replace('\n', "\\n")
 }
 
+/// Prometheus exposition for the in-process counter registry. Lives at
+/// `/metrics` (the conventional path) alongside the older snapshot view
+/// at `/v1/metrics`. See `prom.rs` for the registered collectors.
+async fn prom_metrics(State(s): State<Arc<AppState>>) -> Response {
+    // Best-effort ledger size sample on every scrape. SQLite reports its
+    // own file footprint via `page_count * page_size`; the in-memory
+    // backend simply returns 0. A future revision can attribute size
+    // per workspace once the per-tenant storage layout lands; today
+    // every workspace shares one database file, so the size is reported
+    // against the `_global` label.
+    let bytes: i64 = sqlx::query_scalar::<_, i64>(
+        "SELECT (SELECT page_count FROM pragma_page_count()) \
+              * (SELECT page_size  FROM pragma_page_size())",
+    )
+    .fetch_one(s.storage.pool())
+    .await
+    .unwrap_or(0);
+    prom::record_ledger_bytes("_global", bytes.max(0) as u64);
+    prom::render()
+}
+
 async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status":"ok","time": now_rfc3339()}))
 }
@@ -764,6 +829,10 @@ async fn dispatch_command(
     {
         return resp;
     }
+    // Record the dispatch attempt for Prometheus. Done after auth and
+    // rate-limit have passed so that 401/429 responses don't pollute
+    // the per-workspace counter.
+    prom::record_command(&req.workspace_id, &req.command_type);
     let ws = WorkspaceId::from_string(req.workspace_id);
     let actor = ActorId::from_string(req.actor_id);
     let outcome = s

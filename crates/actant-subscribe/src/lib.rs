@@ -33,6 +33,7 @@
 // expressions.
 #![recursion_limit = "1024"]
 
+mod broker;
 mod predicate;
 
 use std::collections::HashMap;
@@ -42,6 +43,7 @@ use actant_core::*;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, RwLock};
 
+pub use broker::{Broker, Envelope};
 pub use predicate::{evaluate, Predicate};
 
 /// One subscription topic, identified by a filter object.

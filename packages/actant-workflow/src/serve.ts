@@ -37,10 +37,10 @@ import {
   type WorkflowRequestBody,
 } from "./types.js";
 
-export interface ServedHandler {
+export interface ServedHandler<P = unknown, R = unknown> {
   (req: Request): Promise<Response>;
   /** Direct invocation for tests / in-process callers. */
-  invoke<P = unknown, R = unknown>(input: InvokeInput<P>): Promise<RunResult<R>>;
+  invoke(input: InvokeInput<P>): Promise<RunResult<R>>;
   /** The ledger this handler is bound to (useful for tests + clients). */
   ledger: Ledger;
 }
@@ -54,7 +54,7 @@ export interface InvokeInput<P = unknown> {
 export function serve<P = unknown, R = unknown>(
   handler: WorkflowHandler<P, R>,
   opts: ServeOptions = {},
-): ServedHandler {
+): ServedHandler<P, R> {
   const ledger =
     opts.ledger ??
     openLedger({
@@ -204,7 +204,7 @@ export function serve<P = unknown, R = unknown>(
     req.headers.forEach((v, k) => {
       headers[k] = v;
     });
-    const result = await invoke<P, R>({
+    const result = await invoke({
       ...(runId !== undefined ? { runId } : {}),
       ...(body.body !== undefined ? { body: body.body } : {}),
       headers,

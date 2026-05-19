@@ -17,20 +17,28 @@ name = "actantdb"
 path = "src/main.rs"
 
 [dependencies]
-actant-command   = { workspace = true }
-actant-core      = { workspace = true }
-actant-storage   = { workspace = true }
-actant-server    = { workspace = true }
-anyhow           = { workspace = true }
-axum             = { workspace = true }
-clap             = { workspace = true }
-serde            = { workspace = true }
-serde_json       = { workspace = true }
-sqlx             = { workspace = true }
-time             = { workspace = true }
-tokio            = { workspace = true }
-tracing          = { workspace = true }
+actant-command    = { workspace = true }
+actant-core       = { workspace = true }
+actant-policy     = { workspace = true }
+actant-storage    = { workspace = true }
+actant-server     = { workspace = true }
+actant-subscribe  = { workspace = true }
+actant-templates  = { workspace = true }
+anyhow            = { workspace = true }
+axum              = { workspace = true }
+clap              = { workspace = true }
+clap_complete     = { workspace = true }
+comfy-table       = { workspace = true }
+notify            = { workspace = true }
+reqwest           = { workspace = true }
+rustyline         = { workspace = true }
+serde             = { workspace = true }
+serde_json        = { workspace = true }
+sqlx              = { workspace = true }
+time              = { workspace = true }
+tokio             = { workspace = true }
+tracing           = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
-ulid             = { workspace = true }
+ulid              = { workspace = true }

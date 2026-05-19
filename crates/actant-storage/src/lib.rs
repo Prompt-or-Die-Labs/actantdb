@@ -61,6 +61,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0004_auth",
         include_str!("../../../migrations/0004_auth.sql"),
     ),
+    (
+        "0006_pubsub",
+        include_str!("../../../migrations/0006_pubsub.sql"),
+    ),
 ];
 
 /// Storage configuration.

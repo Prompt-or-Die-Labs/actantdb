@@ -1,0 +1,89 @@
+# ActantDB — rules for AI coding assistants
+
+This file teaches Cursor about the shape of this repository. The same
+content lives at `.windsurfrules` (Windsurf) and
+`.github/copilot-instructions.md` (GitHub Copilot). Keep them in sync.
+
+## What ActantDB is
+
+ActantDB is a hash-chained event ledger for AI agents. Every action an
+agent takes — a model call, a tool call, a memory write, a guard
+verdict — lands as a typed, append-only event in SQLite (default) or
+Postgres. Consumers wrap their existing agent framework (Mastra,
+LangGraph, raw SDK calls) with `withActant()` from `@actantdb/mastra`
+and get a complete, replayable trace for free.
+
+## Workspace shape
+
+- **TypeScript packages** live in `packages/`. Each package publishes
+  as `@actantdb/<name>` and uses ESM only. Node ≥ 22.5 (we use
+  `node:sqlite`).
+- **Rust crates** live in `crates/`. The HTTP+WS server binary is
+  `actant-server` (built as `actantdb-server`); the CLI binary is
+  `actant-cli` (built as `actantdb`).
+- **The single source of truth for every public type** is
+  `crates/actant-contracts/`. Generated TypeScript bindings land in
+  `packages/actant-types/src/generated/`.
+- **Specs** live in `specs/`. Every active spec has a `## Verification`
+  section enforced by `tests/spec_NN_verification.rs` in the relevant
+  crate.
+
+## Binding rules — do not break these
+
+1. **No new public type outside `actant-contracts`.** If you need to
+   add a struct that crosses a crate boundary or appears in the public
+   API, edit `crates/actant-contracts/src/lib.rs` first.
+2. **Never hand-edit `packages/actant-types/src/generated/*`.** Those
+   files are produced by `cargo run -p actant-contracts -- codegen-ts`.
+   If the generated TypeScript is wrong, fix the Rust contract and
+   regenerate.
+3. **The default install path is `npm install @actantdb/all`.** Do
+   not add Rust toolchain steps, Docker, or exposed ports to
+   consumer-facing READMEs. Server mode is opt-in; embedded mode runs
+   in Node out of the box.
+4. **Every agent action is a typed event in a hash-chained ledger.**
+   When you're unsure about an event payload, look at
+   `@actantdb/types` first, then `crates/actant-contracts/src/lib.rs`.
+   The `prev_chain_hash` field on every row is load-bearing — don't
+   skip it.
+
+## Surface vocabulary
+
+- The product written as one word is lowercase **`actantdb`**.
+- The CLI binary is **`actantdb`**.
+- The umbrella npm package is **`@actantdb/all`**.
+- Crates are named `actant-*` (kebab-case), Rust types are `Actant*`.
+- SQL identifiers use `snake_case`, IDs are `TEXT`, timestamps are
+  ISO-8601 strings.
+
+## Common commands
+
+- **Rust check (fast):** `just check` or
+  `cargo check -p <crate> --all-targets`
+- **Rust tests (per crate):** `cargo test -p <crate> <test_name>`
+- **TypeScript build:** `pnpm -r build`
+- **TypeScript tests:** `pnpm -r test` or
+  `pnpm --filter @actantdb/<pkg> test`
+- **Regenerate TS types from contracts:**
+  `cargo run -p actant-contracts -- codegen-ts`
+- **Smoke test (required green on every PR):** `pnpm smoke`
+
+## Do NOT
+
+- Do **not** run `cargo test --workspace` locally — the build artefacts
+  can crash low-disk machines. Use `cargo test -p <crate>` instead.
+- Do **not** add Rust toolchain steps to the default install
+  instructions in any README a consumer reads.
+- Do **not** introduce a new public type without first editing
+  `actant-contracts` and regenerating bindings in the same PR.
+- Do **not** hand-edit anything under `packages/actant-types/src/generated/`.
+- Do **not** treat the wedge framing as v1 and the substrate as
+  future — both are present and active. See `PIVOT.md`.
+
+## Where to look
+
+- Repo orientation: `CLAUDE.md`, `PIVOT.md`, `README.md`.
+- What landed when: `CHANGELOG.md`.
+- Outstanding work: `GAPS.md`, `DEVX_GAPS.md`, `GATES.md`.
+- Per-spec verification status: `SPECS_STATUS.md`.
+- Architecture: `specs/00-overview.md` and friends.

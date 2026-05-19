@@ -298,3 +298,154 @@ Saved under `/tmp/actant-bench-results/`:
    20 concurrent sessions cut throughput in half and pushed p99 to 72 ms.
    If you want to support > 10 concurrent agent sessions per server, this
    is the work item.
+
+## Box cold-start
+
+A new benchmark sibling under [`bench/box/`](bench/box/) measures
+`@actantdb/box` cold-start **Time-To-Interactive (TTI)** with the same
+methodology the [upstash/benchmarks](https://github.com/upstash/benchmarks)
+sandbox-provider matrix uses. Numbers below are from this M-series Mac on
+2026-05-19 against `@actantdb/box@0.0.13`, run via:
+
+```bash
+pnpm --filter @actantdb-bench/box build
+pnpm --filter @actantdb-bench/box bench           # all three scenarios @ N=100
+```
+
+### Methodology (parity with Upstash)
+
+Per measurement:
+
+```
+t0 = performance.now()
+box = await Box.create({ storeRoot: <isolated tmp dir> })
+await box.exec.command("echo ready")    # first interactive command
+tti_ms = performance.now() - t0
+await box.delete()                       # measure each run fresh
+```
+
+Three load patterns at N=100:
+
+| Scenario     | Definition                                                 |
+| ------------ | ---------------------------------------------------------- |
+| `sequential` | `for i in 0..N { await measureTTI() }` — one at a time     |
+| `staggered`  | `setTimeout(launch, i*200ms)` — fan-out pattern             |
+| `burst`      | `Promise.all(Array.from({length:N}, measureTTI))` — worst case |
+
+The composite score *shape* matches Upstash (success-rate base, latency
+penalty, 0..100). The *values* don't claim numerical parity — Upstash
+weights median/p95/p99 60/25/15 against a 10s ceiling per
+[their METHODOLOGY.md](https://github.com/upstash/benchmarks/blob/master/METHODOLOGY.md);
+ours is `100*success_rate − min(60, max(0, median−50ms)/20)`, with the
+formula written in [`bench/box/src/composite.ts`](bench/box/src/composite.ts)
+so reviewers can swap it. Compare composite scores within this benchmark
+only, not against Upstash's printed scores.
+
+### ActantDB Box numbers on this host
+
+Apple M4, macOS 26.2, Node 25.9.0, `@actantdb/box@0.0.13`:
+
+| Scenario    | N   | min   | median  | p95    | p99    | max    | mean   | ok/N    | composite |
+| ----------- | --- | ----- | ------- | ------ | ------ | ------ | ------ | ------- | --------- |
+| sequential  | 100 | 5 ms  | **7 ms**    | 9 ms   | 10 ms  | 62 ms  | 7 ms   | 100/100 | 100.0     |
+| staggered   | 100 | 7 ms  | **12 ms**   | 17 ms  | 21 ms  | 23 ms  | 13 ms  | 100/100 | 100.0     |
+| burst       | 100 | 175 ms| **215 ms**  | 255 ms | 258 ms | 260 ms | 217 ms | 100/100 | 91.7      |
+
+Burst-100's 215 ms median is honest signal, not a bug: 100 simultaneous
+subprocess spawns plus 100 simultaneous SQLite WAL opens on a shared
+parent dir hit fs/sqlite contention. The same workload spread across the
+default 200 ms stagger collapses to 12 ms median.
+
+Raw JSON for these runs lives under
+[`bench/box/results/`](bench/box/results/).
+
+### Apples-to-apples vs Upstash's published numbers
+
+Upstream JSON sources (linked so anyone can re-derive these without trusting
+us): [`results/sequential_tti/latest.json`](https://github.com/upstash/benchmarks/blob/master/results/sequential_tti/latest.json) ·
+[`results/staggered_tti/latest.json`](https://github.com/upstash/benchmarks/blob/master/results/staggered_tti/latest.json) ·
+[`results/burst_tti/latest.json`](https://github.com/upstash/benchmarks/blob/master/results/burst_tti/latest.json)
+(snapshot taken 2026-04-11, `linux x64`, `node v24.14.1`).
+
+**Sequential, N=100 — median TTI:**
+
+| Provider                 | median TTI | vs ActantDB Box |
+| ------------------------ | ---------- | --------------- |
+| **ActantDB Box (local)** | **7 ms**   | —               |
+| Daytona                  | 107 ms     | 15×             |
+| Vercel Sandboxes         | 404 ms     | 58×             |
+| e2b                      | 415 ms     | 59×             |
+| Blaxel                   | 445 ms     | 64×             |
+| Hopx                     | 1 111 ms   | 159×            |
+| Modal                    | 1 458 ms   | 208×            |
+| Cloudflare Sandboxes     | 1 512 ms   | 216×            |
+| Namespace                | 1 758 ms   | 251×            |
+| Runloop                  | 1 921 ms   | 274×            |
+
+**Staggered, N=100 — median TTI:**
+
+| Provider                 | median TTI | vs ActantDB Box |
+| ------------------------ | ---------- | --------------- |
+| **ActantDB Box (local)** | **12 ms**  | —               |
+| Daytona                  | 103 ms     | 8.6×            |
+| e2b                      | 392 ms     | 33×             |
+| Vercel Sandboxes         | 393 ms     | 33×             |
+| Blaxel                   | 449 ms     | 37×             |
+| Hopx                     | 1 182 ms   | 99×             |
+| Modal                    | 1 439 ms   | 120×            |
+| Cloudflare Sandboxes     | 1 568 ms   | 131×            |
+| Namespace                | 1 752 ms   | 146×            |
+| Runloop                  | 1 949 ms   | 162×            |
+
+**Burst, N=100 — median TTI (this is where the contention story shows up):**
+
+| Provider                 | median TTI | vs ActantDB Box |
+| ------------------------ | ---------- | --------------- |
+| **ActantDB Box (local)** | **215 ms** | —               |
+| Daytona                  | 231 ms     | 1.07×           |
+| e2b                      | 594 ms     | 2.8×            |
+| Vercel Sandboxes         | 629 ms     | 2.9×            |
+| Blaxel                   | 1 096 ms   | 5.1×            |
+| Modal                    | 1 722 ms   | 8.0×            |
+| Cloudflare Sandboxes     | 1 791 ms   | 8.3×            |
+| Namespace                | 2 141 ms   | 10.0×           |
+| Runloop                  | 6 025 ms   | 28×             |
+| Hopx                     | 15 179 ms  | 71×             |
+
+Daytona being within 7% on burst is the headline caveat — at 100
+simultaneous spawns the local-vs-cloud advantage shrinks dramatically.
+The other 8 providers stay 3×–70× behind.
+
+(Codesandbox excluded — its 2026-04-11 results show zero-ms cold-starts
+and a 0 sample mean, almost certainly a probe/timing bug upstream.)
+
+### Honest framing
+
+This is **your machine vs their container pool**. ActantDB Box wins
+cold-start by 1–2 orders of magnitude on sequential / staggered work,
+and is competitive with the fastest cloud (Daytona) on burst — because
+we're skipping the entire container-boot path: no VM cold-start, no
+image pull, no scheduler queue, just `mkdir` + open SQLite + `spawn /bin/sh`.
+
+What the cloud providers buy that we don't:
+
+- Isolation between concurrent tenants (each Box currently shares the
+  host's user/fs). For multi-tenant workloads you still want a sandbox
+  layer — Box is for *the agent on your own machine*.
+- Elastic capacity. Box throughput is gated by the host's process and
+  fs limits; cloud providers scale horizontally.
+- Geographic distribution / edge runtime semantics (Cloudflare et al.).
+
+Box is the right primitive for local agent loops (Mastra / LangGraph /
+hand-rolled) where TTI dominates iteration speed. It is *not* a
+replacement for a hosted sandbox service in a multi-tenant SaaS.
+
+### Reproducibility
+
+- Bench source: [`bench/box/`](bench/box/) (TypeScript only, no Rust toolchain
+  needed).
+- Daily CI run: [`.github/workflows/box-bench.yml`](.github/workflows/box-bench.yml)
+  on `ubuntu-latest` and `macos-latest`. Results land in the workflow run
+  summary plus a 30-day artifact rather than being auto-committed to `main`.
+- Upstash methodology source:
+  <https://github.com/upstash/benchmarks/blob/master/METHODOLOGY.md>.

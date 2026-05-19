@@ -1,0 +1,71 @@
+{
+  "name": "@actantdb/mcp-server",
+  "version": "0.0.14",
+  "description": "Model Context Protocol server exposing the ActantDB ledger to MCP clients (Claude Desktop, Cursor, Continue, etc.). Two transports: stdio + Streamable HTTP.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "actantdb-mcp": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./tools": {
+      "import": "./dist/tools.js",
+      "types": "./dist/tools.d.ts"
+    },
+    "./resources": {
+      "import": "./dist/resources.js",
+      "types": "./dist/resources.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@actantdb/core": "workspace:*",
+    "@actantdb/replay": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/types": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb"
+  },
+  "keywords": [
+    "actantdb",
+    "mcp",
+    "model-context-protocol",
+    "agent",
+    "ledger"
+  ],
+  "homepage": "https://github.com/Prompt-or-Die-Labs/actantdb#readme",
+  "bugs": {
+    "url": "https://github.com/Prompt-or-Die-Labs/actantdb/issues"
+  }
+}

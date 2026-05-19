@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/all",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "ActantDB — every primitive in one import. Or install just the piece you need: @actantdb/core for storage, @actantdb/policy for Guard, @actantdb/mastra for the agent wrapper, etc.",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,14 @@
     "./sdk": "./dist/sdk.js",
     "./box": "./dist/box.js",
     "./workflow": "./dist/workflow.js",
-    "./types": "./dist/types.js"
+    "./types": "./dist/types.js",
+    "./ai-sdk": "./dist/ai-sdk.js",
+    "./openai-agents": "./dist/openai-agents.js",
+    "./anthropic": "./dist/anthropic.js",
+    "./openai": "./dist/openai.js",
+    "./langchain": "./dist/langchain.js",
+    "./mcp-server": "./dist/mcp-server.js",
+    "./testing": "./dist/testing.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -28,7 +35,14 @@
     "@actantdb/sdk": "workspace:*",
     "@actantdb/box": "workspace:*",
     "@actantdb/workflow": "workspace:*",
-    "@actantdb/types": "workspace:*"
+    "@actantdb/types": "workspace:*",
+    "@actantdb/ai-sdk": "workspace:*",
+    "@actantdb/openai-agents": "workspace:*",
+    "@actantdb/anthropic": "workspace:*",
+    "@actantdb/openai": "workspace:*",
+    "@actantdb/langchain": "workspace:*",
+    "@actantdb/mcp-server": "workspace:*",
+    "@actantdb/testing": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

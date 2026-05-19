@@ -75,6 +75,26 @@ This isn't theoretical. Each of the things below is supported by code that compi
 
 ---
 
+## Integrations
+
+ActantDB ships a **Model Context Protocol** server (`@actantdb/mcp-server`) that exposes the local ledger to any MCP client — Claude Desktop, Cursor, Continue, Cline. The same binary speaks stdio (for desktop clients) and Streamable HTTP (for hosted clients). Drop this block into `~/Library/Application Support/Claude/claude_desktop_config.json` and restart Claude Desktop to see `list_runs`, `query_predicate`, `replay`, `decide_approval`, and friends in the tool picker:
+
+```json
+{
+  "mcpServers": {
+    "actantdb": {
+      "command": "npx",
+      "args": ["-y", "@actantdb/mcp-server", "--stdio"],
+      "env": { "ACTANTDB_STORE_DIR": "/Users/you/.actantdb" }
+    }
+  }
+}
+```
+
+New project? `npm create actantdb@latest my-app` scaffolds a runnable wrapper, the right `@actantdb/*` deps, and a `npm run studio` script. Writing tests against an agent? `@actantdb/testing` gives you `createTestLedger() + expectEventEmitted() + expectGuardVerdict()` so consumer tests don't need to reach into the ledger by hand. See [`docs/recipes/`](./docs/recipes) for ten copy-pasteable how-tos.
+
+---
+
 ## Install (the substrate)
 
 Requires **Node ≥22.5**. `@actantdb/core` uses `node:sqlite`, which is unflagged starting at Node 24 (Node 22 needs `--experimental-sqlite`).

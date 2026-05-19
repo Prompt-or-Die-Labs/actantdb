@@ -9,12 +9,13 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -r build",
-    "dev":   "pnpm -r --parallel dev",
-    "test":  "pnpm -r test",
-    "lint":  "pnpm -r lint",
-    "smoke": "node ./scripts/smoke.mjs",
-    "ci":    "pnpm -r build && pnpm -r test && pnpm smoke"
+    "build":   "pnpm -r build",
+    "dev":     "pnpm -r --parallel dev",
+    "test":    "pnpm -r test",
+    "lint":    "pnpm -r lint",
+    "smoke":   "node ./scripts/smoke.mjs",
+    "typedoc": "typedoc",
+    "ci":      "pnpm -r build && pnpm -r test && pnpm smoke"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": { "node": ">=20" },
@@ -25,5 +26,8 @@
     "@actantdb/replay": "workspace:*",
     "@actantdb/studio": "workspace:*",
     "@actantdb/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typedoc": "^0.26.0"
   }
 }

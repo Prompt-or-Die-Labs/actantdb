@@ -5,7 +5,12 @@ use std::path::PathBuf;
 use actant_command::Engine;
 use actant_core::{ActorId, WorkspaceId};
 use actant_storage::{Storage, StorageConfig};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
+
+mod cmd;
+mod predicate_parse;
+
+use cmd::export_import::ExportFormat;
 
 /// Backup mode flag for `actantdb backup --mode`.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
@@ -122,6 +127,124 @@ enum Command {
         #[arg(long)]
         workspace: String,
     },
+
+    // -------- NEW: project scaffolding (closes GAPS #25) --------
+    /// Scaffold a new project from a bundled template.
+    Init {
+        /// Template name. Use `--list` to see what's available.
+        #[arg(required_unless_present = "list")]
+        template: Option<String>,
+        /// Project name. Defaults to `<template>`.
+        #[arg(long)]
+        name: Option<String>,
+        /// Destination directory. Defaults to `./<name>`.
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// List available templates and exit.
+        #[arg(long)]
+        list: bool,
+    },
+
+    // -------- NEW: aggregated server/DB/backup status (closes GAPS #27) --------
+    /// Print aggregated server / DB / backup state.
+    Status {
+        /// Emit JSON for scripting.
+        #[arg(long)]
+        json: bool,
+    },
+
+    // -------- NEW: filesystem watch loop (closes GAPS #28) --------
+    /// Watch source directories and re-validate/regenerate on change.
+    Dev {
+        /// Comma-separated list of dirs to watch.
+        /// Defaults: commands,policies,templates,crates/actant-contracts/src
+        #[arg(long, value_delimiter = ',')]
+        watch_dirs: Vec<PathBuf>,
+    },
+
+    // -------- NEW: doctor (DEVX X3) --------
+    /// Diagnose the local dev environment.
+    Doctor,
+
+    // -------- NEW: tail (DEVX X32) --------
+    /// `tail -f`-style live view of the event ledger.
+    Tail {
+        /// Filter by session id.
+        #[arg(long)]
+        session: Option<String>,
+        /// Filter by event kind (event_type).
+        #[arg(long)]
+        kind: Option<String>,
+        /// Filter by actor id.
+        #[arg(long)]
+        actor: Option<String>,
+        /// Follow new appends after the first batch.
+        #[arg(short = 'f', long)]
+        follow: bool,
+    },
+
+    // -------- NEW: watch <expr> (DEVX X33) --------
+    /// Live filter against the event ledger using the predicate language.
+    Watch {
+        /// Predicate expression (e.g. `kind == "tool_call_completed"`).
+        expr: String,
+    },
+
+    // -------- NEW: read-only REPL (DEVX X34) --------
+    /// Interactive read-only REPL.
+    Shell,
+
+    // -------- NEW: explain <event_id> (DEVX X35) --------
+    /// Natural-language explanation of one event row.
+    Explain {
+        /// Event id (evt_*).
+        event_id: String,
+    },
+
+    // -------- NEW: read-only SQL prompt (DEVX X36) --------
+    /// Run one read-only SQL statement (SELECT / WITH only).
+    Sql {
+        /// SQL statement.
+        statement: String,
+    },
+
+    // -------- NEW: export (DEVX X37) --------
+    /// Dump events to JSON, NDJSON, or CSV.
+    Export {
+        /// Output format.
+        #[arg(long, default_value = "ndjson")]
+        format: ExportFormat,
+        /// Restrict to a single session id.
+        #[arg(long)]
+        session: Option<String>,
+        /// Output file. Defaults to stdout.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+
+    // -------- NEW: import (DEVX X38) --------
+    /// Bootstrap a ledger from an NDJSON dump produced by `actantdb export`.
+    Import {
+        /// NDJSON input file.
+        #[arg(long)]
+        from: PathBuf,
+    },
+
+    // -------- NEW: upgrade (DEVX X81) --------
+    /// Check or guide the upgrade flow.
+    Upgrade {
+        /// Just check the latest published version; don't suggest anything.
+        #[arg(long)]
+        check: bool,
+    },
+
+    // -------- NEW: shell completions (DEVX X6) --------
+    /// Generate shell completion script (hidden in --help output).
+    #[command(hide = true)]
+    Completions {
+        /// Shell flavor.
+        shell: clap_complete::Shell,
+    },
 }
 
 #[tokio::main]
@@ -181,9 +304,7 @@ async fn main() -> anyhow::Result<()> {
                 // Incremental: write `<to>/full-<ts>.sqlite` (only when
                 // the manifest has no full yet — every subsequent run
                 // appends a WAL increment), update `<to>/manifest.json`.
-                use actant_storage::{
-                    backup_sha256_hex, EntryKind, Manifest, ManifestEntry,
-                };
+                use actant_storage::{backup_sha256_hex, EntryKind, Manifest, ManifestEntry};
                 std::fs::create_dir_all(&to)?;
                 let manifest_path = to.join("manifest.json");
                 let mut manifest = Manifest::read_or_default(&manifest_path)?;
@@ -215,7 +336,12 @@ async fn main() -> anyhow::Result<()> {
                         taken_at: now_ts.clone(),
                     });
                     manifest.write(&manifest_path)?;
-                    println!("backed up {} → {} (full @ lsn {})", db_path.display(), to.display(), lsn);
+                    println!(
+                        "backed up {} → {} (full @ lsn {})",
+                        db_path.display(),
+                        to.display(),
+                        lsn
+                    );
                 } else {
                     // Subsequent call: capture WAL since the last entry.
                     let inc = s.wal_frames_since(from_lsn).await?;
@@ -236,7 +362,13 @@ async fn main() -> anyhow::Result<()> {
                         taken_at: now_ts.clone(),
                     });
                     manifest.write(&manifest_path)?;
-                    println!("backed up {} → {} (incremental: {} → {})", db_path.display(), to.display(), from_lsn, lsn);
+                    println!(
+                        "backed up {} → {} (incremental: {} → {})",
+                        db_path.display(),
+                        to.display(),
+                        from_lsn,
+                        lsn
+                    );
                 }
             }
         },
@@ -268,7 +400,7 @@ async fn main() -> anyhow::Result<()> {
                 let mut current_lsn = full_entry.lsn;
                 let stop = at_lsn.unwrap_or(u64::MAX);
                 if current_lsn > stop {
-                    anyhow::bail!("requested at_lsn={} is before the latest full snapshot lsn={}", stop, current_lsn);
+                    anyhow::bail!("requested at_lsn={stop} is before the latest full snapshot lsn={current_lsn}");
                 }
                 let s = Storage::open(StorageConfig::file(&db_path)).await?;
                 for entry in &manifest.entries[last_full + 1..] {
@@ -285,7 +417,12 @@ async fn main() -> anyhow::Result<()> {
                     current_lsn = entry.lsn;
                 }
                 drop(s);
-                println!("restored {} ← {} (lsn {})", db_path.display(), from.display(), current_lsn);
+                println!(
+                    "restored {} ← {} (lsn {})",
+                    db_path.display(),
+                    from.display(),
+                    current_lsn
+                );
             } else {
                 std::fs::copy(&from, &db_path)?;
                 let _s = Storage::open(StorageConfig::file(&db_path)).await?;
@@ -359,6 +496,78 @@ async fn main() -> anyhow::Result<()> {
                     summary
                 );
             }
+        }
+
+        Command::Init {
+            template,
+            name,
+            dir,
+            list,
+        } => {
+            if list || template.is_none() {
+                cmd::init::list();
+            } else {
+                cmd::init::run(template.unwrap(), name, dir)?;
+            }
+        }
+
+        Command::Status { json } => {
+            cmd::status::run(&db_path, json).await?;
+        }
+
+        Command::Dev { watch_dirs } => {
+            cmd::watch_dev::run(watch_dirs).await?;
+        }
+
+        Command::Doctor => {
+            cmd::doctor::run(&db_path)?;
+        }
+
+        Command::Tail {
+            session,
+            kind,
+            actor,
+            follow,
+        } => {
+            cmd::tail::run(&db_path, session, kind, actor, follow).await?;
+        }
+
+        Command::Watch { expr } => {
+            cmd::watch::run(&db_path, &expr).await?;
+        }
+
+        Command::Shell => {
+            cmd::shell::run(&db_path).await?;
+        }
+
+        Command::Explain { event_id } => {
+            cmd::explain::run(&db_path, &event_id).await?;
+        }
+
+        Command::Sql { statement } => {
+            cmd::sql::run(&db_path, &statement).await?;
+        }
+
+        Command::Export {
+            format,
+            session,
+            out,
+        } => {
+            cmd::export_import::run_export(&db_path, format, session, out).await?;
+        }
+
+        Command::Import { from } => {
+            cmd::export_import::run_import(&db_path, &from).await?;
+        }
+
+        Command::Upgrade { check } => {
+            cmd::upgrade::run(check).await?;
+        }
+
+        Command::Completions { shell } => {
+            let mut app = Cli::command();
+            let name = app.get_name().to_string();
+            clap_complete::generate(shell, &mut app, name, &mut std::io::stdout());
         }
     }
     Ok(())

@@ -19,16 +19,19 @@ export type Duration = number | string;
  * `failed` — a step threw and was not caught.
  * `cancelled` — `ctx.cancel()` ran or `client.cancel()` was called.
  */
-export type RunStatus =
+export type WorkflowRunStatus =
   | "running"
   | "suspended"
   | "completed"
   | "failed"
   | "cancelled";
 
-export interface RunResult<T = unknown> {
+/** @deprecated Use `WorkflowRunStatus`. Kept as an alias for direct-import users. */
+export type RunStatus = WorkflowRunStatus;
+
+export interface WorkflowRunResult<T = unknown> {
   runId: string;
-  status: RunStatus;
+  status: WorkflowRunStatus;
   /** Only present on `completed`. */
   output?: T;
   /** Only present on `suspended` — present when a sleep is pending. */
@@ -38,6 +41,9 @@ export interface RunResult<T = unknown> {
   /** Only present on `failed`. */
   error?: { message: string; code?: string };
 }
+
+/** @deprecated Use `WorkflowRunResult`. Kept as an alias for direct-import users. */
+export type RunResult<T = unknown> = WorkflowRunResult<T>;
 
 /** Headers carried over HTTP between `serve` and `Client`. */
 export const WORKFLOW_RUN_ID_HEADER = "x-workflow-run-id";
@@ -78,7 +84,7 @@ export interface ServeOptions {
 }
 
 /** Options for `new Client({ ... })`. */
-export interface ClientOptions {
+export interface WorkflowClientOptions {
   /** Upstash-compat: the QStash token. Unused locally but accepted. */
   token?: string;
   /** Base URL of the workflow handler (the URL you `serve()` on). */
@@ -92,6 +98,13 @@ export interface ClientOptions {
   /** Override `fetch`. Defaults to `globalThis.fetch`. */
   fetch?: typeof globalThis.fetch;
 }
+
+/**
+ * @deprecated Use `WorkflowClientOptions`. Kept as a local alias for direct
+ * `@actantdb/workflow` consumers; the umbrella `@actantdb/all` re-exports the
+ * prefixed name to avoid colliding with `@actantdb/sdk`'s `ClientOptions`.
+ */
+export type ClientOptions = WorkflowClientOptions;
 
 /** Args to `client.trigger`. */
 export interface TriggerArgs<P = unknown> {

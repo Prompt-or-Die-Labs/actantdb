@@ -29,10 +29,10 @@ export {
 
 export type {
   Duration,
-  RunStatus,
-  RunResult,
+  WorkflowRunStatus,
+  WorkflowRunResult,
   ServeOptions,
-  ClientOptions,
+  WorkflowClientOptions,
   TriggerArgs,
   TriggerResult,
   CancelArgs,
@@ -41,6 +41,12 @@ export type {
   CallResult,
   WaitForEventOptions,
   WorkflowRequestBody,
+  // Deprecated short aliases — re-exported for direct-import callers, but
+  // the umbrella @actantdb/all should NOT pull these in (it has collisions
+  // with @actantdb/sdk's ClientOptions and @actantdb/box's RunStatus).
+  RunStatus,
+  RunResult,
+  ClientOptions,
 } from "./types.js";
 
 export {

@@ -16,6 +16,13 @@ path = "src/lib.rs"
 name = "actantdb-server"
 path = "src/bin/server.rs"
 
+[features]
+# Optional surfaces (DEVX_GAPS X88, X89). Off by default so consumers who
+# only want the typed command API don't pay the introspection cost.
+default     = []
+auto-rest   = []
+graphql     = ["auto-rest", "dep:async-graphql", "dep:async-graphql-axum"]
+
 [dependencies]
 actant-auth      = { workspace = true }
 actant-core      = { workspace = true }
@@ -41,11 +48,16 @@ serde_json       = { workspace = true }
 sqlx             = { workspace = true }
 thiserror        = { workspace = true }
 tokio            = { workspace = true }
+futures          = { workspace = true }
+prometheus       = { version = "0.13", default-features = false }
+once_cell        = "1.19"
 tower            = { workspace = true }
 tower-http       = { workspace = true }
 tracing          = { workspace = true }
 tracing-subscriber = { workspace = true }
 ulid             = { workspace = true }
+async-graphql      = { workspace = true, optional = true }
+async-graphql-axum = { workspace = true, optional = true }
 
 [dev-dependencies]
 actant-worker-protocol = { workspace = true }

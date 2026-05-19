@@ -67,10 +67,10 @@ axes and farther on others — this section is the honest map.
 
 | # | Gap | Status | Where documented | Notes |
 |---|-----|--------|-----------------|-------|
-| 25 | **`actantdb init <template>` one-command scaffolder** | 🔴 | `crates/actant-templates/` exists but no CLI surface | Supabase: `supabase init` writes `supabase/` + migration scaffold. Convex: `npm create convex@latest` scaffolds a project. ActantDB has the `actant-templates` registry (5 templates) but no top-level CLI command yet. Need: `actantdb init <template>` that writes a new project dir using `TemplateRegistry::render`, prints "next steps". The library functions exist; this is CLI plumbing. |
-| 26 | **`docker-compose.yml` for one-line full-stack self-host** | 🔴 | `deploy/helm/` has K8s only | Supabase ships the canonical `docker-compose.yml` (13 services); Convex ships a self-hosted `docker-compose.yml` (backend + dashboard + sqlite). ActantDB ships a `deploy/helm/actantdb` Helm chart for K8s but no compose file. Need: `deploy/docker-compose.yml` running `actantdb-server` + Postgres + a reverse proxy with TLS termination so `docker compose up` is enough. |
-| 27 | **`actantdb status` command** | 🔴 | — | Supabase has `supabase status` printing every running service + port + URL + creds in a table. Convex prints similar at `npx convex dev` startup. ActantDB has `/v1/healthz/{live,ready}` but no CLI that aggregates "studio URL + server URL + DB path + active sessions + open WS subs + migration applied list". Easy add: `actantdb status [--json]`. |
-| 28 | **`actantdb dev` watch loop** | 🔴 | — | Convex's flagship DX: `npx convex dev` watches the `convex/` dir and re-uploads functions on save. ActantDB has no equivalent. Need: `actantdb dev` that watches `commands/`, `policies/`, `templates/` for changes and (a) reloads command definitions, (b) re-validates against `actant-contracts`, (c) restarts Studio dev server. Closes the "I changed a policy file, what now?" UX gap. |
+| 25 | **`actantdb init <template>` one-command scaffolder** | 🟢 | `crates/actant-cli/src/cmd/init.rs` | Wraps `actant_templates::TemplateRegistry::{list,render}`. `actantdb init --list` enumerates bundled templates; `actantdb init <name> [--name X] [--dir Y]` renders and prints the `cd … && npm install && npm run demo` next-steps line. |
+| 26 | **`docker-compose.yml` for one-line full-stack self-host** | 🟢 | `deploy/docker-compose.yml`, `deploy/Dockerfile`, `deploy/README.md`, `deploy/caddy/Caddyfile` | One-line self-host: `actantdb-server` + Postgres + Caddy (auto-TLS via `ACTANTDB_DOMAIN`) + Mailpit (SMTP catcher, closes DEVX_GAPS X94). `docker compose -f deploy/docker-compose.yml up` is enough. Older `deploy/docker/docker-compose.yaml` smoke recipe is kept for workspace tests. |
+| 27 | **`actantdb status` command** | 🟢 | `crates/actant-cli/src/cmd/status.rs` | Aggregates server readiness (HTTP probe of `/v1/healthz/ready`), DB path + size on disk + applied migrations, session/event counts, and backup state (last LSN from `actant_backup_state`). `--json` emits a structured snapshot for scripts. Note: "active WS subscribers" line is folded into the server-up indicator — the CLI is out-of-process and can't peek at the in-server `SubscribeHub`; a dedicated `/v1/admin/subscribers` HTTP endpoint would be needed to surface counts. Tracked as a follow-up. |
+| 28 | **`actantdb dev` watch loop** | 🟢 | `crates/actant-cli/src/cmd/watch_dev.rs` | `notify::RecommendedWatcher` (poll fallback at 500 ms) bridged to tokio via `tokio::sync::mpsc::unbounded_channel`. Watches `commands/`, `policies/`, `templates/`, `crates/actant-contracts/src/` by default (override with `--watch-dirs`). Re-validates `*.actant.json` / `policy.json` as `actant_policy::PolicyDoc` and re-runs `cargo run -p actant-contracts -- codegen-ts` on contract changes. |
 | 29 | **Auto-generated REST endpoints from schema** | ⊝ | (see notes) | Supabase's PostgREST generates REST from Postgres schema; Convex's queries/mutations are auto-exposed via `api.foo.bar`. ActantDB is **deliberately not CRUD-shaped** — the command engine takes typed commands per `specs/03-command-spec.md`. Auto-generated REST against `agent_event` would mislead consumers about the data model. ⊝ stays. |
 | 30 | **`actantdb migrate diff/pull` (vs SQLite + PG)** | 🟡 | `actantdb migrate` (apply) exists in `crates/actant-cli/src/main.rs` | Supabase: `db diff` (running DB vs migrations), `db pull` (running DB → migration file), `db reset` (drop + reapply). ActantDB has `migrate` (apply) + `verify-specs` CI gate. Missing: `diff` (compare migrations to a connected DB) and `pull` (dump current schema as a new migration). Useful for consumers who experiment in Studio's SQL pane (when that ships) and want to capture the change. Defer until SQL pane exists. |
 | 31 | **Auto-generated TS types from schema/contracts (live, on-save)** | 🟢 | `crates/actant-contracts/`, `packages/actant-types/src/generated/` | `cargo run -p actant-contracts -- codegen-ts` writes generated TS to `packages/actant-types/src/generated/`. Same effective shape as Supabase's `supabase gen types typescript` or Convex's `_generated/`. Missing the `--watch` flavor (would tie into row #28's `actantdb dev`). |
@@ -82,24 +82,27 @@ axes and farther on others — this section is the honest map.
 | 37 | **`@actantdb/box` cold-start matrix vs cloud sandbox providers** | 🟢 | `bench/box/`, `BENCHMARKS.md` §"Box cold-start" | Mirrors the `upstash/benchmarks` methodology (sequential / staggered / burst @ N=100). Local TTI median 15.6 ms / p99 18.3 ms vs cloud-container providers' hundreds-of-ms-to-seconds. Daily reproducible run via `.github/workflows/box-bench.yml`. |
 | 38 | **`@actantdb/workflow` durable step-API (Upstash Workflow parity)** | 🟢 | `packages/actant-workflow/` | `serve()` + `ctx.{run,sleep,sleepUntil,call,waitForEvent,notify}` + `Client` + ledger-backed step-skipping on resume. 11 vitest tests. Drop-in for `@upstash/workflow`. |
 
-**BaaS parity sub-totals:** 4 🟢, 4 🔴 (real code-shaped gaps inside our
-boundary), 1 🟡 (deferred to a later milestone), 4 🛣 (deferred to ActantDB
-Cloud), 2 ⊝ (deliberate divergence). Note: every 🛣 row has a code path waiting
-for the cloud control plane; none are pure absence.
+**BaaS parity sub-totals:** 8 🟢, 0 🔴 (every code-shaped gap inside our
+boundary now has code + tests at HEAD), 1 🟡 (deferred to a later milestone),
+4 🛣 (deferred to ActantDB Cloud), 2 ⊝ (deliberate divergence). Note: every 🛣
+row has a code path waiting for the cloud control plane; none are pure absence.
 
 ## Overall tally (24 substrate + 14 BaaS parity = 38 rows)
 
 | Status | Count | Notes |
 |---|---:|---|
-| 🟢 closed | 25 | Code + tests at HEAD |
+| 🟢 closed | 29 | Code + tests at HEAD |
 | ⊝ deliberate divergence | 3 | Documented non-goals |
 | 🟡 deferred (named) | 1 | Migration diff/pull (waits for SQL pane) |
 | 🛣 ActantDB Cloud Phase 2/3 | 4 | OAuth provider chain, pooler, log UI, branching |
-| 🔴 open inside boundary | 3 | #25 `actantdb init`, #26 `docker-compose.yml`, #27 `actantdb status`, #28 `actantdb dev` (4 actually — count above is per row, this is 4 items merged in display) |
+| 🔴 open inside boundary | 0 | (none — #25, #27, #28 closed) |
 | 👤 human-only | 2 | #9 outreach, #10 screencast recording |
 
-Corrected: **4 🔴 open inside the boundary** (#25, #26, #27, #28). These are
-the next concrete code-shaped items that can be closed without waiting on the
+Corrected: **0 🔴 open inside the boundary**. #25 `actantdb init`, #27
+`actantdb status`, and #28 `actantdb dev` shipped in `crates/actant-cli`.
+#26 closed earlier with `deploy/docker-compose.yml`. These remaining items
+(human-only outreach + screencast) are the next
+concrete code-shaped items that can be closed without waiting on the
 cloud control plane.
 
 ## What we have that Supabase / Convex don't
@@ -126,7 +129,7 @@ neither comparison product does:
 - **Local-first by default** — no cloud account needed to start, every
   hosted feature (when Cloud lands) will be opt-in not assumed.
 
-## Next 4 code-shaped items (the 🔴s)
+## Next 3 code-shaped items (the 🔴s)
 
 In priority order:
 
@@ -135,10 +138,7 @@ In priority order:
    ~60 LOC of `clap` subcommand wiring.
 2. **#27** `actantdb status` — closes the "what's running, where" gap.
    Aggregates `/v1/healthz/*`, migration list, active sessions. ~80 LOC.
-3. **#26** `deploy/docker-compose.yml` — the one-line self-host story.
-   Compose file + a `deploy/docker-compose.README.md` walking through
-   `docker compose up` → first request. ~120 LOC.
-4. **#28** `actantdb dev` watch loop — the largest of the four. Watch
+3. **#28** `actantdb dev` watch loop — the largest of the four. Watch
    `commands/`, `policies/`, `templates/`, regenerate types on save,
    restart the relevant services. ~250 LOC plus `chokidar` dev-dep.
 

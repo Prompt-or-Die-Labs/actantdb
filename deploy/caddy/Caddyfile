@@ -1,0 +1,17 @@
+# Caddy reverse-proxy in front of actantdb-server.
+#
+# {$ACTANTDB_DOMAIN} expands to whatever you set in the environment
+# (or the default ":80" from docker-compose.yml). On a real hostname
+# Caddy will automatically obtain a Let's Encrypt certificate.
+
+{$ACTANTDB_DOMAIN} {
+    encode gzip
+
+    @ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @ws actantdb-server:4555
+
+    reverse_proxy actantdb-server:4555
+}
