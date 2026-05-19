@@ -238,11 +238,11 @@ Things our users need to test *their* agent code that integrates with us.
 | Status | Count | Notes |
 |---|---:|---|
 | 🟢 ships | **8** | Mastra adapter, Node runtime, Swift SDK, Rust SDK, TS SDK, OTel exporter, plus partial Mastra/Convex |
-| 🚧 partial | **12** | Things that exist but need a wrapper / hardening |
-| 🔴 missing | **66** | The actual DX backlog |
-| ⊝ deliberate non-goal | **1** | Browser embedded mode |
+| 🚧 partial | **13** | Things that exist but need a wrapper / hardening |
+| 🔴 missing | **73** | The actual DX backlog |
+| ⊝ deliberate non-goal | **0** | Nothing — Part K reclassified the previous ⊝s as real planned work |
 | 👤 human-only | **1** | Video tutorials |
-| **Total rows** | **87** | |
+| **Total rows** | **95** | |
 
 That's a lot of red. **It's not all equal weight.** The high-leverage subset:
 
@@ -275,19 +275,25 @@ a specific named user persona.
 If we ship just those 10, the "first 5 minutes" UX goes from "works if
 you read the README carefully" to "obviously the right tool".
 
-## What we should NOT build (anti-scope)
+## Part K — Big-ticket features previously framed as "anti-scope"
 
-- ⊝ Browser embedded mode (no `node:sqlite`; consumers use `@actantdb/sdk`
-  over HTTP).
-- ⊝ Visual workflow canvas / no-code IDE (we're TS-first, not Zapier).
-- ⊝ Auto-generated REST from schema (agent-event ledger isn't CRUD).
-- ⊝ Generic pub/sub broker (subscribe is per-event-kind, not a Kafka
-  alternative).
-- ⊝ Vector database as primary product (`actant-embed` is substrate for
-  retrieval; we don't compete with Pinecone).
+Reclassified: every item below is something we ARE building (or want to
+plan for), not a deliberate non-goal. They're called out separately
+because each is a multi-week effort with its own architecture story.
 
-These are decisions, not gaps. Documented in `CLOUD_GAPS.md` and here so
-nobody opens a PR titled "Visual workflow builder".
+| # | Item | Status | Notes |
+|---|---|--------|-------|
+| X88 | **Auto-generated REST API from schema (`@actantdb/auto-rest`)** | 🔴 | PostgREST-style: introspect the storage schema, expose CRUD + filter endpoints for every table that isn't `agent_event` (which stays append-only-via-commands). Backed by the existing `actant-storage` query layer + a JSON-Schema generator. Effort: ~3 weeks. Ships as a feature flag on `actant-server`. |
+| X89 | **GraphQL endpoint** | 🔴 | `async-graphql` crate over the same projection layer as the auto-REST. Idempotency: GraphQL queries map 1:1 to ledger reads; mutations map to typed commands. Effort: ~2 weeks after auto-REST lands (shared introspection). |
+| X90 | **Vector database as a primary product surface** | 🚧 | `actant-index` + `actant-embed` substrate already exists. What's missing: first-class API (`box.vectors.upsert/search/delete`), Studio panel, collection lifecycle, hybrid search (vector + metadata), per-collection embedding model. Effort: ~4 weeks. Bumps us into Pinecone / Weaviate / Qdrant comparison set. |
+| X91 | **Visual workflow canvas in Studio** | 🔴 | Drag-drop DAG builder that emits `actant-flow::Workflow` definitions. React Flow under the hood. Round-trips: edit in canvas → save → file commit; edit file → reload canvas. Effort: ~4 weeks (a panel-shaped React app on top of an existing Workflow API). |
+| X92 | **Browser embedded mode (`@actantdb/core-wasm`)** | 🔴 | WASM SQLite (sql.js or wa-sqlite) so the ledger runs fully client-side. Same API as `@actantdb/core`. Use cases: in-browser agent demos, offline mobile (iOS Safari), zero-backend prototypes. Effort: ~3 weeks; file persistence story is the tricky part (IndexedDB OPFS). |
+| X93 | **Generic pub/sub broker mode** | 🔴 | Today `actant-subscribe` is per-event-kind. Add named-topic broker: `box.pubsub.publish("user-notifications", payload)` / `box.pubsub.subscribe("user-notifications", handler)`. Persistent via ledger, delivery-guarantee via cursor. Effort: ~2 weeks. Comparable to Pusher/Ably without their cost. |
+| X94 | **Mailpit-equivalent local SMTP catcher** | 🔴 | For consumers writing agents that send email. Ship a tiny SMTP server alongside `actantdb serve` that captures + displays in Studio. Use `mail-server-rs` or wrap mailpit's Docker image in `deploy/docker-compose.yml`. Effort: ~3 days. |
+| X95 | **No-code agent builder (full Zapier-shape)** | 🔴 | Tying X91 (workflow canvas) + the agent harness (`@actantdb/box`) + tool definitions into a single drag-drop UI for non-developers. Bigger lift than X91 alone — needs auth, sharing, marketplace. Effort: ~8 weeks. |
+
+**Part K totals:** 1 🚧, 7 🔴. Every row here is real work; none of it is
+deliberately omitted.
 
 ## Cross-link audit
 

@@ -153,12 +153,12 @@ deliberate process + evidence collection.
 |---|---:|---|
 | 🟢 substrate covers it | **3** | Wire into the cloud control plane |
 | 🚧 partial in substrate | **5** | Harden + wrap |
-| 🛣 Phase 2 backlog | **15** | The critical path to launching paid hosting |
-| 🌐 Phase 3 backlog | **11** | After Phase 2; the "why pay" features |
+| 🛣 Phase 2 backlog | **16** | The critical path to launching paid hosting (incl. new F7 Mailpit) |
+| 🌐 Phase 3 backlog | **17** | After Phase 2; the "why pay" features (incl. new F1–F6) |
 | 💼 business-side | **12** | Wes / company concerns |
 | 📋 compliance | **8** | Audit + process |
 | 👤 human-only | **2** | On-call rotation, incident response process |
-| **Total rows** | **56** | |
+| **Total rows** | **63** | |
 
 ## Phase 2 critical path (the 15 🛣 in Part A, ordered)
 
@@ -189,16 +189,26 @@ engineer-weeks** assuming one full-time engineer and using off-the-shelf
 infrastructure (Cloudflare + AWS + Stripe + WorkOS) rather than rolling
 everything ourselves.
 
-## What's NOT in this list
+## Part F — Big-ticket features previously framed as anti-scope
 
-Things that exist in Supabase / Convex / Upstash but ActantDB is **deliberately
-not building** because they don't fit our model:
+Reclassified: every item below is something we DO want to ship as part
+of the Cloud product story. They live here so the Cloud roadmap accounts
+for them; the substrate work for each is tracked in
+[`DEVX_GAPS.md`](./DEVX_GAPS.md) Part K.
 
-- ⊝ **Auto-generated REST API from schema** — agent-event ledger isn't CRUD-shaped.
-- ⊝ **Built-in pub/sub message queue** — `actant-subscribe` is per-event-kind, not a generic queue.
-- ⊝ **GraphQL endpoint** — duplicate of REST endpoints we don't have.
-- ⊝ **Vector DB as a primary product** — `actant-embed` + `actant-index` exist as substrate for retrieval; we don't compete with Pinecone.
-- ⊝ **Visual workflow builder** — Studio's replay view is the equivalent; we don't build no-code DAG canvases.
+| # | Item | Status | Notes |
+|---|---|--------|-------|
+| F1 | **Auto-generated REST API from schema** | 🌐 | Substrate work in `DEVX_GAPS.md` X88. Cloud surface: per-workspace REST endpoint at `<ws>.actantdb.cloud/rest/v1`. PostgREST-shape. |
+| F2 | **GraphQL endpoint** | 🌐 | Substrate work in `DEVX_GAPS.md` X89. Cloud surface: `<ws>.actantdb.cloud/graphql`. |
+| F3 | **Vector DB as primary product** | 🌐 | Substrate in `DEVX_GAPS.md` X90. Cloud: managed embedding-model registry per workspace + usage metering. Direct comparator: Pinecone, Weaviate Cloud. |
+| F4 | **Visual workflow canvas + no-code agent builder** | 🌐 | Substrate in `DEVX_GAPS.md` X91 + X95. Cloud: hosted canvas, sharing, marketplace of pre-built agents. |
+| F5 | **Browser embedded mode** | 🌐 | Substrate in `DEVX_GAPS.md` X92. Cloud: hosted ledger sync for browser-embedded apps (offline-first with cloud as canonical store). |
+| F6 | **Generic pub/sub broker** | 🌐 | Substrate in `DEVX_GAPS.md` X93. Cloud: per-workspace topic quotas + Pusher/Ably-style billing. |
+| F7 | **Local SMTP catcher (Mailpit)** | 🛣 | Substrate in `DEVX_GAPS.md` X94. Cloud: optional managed SMTP relay per workspace for outbound test mail. |
+
+**Part F totals:** 6 🌐, 1 🛣. Each row also has a corresponding substrate
+gap (`DEVX_GAPS.md` X88–X95) that has to ship before the cloud surface can
+go live.
 
 ## Cross-link audit (so nothing slips between docs)
 
