@@ -138,11 +138,7 @@ pub async fn run(
         (ReplayMode::Memory, Some(s)) => memory_diff(storage, s, &[]).await?,
         (ReplayMode::Tool, Some(s)) => tool_diff(storage, s).await?,
         (ReplayMode::LocalOnly, Some(s)) => local_only_diff(storage, s).await?,
-        (ReplayMode::Experimental, _) => {
-            return Err(ActantError::Internal(format!(
-                "replay mode {mode:?} requires worker re-invocation (set ACTANTDB_EXPERIMENTAL=1 and supply a worker pool)"
-            )));
-        }
+        (ReplayMode::Experimental, Some(s)) => experimental_diff(storage, s).await?,
         _ => Vec::new(),
     };
     sqlx::query("UPDATE replay_run SET status='completed', finished_at=? WHERE id=?")
@@ -299,7 +295,8 @@ async fn tool_diff(storage: &Storage, session_id: &str) -> Result<Vec<DiffEntry>
 }
 
 /// `mode=local_only` replay: model_call rows that crossed a non-local route
-/// would have been forbidden. Mark them `changed`; the rest stay identical.
+/// would have been forbidden. Mark them `changed` and attach a summary that
+/// names the swap so Studio can render the boundary.
 async fn local_only_diff(
     storage: &Storage,
     session_id: &str,
@@ -309,20 +306,56 @@ async fn local_only_diff(
     Ok(events
         .into_iter()
         .map(|e| {
-            let kind = if e.event_type == "model_call" {
+            let (kind, summary) = if e.event_type == "model_call" {
                 let payload = e.payload_inline.as_deref().unwrap_or("");
-                if payload.contains("cloud") || payload.contains("anthropic:") {
-                    "changed"
+                if payload.contains("cloud") || payload.contains("anthropic:") || payload.contains("openai:") {
+                    (
+                        "changed",
+                        Some(
+                            "would_route_local_only:cloud_model_call_forbidden".to_string(),
+                        ),
+                    )
                 } else {
-                    "identical"
+                    ("identical", None)
                 }
             } else {
-                "identical"
+                ("identical", None)
             };
             DiffEntry {
                 event_type: e.event_type,
                 kind: kind.into(),
-                summary: None,
+                summary,
+            }
+        })
+        .collect())
+}
+
+/// `mode=experimental` replay: walk the session, mark every
+/// `tool_call_started` / `tool_call_finished` / `effect_observed` row as
+/// `changed` and annotate the summary with `would_reinvoke:<event_type>`.
+/// A worker re-invocation pool can later turn the summary into an actual
+/// new result; today the diff documents the substitution boundary so the
+/// caller can decide what to live-re-invoke.
+async fn experimental_diff(
+    storage: &Storage,
+    session_id: &str,
+) -> Result<Vec<DiffEntry>, ActantError> {
+    let session = SessionId::from_string(session_id.to_string());
+    let events = storage.events_in_session(&session).await?;
+    Ok(events
+        .into_iter()
+        .map(|e| {
+            let (kind, summary) = match e.event_type.as_str() {
+                "tool_call_started" | "tool_call_finished" | "effect_observed" => (
+                    "changed",
+                    Some(format!("would_reinvoke:{}", e.event_type)),
+                ),
+                _ => ("identical", None),
+            };
+            DiffEntry {
+                event_type: e.event_type,
+                kind: kind.into(),
+                summary,
             }
         })
         .collect())
@@ -471,10 +504,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn experimental_returns_named_error() {
+    async fn experimental_returns_would_reinvoke_diff() {
         let (s, ws, actor, eid, _sid) = fixture_with_event().await;
         let cp = checkpoint(&s, &ws, &eid).await.unwrap();
-        let res = run(&s, &actor, &cp, ReplayMode::Experimental).await;
-        assert!(matches!(res, Err(ActantError::Internal(_))));
+        let diff = run(&s, &actor, &cp, ReplayMode::Experimental).await.unwrap();
+        // The fixture is all model_call rows — those stay identical
+        // because experimental mode only flips tool_call_* / effect_observed.
+        // The diff still has entries; assert the function ran cleanly + has
+        // an entry row per recorded event.
+        assert!(!diff.entries.is_empty());
+        for e in &diff.entries {
+            assert_eq!(e.kind, "identical");
+        }
     }
 }

@@ -5,7 +5,32 @@ use std::path::PathBuf;
 use actant_command::Engine;
 use actant_core::{ActorId, WorkspaceId};
 use actant_storage::{Storage, StorageConfig};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
+
+/// Backup mode flag for `actantdb backup --mode`.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+enum BackupMode {
+    /// Consistent single-file copy. Default.
+    Full,
+    /// Manifest-based incremental: full + WAL increments into a directory.
+    Incremental,
+}
+
+/// Minimal RFC-3339-ish timestamp (UTC, second precision). The CLI doesn't
+/// depend on `chrono` so we hand-roll it from `time` types.
+fn chrono_rfc3339() -> String {
+    use time::OffsetDateTime;
+    let n = OffsetDateTime::now_utc();
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        n.year(),
+        u8::from(n.month()),
+        n.day(),
+        n.hour(),
+        n.minute(),
+        n.second(),
+    )
+}
 
 #[derive(Debug, Parser)]
 #[command(name = "actantdb", version, about = "ActantDB local CLI")]
@@ -27,17 +52,36 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
-    /// Back up the database to a file (consistent snapshot via WAL checkpoint).
+    /// Back up the database.
+    ///
+    /// `--mode=full` (default): consistent file copy after WAL checkpoint.
+    /// `--mode=incremental`: write a full snapshot (only when needed) plus
+    /// a WAL increment to `<to>` and update `<to>/manifest.json`. The
+    /// dir-based incremental mode is the path used by automated backup
+    /// pipelines; `--mode=full` to a single file is the path used by
+    /// interactive snapshots.
     Backup {
-        /// Destination path.
+        /// Destination path. Single file for `--mode=full`, directory for
+        /// `--mode=incremental`.
         #[arg(long)]
         to: PathBuf,
+        /// Backup mode. Default is `full`.
+        #[arg(long, default_value = "full")]
+        mode: BackupMode,
     },
-    /// Restore the database from a file.
+    /// Restore the database.
+    ///
+    /// `--from <file>` restores a full snapshot (the `--mode=full` output).
+    /// `--from <dir>` reads `<dir>/manifest.json`, copies in the most
+    /// recent full snapshot, and re-applies WAL increments in order. Stop
+    /// early with `--at-lsn N`.
     Restore {
-        /// Source path.
+        /// Source path. File OR directory; the CLI auto-detects.
         #[arg(long)]
         from: PathBuf,
+        /// For directory-mode restore, stop replaying increments at this LSN.
+        #[arg(long)]
+        at_lsn: Option<u64>,
     },
     /// Start the HTTP/WS server.
     Serve {
@@ -121,22 +165,82 @@ async fn main() -> anyhow::Result<()> {
                 println!("migrated {}; applied = {:?}", db_path.display(), applied);
             }
         }
-        Command::Backup { to } => {
-            // Open the database, run WAL checkpoint, then copy the file.
-            let s = Storage::open(StorageConfig::file(&db_path)).await?;
-            sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
-                .execute(s.pool())
-                .await
-                .map_err(|e| anyhow::anyhow!("wal_checkpoint: {e}"))?;
-            // Drop the connection so file is in a consistent state.
-            drop(s);
-            std::fs::copy(&db_path, &to)?;
-            println!("backed up {} → {}", db_path.display(), to.display());
-        }
-        Command::Restore { from } => {
-            // Refuse to overwrite a live database without explicit force in
-            // a future iteration. For Phase 6 we do the simplest correct
-            // thing: copy the file in.
+        Command::Backup { to, mode } => match mode {
+            BackupMode::Full => {
+                // Open the database, run WAL checkpoint, then copy the file.
+                let s = Storage::open(StorageConfig::file(&db_path)).await?;
+                sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+                    .execute(s.pool())
+                    .await
+                    .map_err(|e| anyhow::anyhow!("wal_checkpoint: {e}"))?;
+                drop(s);
+                std::fs::copy(&db_path, &to)?;
+                println!("backed up {} → {} (full)", db_path.display(), to.display());
+            }
+            BackupMode::Incremental => {
+                // Incremental: write `<to>/full-<ts>.sqlite` (only when
+                // the manifest has no full yet — every subsequent run
+                // appends a WAL increment), update `<to>/manifest.json`.
+                use actant_storage::{
+                    backup_sha256_hex, EntryKind, Manifest, ManifestEntry,
+                };
+                std::fs::create_dir_all(&to)?;
+                let manifest_path = to.join("manifest.json");
+                let mut manifest = Manifest::read_or_default(&manifest_path)?;
+                let s = Storage::open(StorageConfig::file(&db_path)).await?;
+                let now_ts = chrono_rfc3339();
+
+                let last_full_lsn = manifest.last_full_lsn();
+                let from_lsn = manifest.last_lsn();
+                if last_full_lsn.is_none() {
+                    // First call: take a full snapshot.
+                    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+                        .execute(s.pool())
+                        .await
+                        .map_err(|e| anyhow::anyhow!("wal_checkpoint: {e}"))?;
+                    let lsn = s.last_lsn().await?;
+                    let file_name = format!("full-{lsn:020}.sqlite");
+                    let snapshot_path = to.join(&file_name);
+                    drop(s);
+                    let bytes = std::fs::read(&db_path)?;
+                    let sha = backup_sha256_hex(&bytes);
+                    std::fs::write(&snapshot_path, &bytes)?;
+                    manifest.entries.push(ManifestEntry {
+                        kind: EntryKind::Full,
+                        file: file_name,
+                        lsn,
+                        previous_lsn: lsn,
+                        sha256: sha,
+                        size_bytes: bytes.len() as u64,
+                        taken_at: now_ts.clone(),
+                    });
+                    manifest.write(&manifest_path)?;
+                    println!("backed up {} → {} (full @ lsn {})", db_path.display(), to.display(), lsn);
+                } else {
+                    // Subsequent call: capture WAL since the last entry.
+                    let inc = s.wal_frames_since(from_lsn).await?;
+                    let lsn = inc.lsn;
+                    drop(s);
+                    let bytes = serde_json::to_vec(&inc)
+                        .map_err(|e| anyhow::anyhow!("encode wal increment: {e}"))?;
+                    let sha = backup_sha256_hex(&bytes);
+                    let file_name = format!("wal-{lsn:020}.json");
+                    std::fs::write(to.join(&file_name), &bytes)?;
+                    manifest.entries.push(ManifestEntry {
+                        kind: EntryKind::Incremental,
+                        file: file_name,
+                        lsn,
+                        previous_lsn: from_lsn,
+                        sha256: sha,
+                        size_bytes: bytes.len() as u64,
+                        taken_at: now_ts.clone(),
+                    });
+                    manifest.write(&manifest_path)?;
+                    println!("backed up {} → {} (incremental: {} → {})", db_path.display(), to.display(), from_lsn, lsn);
+                }
+            }
+        },
+        Command::Restore { from, at_lsn } => {
             if db_path.exists() {
                 eprintln!(
                     "warning: overwriting existing database at {}",
@@ -146,10 +250,47 @@ async fn main() -> anyhow::Result<()> {
             if let Some(parent) = db_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
-            std::fs::copy(&from, &db_path)?;
-            // Sanity check: re-open succeeds.
-            let _s = Storage::open(StorageConfig::file(&db_path)).await?;
-            println!("restored {} ← {}", db_path.display(), from.display());
+
+            if from.is_dir() {
+                // Directory mode: read manifest + apply full + WAL increments.
+                use actant_storage::{EntryKind, Manifest, WalIncrement};
+                let manifest = Manifest::read_or_default(&from.join("manifest.json"))?;
+                if manifest.entries.is_empty() {
+                    anyhow::bail!("no entries in {}/manifest.json", from.display());
+                }
+                let last_full = manifest
+                    .entries
+                    .iter()
+                    .rposition(|e| matches!(e.kind, EntryKind::Full))
+                    .ok_or_else(|| anyhow::anyhow!("no full snapshot in manifest"))?;
+                let full_entry = &manifest.entries[last_full];
+                std::fs::copy(from.join(&full_entry.file), &db_path)?;
+                let mut current_lsn = full_entry.lsn;
+                let stop = at_lsn.unwrap_or(u64::MAX);
+                if current_lsn > stop {
+                    anyhow::bail!("requested at_lsn={} is before the latest full snapshot lsn={}", stop, current_lsn);
+                }
+                let s = Storage::open(StorageConfig::file(&db_path)).await?;
+                for entry in &manifest.entries[last_full + 1..] {
+                    if !matches!(entry.kind, EntryKind::Incremental) {
+                        continue;
+                    }
+                    if entry.lsn > stop {
+                        break;
+                    }
+                    let bytes = std::fs::read(from.join(&entry.file))?;
+                    let inc: WalIncrement = serde_json::from_slice(&bytes)
+                        .map_err(|e| anyhow::anyhow!("decode {}: {}", entry.file, e))?;
+                    s.apply_wal_frames(&inc).await?;
+                    current_lsn = entry.lsn;
+                }
+                drop(s);
+                println!("restored {} ← {} (lsn {})", db_path.display(), from.display(), current_lsn);
+            } else {
+                std::fs::copy(&from, &db_path)?;
+                let _s = Storage::open(StorageConfig::file(&db_path)).await?;
+                println!("restored {} ← {}", db_path.display(), from.display());
+            }
         }
         Command::Serve {
             bind,
