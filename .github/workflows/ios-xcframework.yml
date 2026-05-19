@@ -25,12 +25,12 @@ jobs:
 
       - name: Add Apple targets
         run: |
-          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios-sim
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Build per-target static libs
         run: |
-          for target in aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin; do
+          for target in aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-apple-darwin x86_64-apple-darwin; do
             cargo build --release --target "$target" -p actant-ffi --features ios
           done
 
@@ -39,7 +39,7 @@ jobs:
           mkdir -p target/universal
           lipo -create \
             target/aarch64-apple-ios-sim/release/libactant_ffi.a \
-            target/x86_64-apple-ios-sim/release/libactant_ffi.a \
+            target/x86_64-apple-ios/release/libactant_ffi.a \
             -output target/universal/libactant_ffi-sim.a
           lipo -create \
             target/aarch64-apple-darwin/release/libactant_ffi.a \
