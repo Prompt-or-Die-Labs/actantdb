@@ -22,4 +22,5 @@ export * from "@actantdb/mastra";
 export * from "@actantdb/replay";
 export * from "@actantdb/sdk";
 export * from "@actantdb/box";
+export * from "@actantdb/workflow";
 export type * from "@actantdb/types";

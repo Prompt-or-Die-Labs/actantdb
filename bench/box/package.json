@@ -1,0 +1,26 @@
+{
+  "name": "@actantdb-bench/box",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cold-start TTI benchmark for @actantdb/box. Apples-to-apples shape parity with the upstash/benchmarks sandbox-provider matrix (sequential / staggered / burst).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "actantdb-box-bench": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "bench": "node --experimental-sqlite ./dist/index.js",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@actantdb/box": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

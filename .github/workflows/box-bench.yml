@@ -1,0 +1,104 @@
+name: box-bench
+
+# Cold-start TTI benchmark for @actantdb/box, shape-matched to
+# upstash/benchmarks. Runs daily and on demand. Results are surfaced in the
+# workflow run summary and uploaded as an artifact rather than auto-committed
+# to main — keeps the history grep-able without producing noise on the
+# default branch. See bench/box/README.md for methodology.
+
+on:
+  workflow_dispatch:
+    inputs:
+      n:
+        description: "Boxes per scenario"
+        required: false
+        default: "100"
+      scenario:
+        description: "Scenario (sequential | staggered | burst | all)"
+        required: false
+        default: "all"
+  schedule:
+    # 06:17 UTC every day — off the top of the hour to avoid runner contention.
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: box cold-start TTI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # POSIX only — bench uses `/bin/sh -c "echo ready"`. Windows is
+        # explicitly out of scope (see bench/box/README.md).
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # version comes from root package.json#packageManager (pnpm@9.0.0).
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches ci.yml — @actantdb/core uses node:sqlite (unflagged on 24).
+          node-version: 24
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --ignore-scripts
+
+      - name: build @actantdb/box and the bench harness
+        run: |
+          pnpm --filter @actantdb/box build
+          pnpm --filter @actantdb-bench/box build
+
+      - name: run bench
+        id: bench
+        env:
+          BENCH_N: ${{ github.event.inputs.n || '100' }}
+          BENCH_SCENARIO: ${{ github.event.inputs.scenario || 'all' }}
+        run: |
+          set -e
+          mkdir -p bench/box/results
+          pnpm --filter @actantdb-bench/box bench -- \
+            --scenario "${BENCH_SCENARIO}" \
+            --n "${BENCH_N}" \
+            | tee bench-stdout.txt
+
+      - name: write workflow summary
+        if: always()
+        run: |
+          {
+            echo "## ActantDB Box cold-start TTI"
+            echo ""
+            echo "Host: \`${{ matrix.os }}\` · Node: \`$(node -v)\` · N=\`${{ github.event.inputs.n || '100' }}\` · Scenario=\`${{ github.event.inputs.scenario || 'all' }}\`"
+            echo ""
+            echo '```'
+            cat bench-stdout.txt 2>/dev/null || echo "(no stdout captured)"
+            echo '```'
+            echo ""
+            echo "### Raw JSON"
+            echo ""
+            for f in bench/box/results/*.json; do
+              [ -f "$f" ] || continue
+              echo "<details><summary><code>$(basename "$f")</code></summary>"
+              echo ""
+              echo '```json'
+              cat "$f"
+              echo '```'
+              echo ""
+              echo "</details>"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: box-bench-results-${{ matrix.os }}-${{ github.run_id }}
+          path: |
+            bench/box/results/*.json
+            bench-stdout.txt
+          retention-days: 30

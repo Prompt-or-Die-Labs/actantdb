@@ -13,6 +13,7 @@
     "./replay": "./dist/replay.js",
     "./sdk": "./dist/sdk.js",
     "./box": "./dist/box.js",
+    "./workflow": "./dist/workflow.js",
     "./types": "./dist/types.js"
   },
   "scripts": {
@@ -26,6 +27,7 @@
     "@actantdb/replay": "workspace:*",
     "@actantdb/sdk": "workspace:*",
     "@actantdb/box": "workspace:*",
+    "@actantdb/workflow": "workspace:*",
     "@actantdb/types": "workspace:*"
   },
   "devDependencies": {

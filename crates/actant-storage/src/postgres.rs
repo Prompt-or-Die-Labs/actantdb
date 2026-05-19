@@ -9,10 +9,40 @@ use actant_core::ActantError;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::PgPool;
 
-const PG_MIGRATIONS: &[(&str, &str)] = &[(
-    "pg_0001_initial",
-    include_str!("../../../migrations/pg/0001_initial.sql"),
-)];
+// Postgres migration apply order. Migration KEY (the first field) is the
+// applied-tracking identifier — once applied to a PG database it never
+// changes regardless of filename. The ORDER of this slice is what cargo
+// actually runs them in.
+//
+// Note the unusual ordering: `0005_substrate_parity` runs BEFORE
+// `0002_extended_primitives` because 0002's `ALTER TABLE` statements
+// touch tables (effect_claim, tool, memory, context_item, artifact,
+// memory_candidate, embedding_ref) defined in 0005. Filename ordering
+// is preserved on disk for chronological clarity; runtime ordering is
+// dependency-correct here. The CI `migrations-parity` job (GAPS.md
+// row #22) is textual and doesn't care about apply order.
+const PG_MIGRATIONS: &[(&str, &str)] = &[
+    (
+        "pg_0001_initial",
+        include_str!("../../../migrations/pg/0001_initial.sql"),
+    ),
+    (
+        "pg_0005_substrate_parity",
+        include_str!("../../../migrations/pg/0005_substrate_parity.sql"),
+    ),
+    (
+        "pg_0002_extended_primitives",
+        include_str!("../../../migrations/pg/0002_extended_primitives.sql"),
+    ),
+    (
+        "pg_0003_ai_native_and_reliability",
+        include_str!("../../../migrations/pg/0003_ai_native_and_reliability.sql"),
+    ),
+    (
+        "pg_0004_auth",
+        include_str!("../../../migrations/pg/0004_auth.sql"),
+    ),
+];
 
 /// Postgres storage handle.
 #[derive(Debug, Clone)]

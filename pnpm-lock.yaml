@@ -27,6 +27,19 @@ importers:
         specifier: workspace:*
         version: link:packages/actant-types
 
+  bench/box:
+    dependencies:
+      '@actantdb/box':
+        specifier: workspace:*
+        version: link:../../packages/actant-box
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
   examples/cli-only:
     dependencies:
       '@actantdb/core':
@@ -287,6 +300,25 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
 
+  packages/actant-workflow:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../actant-core
+      '@actantdb/types':
+        specifier: workspace:*
+        version: link:../actant-types
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
+
   packages/actantdb:
     dependencies:
       '@actantdb/box':
@@ -310,6 +342,9 @@ importers:
       '@actantdb/types':
         specifier: workspace:*
         version: link:../actant-types
+      '@actantdb/workflow':
+        specifier: workspace:*
+        version: link:../actant-workflow
     devDependencies:
       typescript:
         specifier: ^5.4.0
