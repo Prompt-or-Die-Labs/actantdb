@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/all",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "ActantDB — every primitive in one import. Or install just the piece you need: @actantdb/core for storage, @actantdb/policy for Guard, @actantdb/mastra for the agent wrapper, etc.",
   "type": "module",
   "main": "./dist/index.js",
