@@ -7,7 +7,9 @@ use actant_storage::{Storage, StorageConfig};
 use tempfile::tempdir;
 
 async fn open_file(path: &std::path::Path) -> Storage {
-    Storage::open(StorageConfig::file(path)).await.expect("open")
+    Storage::open(StorageConfig::file(path))
+        .await
+        .expect("open")
 }
 
 async fn make_workspace(s: &Storage, name: &str) -> WorkspaceId {

@@ -141,8 +141,9 @@ impl Storage {
                     "apply_wal_frames: in-memory storage cannot accept WAL frames".into(),
                 ));
             };
-            std::fs::write(&wal_path, &frames.bytes)
-                .map_err(|e| ActantError::Storage(format!("write {}: {}", wal_path.display(), e)))?;
+            std::fs::write(&wal_path, &frames.bytes).map_err(|e| {
+                ActantError::Storage(format!("write {}: {}", wal_path.display(), e))
+            })?;
 
             // Force SQLite to replay the WAL into the main file and then
             // truncate it, so each step leaves a clean snapshot.

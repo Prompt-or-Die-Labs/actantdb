@@ -3,9 +3,65 @@
 
 use actant_core::*;
 use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
 use crate::{blob_sha256_hex, Storage};
+
+/// A replicated event ready to be ingested by [`Storage::ingest_events`].
+///
+/// Wraps an [`AgentEvent`] (the existing on-disk row shape) with the
+/// replication-only fields stored in the columns added by migration
+/// `0007_replication.sql`.
+///
+/// New code (the FFI sync path, in-process publishers) should produce
+/// these by:
+///
+/// 1. Allocating an HLC via [`HlcClock::local_tick`].
+/// 2. Building the canonical-JSON payload that ends up in `payload_inline`.
+/// 3. Computing the event id via [`EventId::content_derived`].
+/// 4. Filling the rest of the `AgentEvent` row.
+///
+/// Ingest will re-derive the id from the supplied payload+hlc+actor and
+/// reject rows whose recomputed id doesn't match — the only way to land
+/// in the ledger is to have produced the event through the canonical
+/// flow.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IngestEvent {
+    /// The agent_event row to insert.
+    pub event: AgentEvent,
+    /// HLC stamp produced when the event was created.
+    pub hlc: Hlc,
+    /// Producing device id (must be non-empty; pass a stable per-device id).
+    pub device_id: String,
+    /// Canonical-JSON serialization of the payload as used when deriving
+    /// the event id. Ingest recomputes
+    /// `sha256(canonical_payload || hlc.physical_ms || hlc.logical || actor_id)`
+    /// and rejects on mismatch with `event.id`.
+    pub canonical_payload: Vec<u8>,
+}
+
+/// Per-row rejection reason produced by [`Storage::ingest_events`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IngestReject {
+    /// Position of the rejected row in the input batch.
+    pub index: usize,
+    /// Event id (if it could be extracted).
+    pub event_id: Option<String>,
+    /// One of `"hash_mismatch"` | `"missing_fields"` | `"workspace_unknown"`.
+    pub reason: String,
+}
+
+/// Summary of an [`Storage::ingest_events`] call.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct IngestReport {
+    /// Rows that were newly inserted.
+    pub accepted: u32,
+    /// Rows that were skipped because the primary key already existed.
+    pub skipped: u32,
+    /// Rows that failed validation; see [`IngestReject::reason`].
+    pub rejected: Vec<IngestReject>,
+}
 
 impl Storage {
     /// Insert a workspace.
@@ -144,6 +200,127 @@ impl Storage {
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
         Ok(())
+    }
+
+    /// Idempotently ingest a batch of replicated events.
+    ///
+    /// Validates each row:
+    ///
+    /// 1. Recompute `event.id` from
+    ///    `sha256(canonical_payload || hlc.physical_ms || hlc.logical || actor_id)`.
+    ///    Reject on mismatch (`"hash_mismatch"`).
+    /// 2. Refuse rows whose `workspace_id` doesn't exist (`"workspace_unknown"`)
+    ///    or whose `device_id` is empty (`"missing_fields"`).
+    /// 3. `INSERT INTO agent_event … ON CONFLICT(id) DO NOTHING` — already
+    ///    present rows count as `skipped`, not failures.
+    ///
+    /// After processing all rows, observes the highest valid HLC against
+    /// `clock` if one is supplied so that subsequent `local_tick`s never go
+    /// backwards. Callers that don't care about HLC continuity can pass
+    /// `None`.
+    pub async fn ingest_events(
+        &self,
+        batch: &[IngestEvent],
+        clock: Option<&HlcClock>,
+    ) -> Result<IngestReport, ActantError> {
+        let mut report = IngestReport::default();
+        let mut max_hlc: Option<Hlc> = None;
+
+        for (index, ie) in batch.iter().enumerate() {
+            // Step 1+2: validate.
+            if ie.device_id.is_empty() {
+                report.rejected.push(IngestReject {
+                    index,
+                    event_id: Some(ie.event.id.as_str().to_string()),
+                    reason: "missing_fields".into(),
+                });
+                continue;
+            }
+            let recomputed =
+                EventId::content_derived(&ie.canonical_payload, ie.hlc, &ie.event.actor_id);
+            if recomputed.as_str() != ie.event.id.as_str() {
+                report.rejected.push(IngestReject {
+                    index,
+                    event_id: Some(ie.event.id.as_str().to_string()),
+                    reason: "hash_mismatch".into(),
+                });
+                continue;
+            }
+
+            // Workspace presence check.
+            let ws_present: Option<(String,)> =
+                sqlx::query_as("SELECT id FROM workspace WHERE id = ?")
+                    .bind(ie.event.workspace_id.as_str())
+                    .fetch_optional(&self.pool)
+                    .await
+                    .map_err(|e| ActantError::Storage(e.to_string()))?;
+            if ws_present.is_none() {
+                report.rejected.push(IngestReject {
+                    index,
+                    event_id: Some(ie.event.id.as_str().to_string()),
+                    reason: "workspace_unknown".into(),
+                });
+                continue;
+            }
+
+            // Step 3: insert with conflict-do-nothing on the primary key.
+            let e = &ie.event;
+            let res = sqlx::query(
+                "INSERT INTO agent_event
+                    (id, workspace_id, actor_id, session_id, parent_event_id,
+                     event_type, causality_kind, sensitivity, authority_scope_id,
+                     payload_ref, payload_inline, payload_hash,
+                     model_call_id, tool_call_id, workflow_run_id, memory_id,
+                     artifact_id, command_id, effect_id, event_hash, created_at,
+                     device_id, hlc_physical_ms, hlc_logical)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 ON CONFLICT(id) DO NOTHING",
+            )
+            .bind(e.id.as_str())
+            .bind(e.workspace_id.as_str())
+            .bind(e.actor_id.as_str())
+            .bind(e.session_id.as_ref().map(|s| s.as_str()))
+            .bind(e.parent_event_id.as_ref().map(|s| s.as_str()))
+            .bind(&e.event_type)
+            .bind(json_enum(&e.causality_kind))
+            .bind(json_enum(&e.sensitivity))
+            .bind(e.authority_scope_id.as_ref().map(|s| s.as_str()))
+            .bind(&e.payload_ref)
+            .bind(&e.payload_inline)
+            .bind(&e.payload_hash)
+            .bind(e.model_call_id.as_ref().map(|s| s.as_str()))
+            .bind(e.tool_call_id.as_ref().map(|s| s.as_str()))
+            .bind(e.workflow_run_id.as_ref().map(|s| s.as_str()))
+            .bind(e.memory_id.as_ref().map(|s| s.as_str()))
+            .bind(e.artifact_id.as_ref().map(|s| s.as_str()))
+            .bind(e.command_id.as_ref().map(|s| s.as_str()))
+            .bind(e.effect_id.as_ref().map(|s| s.as_str()))
+            .bind(&e.event_hash)
+            .bind(&e.created_at)
+            .bind(&ie.device_id)
+            .bind(ie.hlc.physical_ms as i64)
+            .bind(ie.hlc.logical as i64)
+            .execute(&self.pool)
+            .await
+            .map_err(|err| ActantError::Storage(err.to_string()))?;
+
+            if res.rows_affected() == 0 {
+                report.skipped = report.skipped.saturating_add(1);
+            } else {
+                report.accepted = report.accepted.saturating_add(1);
+            }
+
+            // Track max-seen HLC for the post-batch observe.
+            max_hlc = Some(match max_hlc {
+                Some(prev) if prev >= ie.hlc => prev,
+                _ => ie.hlc,
+            });
+        }
+
+        if let (Some(c), Some(h)) = (clock, max_hlc) {
+            c.observe(h);
+        }
+        Ok(report)
     }
 
     /// Last event hash within a session (for chaining).

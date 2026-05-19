@@ -16,8 +16,21 @@ let package = Package(
         .library(name: "ActantAgent", targets: ["ActantAgent"]),
     ],
     targets: [
+        // TODO: uncomment after the first `vX.Y.Z` tag ships an XCFramework via
+        // `.github/workflows/ios-xcframework.yml`. Until then the embedded path
+        // throws ActantError.transport("ActantFFI binary target not linked …").
+        // URL pattern: https://github.com/Prompt-or-Die-Labs/actantdb/releases/download/vX.Y.Z/ActantFFI.xcframework.zip
+        // Checksum is the contents of ActantFFI.checksum produced by the workflow.
+        // .binaryTarget(
+        //     name: "ActantFFI",
+        //     url: "https://github.com/Prompt-or-Die-Labs/actantdb/releases/download/v0.0.X/ActantFFI.xcframework.zip",
+        //     checksum: "<paste-the-sha256-from-ActantFFI.checksum-here>"
+        // ),
         .target(
             name: "ActantDB",
+            // dependencies: ["ActantFFI"],   // <- enable alongside the
+            // binaryTarget above; the FFI bridge already guards on
+            // `#if canImport(ActantFFI)`.
             path: "Sources/ActantDB"
         ),
         .target(

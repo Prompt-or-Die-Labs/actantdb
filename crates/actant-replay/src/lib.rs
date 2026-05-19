@@ -9,6 +9,9 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod conflict;
+pub use conflict::{ConflictPolicy, HasHlc};
+
 use actant_core::*;
 use actant_storage::Storage;
 use serde::{Deserialize, Serialize};
@@ -308,12 +311,13 @@ async fn local_only_diff(
         .map(|e| {
             let (kind, summary) = if e.event_type == "model_call" {
                 let payload = e.payload_inline.as_deref().unwrap_or("");
-                if payload.contains("cloud") || payload.contains("anthropic:") || payload.contains("openai:") {
+                if payload.contains("cloud")
+                    || payload.contains("anthropic:")
+                    || payload.contains("openai:")
+                {
                     (
                         "changed",
-                        Some(
-                            "would_route_local_only:cloud_model_call_forbidden".to_string(),
-                        ),
+                        Some("would_route_local_only:cloud_model_call_forbidden".to_string()),
                     )
                 } else {
                     ("identical", None)
@@ -346,10 +350,9 @@ async fn experimental_diff(
         .into_iter()
         .map(|e| {
             let (kind, summary) = match e.event_type.as_str() {
-                "tool_call_started" | "tool_call_finished" | "effect_observed" => (
-                    "changed",
-                    Some(format!("would_reinvoke:{}", e.event_type)),
-                ),
+                "tool_call_started" | "tool_call_finished" | "effect_observed" => {
+                    ("changed", Some(format!("would_reinvoke:{}", e.event_type)))
+                }
                 _ => ("identical", None),
             };
             DiffEntry {
@@ -507,7 +510,9 @@ mod tests {
     async fn experimental_returns_would_reinvoke_diff() {
         let (s, ws, actor, eid, _sid) = fixture_with_event().await;
         let cp = checkpoint(&s, &ws, &eid).await.unwrap();
-        let diff = run(&s, &actor, &cp, ReplayMode::Experimental).await.unwrap();
+        let diff = run(&s, &actor, &cp, ReplayMode::Experimental)
+            .await
+            .unwrap();
         // The fixture is all model_call rows — those stay identical
         // because experimental mode only flips tool_call_* / effect_observed.
         // The diff still has entries; assert the function ran cleanly + has

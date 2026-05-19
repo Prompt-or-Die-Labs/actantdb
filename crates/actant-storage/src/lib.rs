@@ -39,10 +39,10 @@ pub use actant_objectstore::{
     BlobStore, FilesystemStore, Layered, MemoryStore,
 };
 
-// `repo` extends `Storage` with inherent impls; the module itself doesn't
-// export new names.
-#[allow(unused_imports)]
-use repo as _repo;
+// `repo` extends `Storage` with inherent impls plus the replication-only
+// types (`IngestEvent` / `IngestReport` / `IngestReject`) consumed by
+// `Storage::ingest_events`.
+pub use repo::{IngestEvent, IngestReject, IngestReport};
 
 const MIGRATIONS: &[(&str, &str)] = &[
     (
@@ -64,6 +64,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
     (
         "0006_pubsub",
         include_str!("../../../migrations/0006_pubsub.sql"),
+    ),
+    (
+        "0007_replication",
+        include_str!("../../../migrations/0007_replication.sql"),
     ),
 ];
 

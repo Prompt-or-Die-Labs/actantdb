@@ -36,7 +36,20 @@ struct DefaultReadinessProbe: ReadinessProbe {
 /// (mirroring to a log file or stderr), polls `/v1/healthz/ready` until
 /// healthy, and exposes the resulting base URL. `stop()` SIGTERMs and then
 /// SIGKILLs after a deadline.
-public actor ActantDBSupervisor {
+///
+/// Conforms to `SpawnedSupervisor` (declared in ActantDB) so the
+/// `Actant.spawned(_:)` facade in the parent target can drive it without
+/// inverting the dependency direction.
+public actor ActantDBSupervisor: SpawnedSupervisor {
+
+    /// Idempotent start used by the `Actant.spawned(_:)` facade. Calls
+    /// `start(dbPath:)` if no process is running; otherwise returns the
+    /// already-running URL.
+    public func ensureRunning(dbPath: URL) async throws -> URL {
+        if let url = startedURL { return url }
+        return try await start(dbPath: dbPath)
+    }
+
     public enum Error: Swift.Error, Sendable, LocalizedError, CustomStringConvertible {
         case binaryNotFound(searched: [String])
         case spawnFailed(String)

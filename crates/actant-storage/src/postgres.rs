@@ -46,6 +46,10 @@ const PG_MIGRATIONS: &[(&str, &str)] = &[
         "pg_0006_pubsub",
         include_str!("../../../migrations/pg/0006_pubsub.sql"),
     ),
+    (
+        "pg_0007_replication",
+        include_str!("../../../migrations/pg/0007_replication.sql"),
+    ),
 ];
 
 /// Postgres storage handle.

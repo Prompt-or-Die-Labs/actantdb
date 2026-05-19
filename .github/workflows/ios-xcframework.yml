@@ -1,0 +1,87 @@
+name: ios-xcframework
+
+# Build the ActantFFI XCFramework on every `vX.Y.Z` tag, and on demand via
+# workflow_dispatch. See `docs/IOS_EMBEDDING.md` §3 for the design.
+#
+# Coordination note: this workflow depends on `crates/actant-ffi` exposing
+#   - a library target produced by `cargo build -p actant-ffi --features ios`
+#   - a `uniffi-bindgen` binary built via `cargo run --bin uniffi-bindgen --features=cli`
+# The Rust-side crate is being built by a parallel agent; this workflow will
+# go green once both knobs land.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.88.0
+
+      - name: Add Apple targets
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios-sim
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Build per-target static libs
+        run: |
+          for target in aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --release --target "$target" -p actant-ffi --features ios
+          done
+
+      - name: lipo sim + mac universals
+        run: |
+          mkdir -p target/universal
+          lipo -create \
+            target/aarch64-apple-ios-sim/release/libactant_ffi.a \
+            target/x86_64-apple-ios-sim/release/libactant_ffi.a \
+            -output target/universal/libactant_ffi-sim.a
+          lipo -create \
+            target/aarch64-apple-darwin/release/libactant_ffi.a \
+            target/x86_64-apple-darwin/release/libactant_ffi.a \
+            -output target/universal/libactant_ffi-mac.a
+
+      - name: Generate Swift bindings (uniffi)
+        run: |
+          # uniffi-bindgen produces ActantHandle.swift + module.modulemap + header
+          cargo run --bin uniffi-bindgen --features=cli -- \
+            generate --library target/aarch64-apple-ios/release/libactant_ffi.a \
+            --language swift --out-dir target/swift-bindings
+
+      - name: Build XCFramework
+        run: |
+          xcodebuild -create-xcframework \
+            -library target/aarch64-apple-ios/release/libactant_ffi.a \
+              -headers target/swift-bindings \
+            -library target/universal/libactant_ffi-sim.a \
+              -headers target/swift-bindings \
+            -library target/universal/libactant_ffi-mac.a \
+              -headers target/swift-bindings \
+            -output ActantFFI.xcframework
+
+      - name: Zip + checksum
+        run: |
+          ditto -c -k --keepParent ActantFFI.xcframework ActantFFI.xcframework.zip
+          shasum -a 256 ActantFFI.xcframework.zip | awk '{print $1}' > ActantFFI.checksum
+
+      - name: Upload as release asset (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ActantFFI.xcframework.zip
+            ActantFFI.checksum
+
+      - name: Upload as artifact (on dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ActantFFI-xcframework
+          path: |
+            ActantFFI.xcframework.zip
+            ActantFFI.checksum

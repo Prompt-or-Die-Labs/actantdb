@@ -165,6 +165,21 @@ jobs:
           version: latest
       - run: helm lint deploy/helm/actantdb
 
+  build-ios:
+    name: cargo build --target aarch64-apple-ios (-p actant-ffi)
+    runs-on: macos-latest
+    # GAPS.md row #40 — verifies actant-ffi compiles for the iOS device
+    # slice. Sim + Mac slices land via the dedicated
+    # `ios-xcframework.yml` workflow (which lipo+xcodebuilds on tag push).
+    # continue-on-error until any remaining iOS-blocker audit findings
+    # are reclassified (see docs/IOS_AUDIT.md "Effective status").
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - run: rustup target add aarch64-apple-ios
+      - run: cargo build --target aarch64-apple-ios -p actant-ffi --features ios
+
   migrations-parity:
     name: postgres migrations parity
     runs-on: ubuntu-latest

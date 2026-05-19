@@ -56,6 +56,8 @@ members = [
     "sdks/rust",
     # All-in-one umbrella crate (closes the "one dep for everything" UX gap).
     "crates/actantdb",
+    # iOS / Swift / Kotlin embeddable FFI surface (uniffi-rs). Closes GAPS #39.
+    "crates/actant-ffi",
 ]
 
 [workspace.package]
@@ -103,6 +105,7 @@ actant-auth            = { path = "crates/actant-auth",            version = "0.
 actant-tenant          = { path = "crates/actant-tenant",          version = "0.0.14" }
 actant-drift           = { path = "crates/actant-drift",           version = "0.0.14" }
 actant-compensation    = { path = "crates/actant-compensation",    version = "0.0.14" }
+actant-ffi             = { path = "crates/actant-ffi",             version = "0.0.14" }
 
 # External — pinned at workspace level for consistent versions across crates.
 anyhow        = "1.0"
@@ -155,6 +158,10 @@ notify        = { version = "6", default-features = false, features = ["macos_fs
 rustyline     = { version = "14", default-features = false, features = ["with-file-history"] }   # readline-style REPL for `actantdb shell` and `actantdb sql`
 comfy-table   = "7"  # pretty terminal tables for `actantdb sql` etc.
 clap_complete = "4.5"  # shell completion generator for `actantdb completions`
+# uniffi-rs — Mozilla's foreign-function-interface generator. Powers the iOS
+# embedded mode + future Kotlin SDK. Pinned at workspace level so the runtime
+# crate (`actant-ffi`) and any future bindgen-host crate use the same minor.
+uniffi        = { version = "0.28", default-features = false, features = ["tokio", "cli", "build"] }
 
 # Dev-only (referenced from crate [dev-dependencies] sections)
 proptest      = "1.5"    # property-based testing

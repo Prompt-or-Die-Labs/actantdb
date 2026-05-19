@@ -50,6 +50,31 @@ id_type!(ActorId, "act");
 id_type!(SessionId, "sess");
 id_type!(MessageId, "msg");
 id_type!(EventId, "evt");
+
+impl EventId {
+    /// Content-derived event id for replication-friendly ledgers.
+    ///
+    /// `id = "evt_" || sha256(canonical_payload || hlc.physical_ms || hlc.logical || actor_id)`
+    ///
+    /// The same payload from the same actor at the same logical time
+    /// produces the same id — `Storage::ingest_events` exploits this for
+    /// `INSERT … ON CONFLICT DO NOTHING` idempotent ingest. See
+    /// `docs/IOS_EMBEDDING.md` §4.
+    pub fn content_derived(
+        canonical_payload: &[u8],
+        hlc: crate::hlc::Hlc,
+        actor: &ActorId,
+    ) -> Self {
+        let mut buf = Vec::with_capacity(canonical_payload.len() + 8 + 4 + actor.as_str().len());
+        buf.extend_from_slice(canonical_payload);
+        buf.extend_from_slice(&hlc.physical_ms.to_be_bytes());
+        buf.extend_from_slice(&hlc.logical.to_be_bytes());
+        buf.extend_from_slice(actor.as_str().as_bytes());
+        let digest = crate::hash::sha256_hex(&buf);
+        Self(format!("evt_{digest}"))
+    }
+}
+
 id_type!(CommandId, "cmd");
 id_type!(ModelRouteId, "route");
 id_type!(ModelProviderId, "mp");
