@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/convex",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Wrap a Convex Agent with @actantdb: capture tool calls + approval + replay through the same withActant pattern as @actantdb/mastra.",
   "type": "module",
   "license": "Apache-2.0",

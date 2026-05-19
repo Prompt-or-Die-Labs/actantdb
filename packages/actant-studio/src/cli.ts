@@ -14,6 +14,7 @@
  * No other subcommands ship in v0.1.
  */
 
+import { createRequire } from "node:module";
 import { openLedger, ApprovalStore } from "@actantdb/core";
 import {
   diff,
@@ -94,6 +95,7 @@ GLOBAL OPTIONS:
   --project <name>         project identifier (or ACTANTDB_PROJECT env)
   --store-dir <path>       storage root (default: ~/.actantdb; or ACTANTDB_STORE_DIR)
   --port <num>             studio HTTP port (default: 4555; pass 0 for ephemeral)
+  --quiet                  suppress "Studio listening on…" banner
 
 EXAMPLES:
   # Open Studio against the in-repo demo store:
@@ -107,7 +109,9 @@ EXAMPLES:
 `);
 }
 
-const VERSION = "0.0.1-pre";
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json") as { version: string };
+const VERSION: string = pkg.version;
 
 async function main(): Promise<void> {
   const [sub, ...rest] = process.argv.slice(2);
@@ -148,10 +152,13 @@ async function cmdStudio(flags: Record<string, string | boolean>): Promise<void>
   const project = projectFrom(flags);
   const storeDir = storeDirFrom(flags);
   const port = Number(flags.port ?? 4555);
+  const quiet = Boolean(flags.quiet);
   const ledger = openLedger(project, storeDir);
-  const { url } = await startStudioServer({ ledger, port });
-  process.stdout.write(`Studio listening on ${url}\n`);
-  process.stdout.write("Press Ctrl-C to stop.\n");
+  const { url } = await startStudioServer({ ledger, port, silent: quiet });
+  if (!quiet) {
+    process.stdout.write(`Studio listening on ${url}\n`);
+    process.stdout.write("Press Ctrl-C to stop.\n");
+  }
 }
 
 function cmdApprovals(flags: Record<string, string | boolean>): void {

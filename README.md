@@ -80,16 +80,19 @@ This isn't theoretical. Each of the things below is supported by code that compi
 Requires **Node ≥22.5**. `@actantdb/core` uses `node:sqlite`, which is unflagged starting at Node 24 (Node 22 needs `--experimental-sqlite`).
 
 ```bash
-# Wrap your agent:
+# Wrap your agent (runtime dep):
 npm install @actantdb/mastra
 
-# Studio CLI (provides `npx actantdb`):
+# Studio CLI (dev-only — provides `npx actantdb`):
 npm install --save-dev @actantdb/studio
 ```
 
 `@actantdb/mastra` works with **any** agent that exposes a tools record — Mastra, LangGraph, OpenAI Agents SDK, hand-rolled. If you're using Mastra, also `npm install @mastra/core`; for other frameworks no extra peer is needed.
 
-```ts
+Snippets below are valid in plain `.mjs` (no TypeScript needed). Save as `agent.mjs` and run `node agent.mjs`.
+
+```js
+// agent.mjs — wrap any agent, capture every tool call.
 import { withActant } from "@actantdb/mastra";
 import { demoPolicy } from "@actantdb/policy";
 
@@ -99,11 +102,16 @@ const wrapped = withActant(myAgent, {
 });
 
 await wrapped.run({ message: "Clean up the test artifacts." });
+
+// Direct ledger access — query events your wrapped agent captured:
+const events = wrapped.actant.ledger.query({});
+console.log(`captured ${events.length} events`);
 ```
 
 If you just want the embedded ledger (no agent framework):
 
-```ts
+```js
+// ledger.mjs — append-only hash-chained event ledger, no daemon.
 import { openLedger, ulid } from "@actantdb/core";
 
 const ledger = openLedger({ project: "demo" });

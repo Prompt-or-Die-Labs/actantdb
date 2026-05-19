@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/core",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Embedded TypeScript runtime for ActantDB. NAPI-RS native addon + WASM fallback. No separate server in the install path.",
   "type": "module",
   "license": "Apache-2.0",
