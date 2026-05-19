@@ -1,3 +1,3 @@
 # STATUS — active
 
-Freeze lifted. Example catalog stays available. The wedge demos live under `/wedge/demo`, `/wedge/demo-langgraph`, `/wedge/demo-cli`. See `/PIVOT.md`.
+Freeze lifted. Example catalog stays available. The demos live under `/examples/test-cleanup`, `/examples/langgraph-router`, `/examples/cli-only`. See `/PIVOT.md`.

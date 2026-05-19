@@ -11,7 +11,7 @@ Pre-conditions verified by the agent (current at HEAD):
 - [x] `pnpm smoke` → green
 - [x] `swift test --package-path sdks/swift` → **62 tests in 12 suites passing**
 - [x] `(cd sdks/python && python3 -m unittest discover -s tests)` → **10 passing**, 1 skipped (integration test needs `ACTANTDB_TEST_URL`)
-- [x] Three public examples exist: [`wedge/demo/`](./wedge/demo), [`wedge/demo-langgraph/`](./wedge/demo-langgraph), [`wedge/demo-cli/`](./wedge/demo-cli)
+- [x] Three public examples exist: [`examples/test-cleanup/`](./examples/test-cleanup), [`examples/langgraph-router/`](./examples/langgraph-router), [`examples/cli-only/`](./examples/cli-only)
 - [x] All 8 `@actantdb/*` packages published to npm at `0.0.6` (`latest` + `shadow` tags)
 - [x] CI publish workflow: [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) — `workflow_dispatch`, builds + tests + smoke + dry-run-publish + publish + tag-mirror
 - [x] CI binary-release workflow: [`.github/workflows/release-binaries.yml`](./.github/workflows/release-binaries.yml) — tag-driven and manual; produces `actantdb` + `actantdb-server` for macOS-arm64, macOS-x64, linux-x64
@@ -41,7 +41,7 @@ node -e "import('@actantdb/mastra').then(m => console.log(typeof m.withActant))"
 
 ## Step 2 — Cold-README test outreach (Gate 2 §1)
 
-Per [`wedge/validation-tests.md` §1](./wedge/validation-tests.md), send the
+Per [`README.md` §1](./README.md), send the
 [root README](./README.md) — and only the README — to 15 working agent
 developers. No call. No explanation.
 
@@ -63,7 +63,7 @@ Track replies in a spreadsheet (suggest: a Numbers / Google Sheet at
 
 ## Step 3 — 10-minute install test (Gate 2 §2)
 
-Per `wedge/validation-tests.md` §2, give 10 developers a 10-minute install
+Per `README.md` §2, give 10 developers a 10-minute install
 script. The repo already contains one (verified against `0.0.6`):
 
 ```bash
@@ -82,7 +82,7 @@ Threshold:
 - [ ] 3/10 produce a replay or approval trace they can show someone
 
 Every failure produces exactly one ticket against this repo — no silent
-failures (`wedge/validation-tests.md` §2 "Iteration rule").
+failures (`README.md` §2 "Iteration rule").
 
 ## Step 4 — Design partner conversion (Gate 2 §"adoption", Gate 3 §"named")
 
@@ -106,7 +106,7 @@ the artifacts above ship.
 
 ## Step 5 — Public examples + screen recording (Gate 1 leftovers)
 
-The agent built three demos under `wedge/demo*`. To close Gate 1 leftovers
+The agent built three demos under `examples/test-cleanup*`. To close Gate 1 leftovers
 ([GATES.md](./GATES.md)):
 
 ```bash
@@ -116,11 +116,11 @@ pnpm --filter actant-demo-langgraph-router demo
 pnpm --filter actant-demo-cli demo
 
 # Then in a second terminal for each:
-npx actantdb studio --project demo-test-cleanup --store-dir wedge/demo/.actantdb
+npx actantdb studio --project demo-test-cleanup --store-dir examples/test-cleanup/.actantdb
 ```
 
 Record a 90-second screencast with QuickTime / OBS / asciinema (the agent
-authored an asciinema cast at [`wedge/demo/killer-demo.cast`](./wedge/demo/killer-demo.cast) — playable
+authored an asciinema cast at [`examples/test-cleanup/killer-demo.cast`](./examples/test-cleanup/killer-demo.cast) — playable
 with `asciinema play`). Upload the cast or the video to YouTube /
 asciinema.org / GitHub Releases.
 

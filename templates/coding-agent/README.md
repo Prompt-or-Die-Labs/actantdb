@@ -1,7 +1,7 @@
 # {{project_name}}
 
 Coding agent scaffolded from the `coding-agent` template. Mirrors the alpha demo
-under `/wedge/demo`.
+under `/examples/test-cleanup`.
 
 A Mastra-shaped agent with `shell.run` and `file.write` tools, wrapped through
 `@actantdb/mastra` so Guard intercepts risky proposals and Chronicle records

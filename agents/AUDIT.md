@@ -68,7 +68,7 @@ The audit table is a snapshot of work-package AC text vs. shipped reality. Of th
 
 | Audit label | Count | What it means here | Action taken |
 | --- | --- | --- | --- |
-| **missing** | 3 (`actant-cli`, `actant-templates`, `actant-embedders`) | AC text described a Phase 2+/Phase 3+ surface that was intentionally not built for the wedge. | Work packages **reconciled** this pass — each has a new "v0.1 (shipped)" + "Phase N+ (named-deferred)" split. No new code; the deferrals are now explicit. |
+| **missing** | 3 (`actant-cli`, `actant-templates`, `actant-embedders`) | AC text described a Phase 2+/Phase 3+ surface that was intentionally not built for the substrate. | Work packages **reconciled** this pass — each has a new "v0.1 (shipped)" + "Phase N+ (named-deferred)" split. No new code; the deferrals are now explicit. |
 | **partial** | 29 | Headline AC (build/test/clippy + crate-specific behaviour) is green; secondary AC items (property tests, latency budgets, bench fixtures, integration tests across multiple providers) are not codified. | Kept as documented future work. The headline AC for every package passes under `cargo test --workspace` (186 Rust + 25 TS + smoke). Promoting them into hard gates is its own work package per audit row. |
 | **covered** | 13 | Both headline and crate-specific AC are codified. | None needed. |
 

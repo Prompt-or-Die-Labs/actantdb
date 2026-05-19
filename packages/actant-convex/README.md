@@ -21,6 +21,6 @@ Convex's own durable workflows + reactive agent state stay in place; `@actantdb/
 - replay from any workflow step
 - context manifest for every model call inside the workflow
 
-Until the Mastra wedge has passed Gate 1 (`/wedge/kill-criteria.md`) and at least one design partner uses Convex, this package is not actively built.
+Until at least one Convex consumer adopts ActantDB (`/CHANGELOG.md`) and at least one design partner uses Convex, this package is not actively built.
 
-See [`/PIVOT.md`](../../PIVOT.md) and [`/wedge/distribution-plan.md`](../../wedge/distribution-plan.md).
+See [`/PIVOT.md`](../../PIVOT.md) and [`/CHANGELOG.md`](../../CHANGELOG.md).

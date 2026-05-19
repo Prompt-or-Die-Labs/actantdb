@@ -4,9 +4,9 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 
 ## Repository status — read before doing anything
 
-The 2026-05-17 premortem proposed freezing everything except a 2-feature wedge. The freeze was **lifted the same day**. The substrate was built out: ~49 Rust crates, 8 npm packages (now published as `@actantdb/*@0.0.6`), three runnable demos, **429 passing tests** (331 Rust + 25 TS + 10 Python + 62 Swift + 1 smoke), full Phase 1–6 implementation. The wedge frame is still useful for *external* developer narrative; internally, everything is active.
+Workspace: **36 Rust crates** (post-slim refactor, was 53), **9 npm packages** (incl. new `actantdb` umbrella), three runnable end-to-end demos under `examples/`, full Phase 1–6 implementation. Packages published as `@actantdb/*@0.0.10`. Everything is active; there is no "wedge mode" or freeze.
 
-Read [PIVOT.md](PIVOT.md) for the current state, [CHANGELOG.md](CHANGELOG.md) for what landed, [GATES.md](GATES.md) for outstanding gate work, and [SPECS_STATUS.md](SPECS_STATUS.md) for per-spec verification.
+Read [CHANGELOG.md](CHANGELOG.md) for what landed, [GATES.md](GATES.md) for outstanding gate work, [GAPS.md](GAPS.md) for implementation gaps, [SPECS_STATUS.md](SPECS_STATUS.md) for per-spec verification, [STORAGE_AUDIT.md](STORAGE_AUDIT.md) + [BENCHMARKS.md](BENCHMARKS.md) + [TESTING.md](TESTING.md) for system audits.
 
 ## Architecture
 
@@ -60,14 +60,13 @@ actant-throttle, actant-circuit, actant-lock, actant-ingress, actant-compensatio
 actant-protocol, actant-prompts, actant-models, actant-cache, actant-trace
 actant-schema-dsl, actant-sdk-codegen, actant-templates, actant-codegen-project
 actant-capsule, actant-trust
-actant-napi, actant-wasm  (declared via @actantdb/core optionalDependencies; bridge build deferred)
 ```
 
 The TypeScript API is identical between `mode: "embedded"` (`@actantdb/core` against `node:sqlite`) and `mode: "server"` (`@actantdb/sdk` against `actantdb-server`). Choice is config, not migration.
 
-## Binding rules (kept from F2/F3 prevention — `/wedge/f2-f3-prevention.md`)
+## Binding rules
 
-These survived the freeze lift because they're the right design regardless:
+The contract-first build discipline:
 
 1. **No new public type outside `actant-contracts`.** Missing interface? Edit the contract crate and regenerate. Hand-edits to `packages/actant-types/src/generated/*` are forbidden.
 2. **Contract update protocol**: edit `actant-contracts` → `cargo run -p actant-contracts -- check-compat` → `… codegen-ts` → commit Rust + regenerated TS in the same PR.
@@ -110,7 +109,7 @@ Single TS test: `pnpm --filter @actantdb/<pkg> test -- <pattern>`.
 
 ```bash
 pnpm --filter actant-demo-test-cleanup demo       # record a run
-ACTANTDB_STORE_DIR=./wedge/demo/.actantdb \
+ACTANTDB_STORE_DIR=./examples/test-cleanup/.actantdb \
   npx actantdb studio --project demo-test-cleanup # open it
 ```
 
@@ -145,5 +144,4 @@ cargo run -p actant-contracts -- codegen-ts
 - Introducing public types outside `actant-contracts`.
 - Hand-editing `packages/actant-types/src/generated/*`.
 - Adding Rust toolchain steps, Docker, or exposed ports to the default install README.
-- Treating the wedge as v1 and the substrate as future — both are present; both have tests; both are active.
-- Treating the original STATUS.md "freeze v2 roadmap" framing as authoritative — it's been lifted (see PIVOT.md).
+- Reintroducing "wedge" framing or freeze-mode language. Every part of the substrate is active and supported.

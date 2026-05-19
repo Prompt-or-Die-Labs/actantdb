@@ -16,8 +16,8 @@ Concrete state of the repo at the most recent build. Not aspirational.
 
 | Layer                | What ships                                                                                  | Evidence                                       |
 | -------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **Wedge (npm)**      | 8 TypeScript packages: `@actantdb/mastra`, `core`, `policy`, `replay`, `studio`, `types`, `sdk`, `convex`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-npm.yml` |
-| **Demos**            | 3 runnable demos with recorded SQLite event ledgers (Mastra, LangGraph, pure CLI).            | `wedge/demo/`, `wedge/demo-langgraph/`, `wedge/demo-cli/` |
+| **npm packages**      | 8 TypeScript packages: `@actantdb/mastra`, `core`, `policy`, `replay`, `studio`, `types`, `sdk`, `convex`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-npm.yml` |
+| **Demos**            | 3 runnable demos with recorded SQLite event ledgers (Mastra, LangGraph, pure CLI).            | `examples/test-cleanup/`, `examples/langgraph-router/`, `examples/cli-only/` |
 | **Rust workspace**   | 49 crates, ~15k lines, Rust 1.88. Full Phase 1–6 implementation.                            | `crates/`, `cargo metadata`                    |
 | **HTTP server**      | Axum HTTP + WebSocket. TLS (rustls). `actantdb serve --tls-cert/--tls-key`.                   | `crates/actant-server`, `tests/tls.rs`         |
 | **Storage**          | SQLite + Postgres backends. Migration runner. Hash-chained events. Idempotency records.       | `crates/actant-storage`, 3 migrations          |
@@ -39,7 +39,7 @@ Concrete state of the repo at the most recent build. Not aspirational.
 | **Spec verification**| Every active spec has `tests/spec_NN_verification.rs`. The harness caught **8 real drifts** before they shipped (event-name drift, missing diff kinds, FK ordering, etc.). | `SPECS_STATUS.md`                              |
 | **CI bundle**        | `fmt-check + clippy -D warnings + test + verify-specs + verify-agents`. Green.                  | `.github/workflows/ci.yml`, `justfile`         |
 
-Gate 1 (wedge MVP) is implementation-complete. Gates 2 + 3 are blocked on external adoption — `npm publish` + design-partner outreach. See [`GATES.md`](./GATES.md) for the punch list and [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) for the 5-step path to close them.
+Gate 1 (MVP) is implementation-complete. Gates 2 + 3 are blocked on external adoption — `npm publish` + design-partner outreach. See [`GATES.md`](./GATES.md) for the punch list and [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) for the 5-step path to close them.
 
 ---
 
@@ -62,7 +62,7 @@ That gap is the product. The 2026 agent-tooling market has good frameworks (Mast
 
 This isn't theoretical. Each of the things below is supported by code that compiles and tests that pass in this repo:
 
-- **Production coding agents** with reviewable approval flows, replayable failures, and memory provenance you can audit. Demo: [`wedge/demo/`](./wedge/demo).
+- **Production coding agents** with reviewable approval flows, replayable failures, and memory provenance you can audit. Demo: [`examples/test-cleanup/`](./examples/test-cleanup).
 - **Multi-step research agents** that survive process restarts, pause for human approval for hours or days, retry against flaky providers, and resume cleanly. (`actant-flow` + `actant-trigger` + `actant-effects`.)
 - **Customer-support agents** with reviewable memory candidates, conflict detection between contradictory memories, and a replay-on-complaint workflow that proves what the agent told the customer and why. (`actant-memory` + `actant-replay`.)
 - **Regulated-industry agents** (healthcare, finance) with `actant-audit-export` nightly exports, `purge_by_policy` retention enforcement, AP2 mandate types with spend-limit enforcement, and a context firewall that refuses to send `Secret`-class content to cloud routes. (`actant-audit-export` + `actant-protocol` + `actant-context`.)
@@ -70,12 +70,12 @@ This isn't theoretical. Each of the things below is supported by code that compi
 - **Self-hosted agent backends** for teams: JWT or OIDC auth, multi-tenant boundary with cross-tenant guards, Postgres backend, Helm chart, TLS termination, three-tier health probes, graceful shutdown, per-endpoint rate limits. (`actant-auth` + `actant-tenant` + `actant-server` + `deploy/helm/`.)
 - **Local-first personal agents** (Mac, Linux, Windows) with private memory, capsule-bound sensitivity, and replay that runs entirely on-device. `npm install @actantdb/mastra` + `npx actantdb studio` and nothing leaves the machine.
 - **Agent-tool MCP servers** that get governed through ActantDB without changing the MCP server. The MCP wire protocol is implemented over stdio JSON-RPC; the worker claims `mcp.call` effects from the same queue as everything else. (`actant-worker-mcp`.)
-- **Cross-framework portability.** The same `withActant()` wrapper runs on Mastra, LangGraph, and hand-rolled agents — proven by three public examples. (`@actantdb/mastra` + `wedge/demo-langgraph/`.)
+- **Cross-framework portability.** The same `withActant()` wrapper runs on Mastra, LangGraph, and hand-rolled agents — proven by three public examples. (`@actantdb/mastra` + `examples/langgraph-router/`.)
 - **Anything observable through OpenTelemetry + OpenInference.** Spans for model_call, tool_call, retrieval, reranker, embedding, agent, workflow, approval, replay; metrics for queue depth, model latency, token usage, retry counts, budget remaining, cache hit rate. Export to Phoenix, Arize, LangSmith, Datadog, Grafana, Honeycomb. (`actant-trace`.)
 
 ---
 
-## Install (the wedge)
+## Install (the substrate)
 
 Requires **Node ≥22.5**. `@actantdb/core` uses `node:sqlite`, which is unflagged starting at Node 24 (Node 22 needs `--experimental-sqlite`).
 
@@ -152,7 +152,7 @@ Try it:
 ```bash
 pnpm install
 pnpm --filter actant-demo-test-cleanup demo
-ACTANTDB_STORE_DIR=./wedge/demo/.actantdb \
+ACTANTDB_STORE_DIR=./examples/test-cleanup/.actantdb \
   npx actantdb studio --project demo-test-cleanup
 ```
 
@@ -174,7 +174,7 @@ When you cross the line where embedded isn't enough — multi-user approvals, re
 
 ---
 
-## The Rust substrate (what's under the wedge)
+## The Rust substrate (what's under the substrate)
 
 ```
 crates/
@@ -241,7 +241,7 @@ pnpm smoke           # workspace E2E
 
 # The killer demo end-to-end
 pnpm --filter actant-demo-test-cleanup demo
-ACTANTDB_STORE_DIR=./wedge/demo/.actantdb \
+ACTANTDB_STORE_DIR=./examples/test-cleanup/.actantdb \
   npx actantdb studio --project demo-test-cleanup
 
 # Regenerate TS types from Rust contracts
@@ -268,11 +268,11 @@ Three places ActantDB is genuinely uncontested in 2026:
 
 ## Status
 
-- **Gate 1 — wedge MVP** (target 2026-06-30): implementation-complete. Three runnable demos. Human leftovers: 90-second screencast, hero PNG, three-platform install verification.
+- **Gate 1 — MVP** (target 2026-06-30): implementation-complete. Three runnable demos. Human leftovers: 90-second screencast, hero PNG, three-platform install verification.
 - **Gate 2 — external adoption** (target 2026-07-31): blocked on first `npm publish` + outreach. The repo ships a manual-trigger publish workflow at [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) that builds, tests, and publishes every `@actantdb/*` package under the `shadow` dist-tag.
 - **Gate 3 — shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
 
-[`GATES.md`](./GATES.md) is the punch list. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the 5-step sequence to close Gates 2 + 3. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current substrate-plus-wedge shape.
+[`GATES.md`](./GATES.md) is the punch list. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the 5-step sequence to close Gates 2 + 3. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current current substrate shape.
 
 ---
 
@@ -293,7 +293,7 @@ Three places ActantDB is genuinely uncontested in 2026:
 ├── specs/                          — 20 specs + 18 ADRs
 ├── agents/                         — per-crate implementation briefs
 ├── planning/                       — phase plans, perf budgets, deployment playbook, Studio/SDK design
-├── wedge/                          — operational wedge plan + 3 runnable demos
+├── examples/                          — 3 runnable end-to-end demos
 ├── sdks/                           — sdks/python/
 ├── bench/                          — Criterion + HTTP load benches
 ├── deploy/                         — docker/ + helm/

@@ -6,7 +6,7 @@ and what's *blocked on external human action*.
 
 Source of truth for gate definitions: [PIVOT.md §Hard validation gates](./PIVOT.md).
 
-## Gate 1 — Wedge MVP green (target 2026-06-30)
+## Gate 1 — MVP green (target 2026-06-30)
 
 **Acceptance criterion (PIVOT.md):**
 
@@ -20,7 +20,7 @@ Source of truth for gate definitions: [PIVOT.md §Hard validation gates](./PIVOT
 | Captures context manifest | ✅ | `context_build` event + `buildContextManifest()` in [`packages/actant-core/src/runtime.ts`](./packages/actant-core/src/runtime.ts) |
 | Supports approval (allow / constrain / require_approval / block / halt) | ✅ | Five verdicts in [`packages/actant-policy/src/index.ts`](./packages/actant-policy/src/index.ts); constrain rewrite verified by stock-shaped tool in [`scripts/smoke.mjs`](./scripts/smoke.mjs) |
 | Opens Studio with timeline + replay | ✅ | `actantdb studio` CLI in [`packages/actant-studio/src/cli.ts`](./packages/actant-studio/src/cli.ts) serves `ui/index.html`; replay form posts to `/api/replay` and renders a side-by-side diff |
-| Killer-demo deliverables (killer-demo.md §"Demo deliverables") | partial | Demo scaffold at [`wedge/demo/`](./wedge/demo) with ≤200-word README; the 90-second screen recording and the hero image are human-produced artifacts |
+| Killer-demo deliverables (killer-demo.md §"Demo deliverables") | partial | Demo scaffold at [`examples/test-cleanup/`](./examples/test-cleanup) with ≤200-word README; the 90-second screen recording and the hero image are human-produced artifacts |
 | "≤ 5 min from `git clone`" | ✅ | Empirically measured TS-only path runs in ~3 seconds (warm pnpm store); full path including `cargo run -p actant-contracts -- codegen-ts` measured at ~11 seconds |
 | Workspace smoke test passes on every PR | ✅ | `pnpm smoke` invokes [`scripts/smoke.mjs`](./scripts/smoke.mjs), covering: session → message → manifest → tool request → Guard verdict → approval → constrain-rewritten execution → completion → checkpoint → headless Studio render |
 | `cargo build --workspace` green | ✅ | All 40 crates compile under Rust 1.88 |
@@ -31,7 +31,7 @@ recording and the hero PNG — falls under §"Gate 1 leftovers" below.
 
 ### Gate 1 leftovers (human-execution)
 
-- [ ] Record a 90-second screencast of `node wedge/demo/demo.mjs` followed by clicking through Studio (anti-scope rule #2 implies this remains in scope).
+- [ ] Record a 90-second screencast of `node examples/test-cleanup/demo.mjs` followed by clicking through Studio (anti-scope rule #2 implies this remains in scope).
 - [ ] Export the side-by-side diff as a PNG for the README hero (the ASCII version exists in [`README.md`](./README.md)).
 - [ ] **Verify on three real non-Wes developers** that the demo runs from `git clone` on their machine inside 5 minutes. (One per platform: macOS, Linux, Windows.)
 
@@ -52,15 +52,15 @@ Pre-conditions that *are* artifact-shaped — all met:
 | Pre-condition | Status |
 | --- | --- |
 | `@actantdb/mastra` installable via `npm install` (TS-only, no Rust prerequisite) | ✅ generated TS bindings are committed; `engines.node >= 22.5` declared |
-| Cold-README test scaffolding (the README a stranger reads) | ✅ root [`README.md`](./README.md) + [`wedge/demo/README.md`](./wedge/demo/README.md) |
-| 10-minute install test scaffolding | ✅ `pnpm install` + `pnpm -r build` + `node wedge/demo/demo.mjs` measured at 3s on a warm cache |
-| Per-failed-install ticket process | ✅ documented in [`wedge/validation-tests.md`](./wedge/validation-tests.md) |
-| One-screen positioning artifact | ✅ [`wedge/positioning.md`](./wedge/positioning.md) |
+| Cold-README test scaffolding (the README a stranger reads) | ✅ root [`README.md`](./README.md) + [`examples/test-cleanup/README.md`](./examples/test-cleanup/README.md) |
+| 10-minute install test scaffolding | ✅ `pnpm install` + `pnpm -r build` + `node examples/test-cleanup/demo.mjs` measured at 3s on a warm cache |
+| Per-failed-install ticket process | ✅ documented in [`README.md`](./README.md) |
+| One-screen positioning artifact | ✅ [`README.md`](./README.md) |
 
 ### What humans must do for Gate 2 to close
 
-- [ ] Send the cold-README test to 15 working agent developers (see [`wedge/validation-tests.md` §1](./wedge/validation-tests.md)).
-- [ ] Run the 10-minute install test with at least 10 developers (see [`wedge/validation-tests.md` §2](./wedge/validation-tests.md)).
+- [ ] Send the cold-README test to 15 working agent developers (see [`README.md` §1](./README.md)).
+- [ ] Run the 10-minute install test with at least 10 developers (see [`README.md` §2](./README.md)).
 - [ ] Track: 7/10 install successfully in <10 min, 5/10 capture a real run, 3/10 produce a replay.
 - [ ] Identify 2 design partners willing to provide weekly feedback for 4 weeks.
 - [ ] Publish `@actantdb/*` packages to npm (manual `pnpm publish` — confirmation-required action; not yet done).
@@ -79,9 +79,9 @@ Pre-conditions that *are* artifact-shaped:
 
 | Pre-condition | Status |
 | --- | --- |
-| First public example (the killer-demo rehearsal) | ✅ [`wedge/demo/`](./wedge/demo) |
-| Second public example | ❌ no second example exists yet; can ship a parallel one (e.g., `wedge/demo-langgraph/`) only when a LangGraph or other-framework adapter exists |
-| HN test answer prepared | ✅ [`wedge/positioning.md`](./wedge/positioning.md) §"HN objection" |
+| First public example (the killer-demo rehearsal) | ✅ [`examples/test-cleanup/`](./examples/test-cleanup) |
+| Second public example | ❌ no second example exists yet; can ship a parallel one (e.g., `examples/langgraph-router/`) only when a LangGraph or other-framework adapter exists |
+| HN test answer prepared | ✅ [`README.md`](./README.md) §"HN objection" |
 | Switch-test scaffolding (per `validation-tests.md` §3) | ✅ |
 
 ### What humans must do for Gate 3 to close

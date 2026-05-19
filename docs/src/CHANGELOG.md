@@ -6,7 +6,7 @@ Cross-reference: [SPECS_STATUS.md](./SPECS_STATUS.md), [GATES.md](./GATES.md),
 
 ## Unreleased — 2026-05-17
 
-The substrate was unfrozen and built out from the wedge through every
+The substrate was unfrozen and built out from the substrate through every
 roadmap phase. Test count at session close: **186 Rust + 25 TypeScript + 4
 Python (1 skipped, needs `ACTANTDB_TEST_URL`) + 1 workspace smoke = 216**,
 all green. CI bundle (`fmt-check + clippy -D warnings + test +
@@ -51,7 +51,7 @@ verify-specs + verify-agents`) passes.
 
 
 
-### Added — wedge (v0.1, completed first)
+### Added — v0.1 baseline
 
 - **`@actantdb/mastra`** — `withActant(agent, opts)` duck-typed wrapper that
   captures every tool call, runs Guard, supports approval flows, and exposes
@@ -70,7 +70,7 @@ verify-specs + verify-agents`) passes.
 - **`@actantdb/sdk`** (new this session) — HTTP+WS client for the server.
 - **`@actantdb/convex`** (upgraded from placeholder) — adapter for Convex's
   `handler(ctx, args)` tool shape.
-- **`wedge/demo/`**, **`wedge/demo-langgraph/`**, **`wedge/demo-cli/`** —
+- **`examples/test-cleanup/`**, **`examples/langgraph-router/`**, **`examples/cli-only/`** —
   three runnable public examples.
 - **SVG hero**, **asciinema cast**, **publish-ready npm tarballs** in
   `dist-publish/`.
@@ -240,7 +240,7 @@ verify-specs + verify-agents`) passes.
   integration.
 - **Postgres command-engine plumbing** — `PgStorage` exists with the
   schema; the command engine itself still hardcodes `SqlitePool` paths.
-- **Studio dashboard polish** — the wedge UI is vanilla JS; full React
+- **Studio dashboard polish** — the substrate UI is vanilla JS; full React
   rewrite is post-design-partner.
 - **Gates 2 + 3 (PIVOT.md)** — measure external adoption events that no
   code change closes. [`GATES.md`](./GATES.md) +

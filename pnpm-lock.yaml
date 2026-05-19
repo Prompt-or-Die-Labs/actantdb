@@ -27,6 +27,60 @@ importers:
         specifier: workspace:*
         version: link:packages/actant-types
 
+  examples/cli-only:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../../packages/actant-core
+      '@actantdb/mastra':
+        specifier: workspace:*
+        version: link:../../packages/actant-mastra
+      '@actantdb/policy':
+        specifier: workspace:*
+        version: link:../../packages/actant-policy
+      '@actantdb/studio':
+        specifier: workspace:*
+        version: link:../../packages/actant-studio
+      '@actantdb/types':
+        specifier: workspace:*
+        version: link:../../packages/actant-types
+
+  examples/langgraph-router:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../../packages/actant-core
+      '@actantdb/mastra':
+        specifier: workspace:*
+        version: link:../../packages/actant-mastra
+      '@actantdb/policy':
+        specifier: workspace:*
+        version: link:../../packages/actant-policy
+      '@actantdb/studio':
+        specifier: workspace:*
+        version: link:../../packages/actant-studio
+      '@actantdb/types':
+        specifier: workspace:*
+        version: link:../../packages/actant-types
+
+  examples/test-cleanup:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../../packages/actant-core
+      '@actantdb/mastra':
+        specifier: workspace:*
+        version: link:../../packages/actant-mastra
+      '@actantdb/policy':
+        specifier: workspace:*
+        version: link:../../packages/actant-policy
+      '@actantdb/studio':
+        specifier: workspace:*
+        version: link:../../packages/actant-studio
+      '@actantdb/types':
+        specifier: workspace:*
+        version: link:../../packages/actant-types
+
   packages/actant-convex:
     dependencies:
       '@actantdb/core':
@@ -175,59 +229,26 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)
 
-  wedge/demo:
+  packages/actantdb:
     dependencies:
       '@actantdb/core':
         specifier: workspace:*
-        version: link:../../packages/actant-core
+        version: link:../actant-core
       '@actantdb/mastra':
         specifier: workspace:*
-        version: link:../../packages/actant-mastra
+        version: link:../actant-mastra
       '@actantdb/policy':
         specifier: workspace:*
-        version: link:../../packages/actant-policy
-      '@actantdb/studio':
+        version: link:../actant-policy
+      '@actantdb/replay':
         specifier: workspace:*
-        version: link:../../packages/actant-studio
+        version: link:../actant-replay
+      '@actantdb/sdk':
+        specifier: workspace:*
+        version: link:../actant-sdk
       '@actantdb/types':
         specifier: workspace:*
-        version: link:../../packages/actant-types
-
-  wedge/demo-cli:
-    dependencies:
-      '@actantdb/core':
-        specifier: workspace:*
-        version: link:../../packages/actant-core
-      '@actantdb/mastra':
-        specifier: workspace:*
-        version: link:../../packages/actant-mastra
-      '@actantdb/policy':
-        specifier: workspace:*
-        version: link:../../packages/actant-policy
-      '@actantdb/studio':
-        specifier: workspace:*
-        version: link:../../packages/actant-studio
-      '@actantdb/types':
-        specifier: workspace:*
-        version: link:../../packages/actant-types
-
-  wedge/demo-langgraph:
-    dependencies:
-      '@actantdb/core':
-        specifier: workspace:*
-        version: link:../../packages/actant-core
-      '@actantdb/mastra':
-        specifier: workspace:*
-        version: link:../../packages/actant-mastra
-      '@actantdb/policy':
-        specifier: workspace:*
-        version: link:../../packages/actant-policy
-      '@actantdb/studio':
-        specifier: workspace:*
-        version: link:../../packages/actant-studio
-      '@actantdb/types':
-        specifier: workspace:*
-        version: link:../../packages/actant-types
+        version: link:../actant-types
 
 packages:
 

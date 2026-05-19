@@ -26,7 +26,7 @@ Helicone), or **good memory stores** (Mem0, Zep). What it *is* short of is a
 3. Bounds context with a **capsule sensitivity ceiling** that a context
    firewall enforces *before the model call*, not after.
 
-ActantDB ships those three as the wedge, behind a single contract crate that
+ActantDB ships those three as the substrate, behind a single contract crate that
 codegens TypeScript / Python / Swift / Rust SDKs. The rest of the stack
 (workflows, memory candidate→approval→use, hybrid retrieval, OTel emission,
 multi-tenant, replay) exists so you don't have to wire those three across
@@ -90,7 +90,7 @@ intended deployment is "your favorite framework + ActantDB underneath."
 
 **Overlap with ActantDB:** All four record traces. ActantDB emits OTel + OpenInference spans and is explicitly designed to **export to Phoenix / Arize / LangSmith / Datadog / Grafana / Honeycomb** — `actant-trace` is a span producer.
 
-**Gap (and the honest framing):** Phoenix/Langfuse/LangSmith/Helicone are **trace visualisers**. ActantDB is a **trace producer + event ledger + workflow runner + memory + guard**. These overlap on "the trace UI" but not on the rest. **Pair ActantDB with Phoenix or Langfuse if you want a nicer trace UI than `@actantdb/studio` currently ships** — Studio is a vanilla-JS wedge today, not the React rewrite (GAPS.md item 6). Phoenix's trace UI is more mature.
+**Gap (and the honest framing):** Phoenix/Langfuse/LangSmith/Helicone are **trace visualisers**. ActantDB is a **trace producer + event ledger + workflow runner + memory + guard**. These overlap on "the trace UI" but not on the rest. **Pair ActantDB with Phoenix or Langfuse if you want a nicer trace UI than `@actantdb/studio` currently ships** — Studio renders a React-based timeline + replay diff (GAPS.md item 6). Phoenix's trace UI is more mature.
 
 ### 4. Memory / accountability
 
@@ -203,7 +203,7 @@ loses today.
 - **Phoenix and Langfuse for the trace UI.** Phoenix ships OpenInference
   (which everyone else implements) and a polished trace explorer. Langfuse
   has a richer prompt-management and eval surface than `@actantdb/studio`.
-  Studio is a vanilla-JS wedge today (the React rewrite is deferred — GAPS.md
+  Studio shipped a React + Vite UI in 0.0.10 (per `packages/actant-studio/ui-src/`).
   #6). **Plan to use ActantDB as the ledger producer and Phoenix/Langfuse as
   the visualiser** until Studio matures.
 - **Mem0 / Zep for memory recall quality.** Mem0 has done serious work on
@@ -428,7 +428,7 @@ Restate, DBOS, and the Rust crates are heavier installs.
   layer.
 - ActantDB **does** claim "first to unify these as a contract-crate-driven
   surface with hash-chained ledgers, capsule-bound context, and runtime Guard
-  verdicts as typed events" — and that's the wedge.
+  verdicts as typed events" — and that's the substrate.
 
 ---
 

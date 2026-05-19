@@ -110,7 +110,7 @@ By November, GitHub stars sat at 380. Zero design partners. Zero production logo
 - After 60 days of building, no developer outside Wes has run `actant dev` voluntarily.
 - The work-package backlog grows faster than it burns down.
 
-**Validation test.** Before writing any more Rust: cold-pitch 15 working agent developers with the ActantDB README. If fewer than 3 say "I'd switch from $current_tool to try this" with a concrete reason, the wedge isn't real.
+**Validation test.** Before writing any more Rust: cold-pitch 15 working agent developers with the ActantDB README. If fewer than 3 say "I'd switch from $current_tool to try this" with a concrete reason, the substrate isn't real.
 
 **Mitigation.** Kill the four-SDK, six-deployment, full-substrate scope. Ship one opinionated wedge as a Mastra/Convex plugin — Guard authority + chronicle replay — that runs on top of the incumbents instead of replacing them. Win one capability before claiming a category.
 
@@ -293,7 +293,7 @@ F8 (founder bandwidth split). Severity is **critical** because it's the choice t
 
 This is the single assumption underneath F1 + F2 + F3 + F4 + F5 + F8 + F9. The architecture isn't wrong. The bet that one person, splitting attention with Swoosh, using coding agents on 40 Rust crates, into a TypeScript-volume market that has already named its winners, can hit "wide developer adoption" in 6 months — that bet is what's failing.
 
-Test it explicitly: take the current plan to 15 working agent developers (people currently shipping agents at companies of 10–500 people, on Mastra/LangGraph/Convex/OpenAI Agents SDK). Ask one question: "What would have to be true for you to move from your current tool to ActantDB?" If fewer than 3 give a concrete answer, the wedge is wrong — and no amount of additional scope will fix it.
+Test it explicitly: take the current plan to 15 working agent developers (people currently shipping agents at companies of 10–500 people, on Mastra/LangGraph/Convex/OpenAI Agents SDK). Ask one question: "What would have to be true for you to move from your current tool to ActantDB?" If fewer than 3 give a concrete answer, the substrate is wrong — and no amount of additional scope will fix it.
 
 ### Revised plan
 

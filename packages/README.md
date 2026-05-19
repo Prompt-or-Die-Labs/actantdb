@@ -16,7 +16,7 @@ The product surface. TypeScript packages distributed via npm, ESM-only, TypeScri
 ## Conventions
 
 - ESM only. No CJS.
-- All cross-package types come from `@actantdb/types`. Adding a public type to any other package is a PR rejection (see [`/wedge/f2-f3-prevention.md`](../wedge/f2-f3-prevention.md) §F3).
+- All cross-package types come from `@actantdb/types`. Adding a public type to any other package is a PR rejection (see [`/CLAUDE.md`](../CLAUDE.md) §F3).
 - `engines.node >= 22.5` for packages that import `node:sqlite`.
 - Each package has `package.json`, `tsconfig.json`, `src/index.ts`, `README.md`, and a `src/*.test.ts` next to anything non-trivial.
 
@@ -46,8 +46,8 @@ The NAPI-RS / WASM bridges that bundle the Rust kernel directly inside `@actantd
 
 | Package                            | Where                       | Shows                                                 |
 | ---------------------------------- | --------------------------- | ----------------------------------------------------- |
-| `actant-demo-test-cleanup`         | `/wedge/demo/`              | The killer "deleted the wrong file" walkthrough.       |
-| `actant-demo-langgraph-router`     | `/wedge/demo-langgraph/`    | The same wedge on a LangGraph-shaped router.           |
-| `actant-demo-cli`                  | `/wedge/demo-cli/`          | Pure-CLI variant.                                     |
+| `actant-demo-test-cleanup`         | `/examples/test-cleanup/`              | The killer "deleted the wrong file" walkthrough.       |
+| `actant-demo-langgraph-router`     | `/examples/langgraph-router/`    | The same demo on a LangGraph-shaped router.           |
+| `actant-demo-cli`                  | `/examples/cli-only/`          | Pure-CLI variant.                                     |
 
-`pnpm-workspace.yaml` includes both `packages/*` and `wedge/demo*` so they share the workspace `@actantdb/*` versions.
+`pnpm-workspace.yaml` includes both `packages/*` and `examples/test-cleanup*` so they share the workspace `@actantdb/*` versions.

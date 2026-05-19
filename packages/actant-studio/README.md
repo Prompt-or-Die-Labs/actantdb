@@ -12,7 +12,7 @@ actant replay diff <run_a> <run_b>
 
 ## What Studio shows
 
-Per [`/wedge/killer-demo.md`](../../wedge/killer-demo.md):
+Per [`/examples/test-cleanup/README.md`](../../examples/test-cleanup/README.md):
 
 - **Timeline.** Every captured event: model call, tool call requested, guard verdict, approval, tool result, context build, observation.
 - **Context manifest detail.** What was included, what was blocked, why.
@@ -32,4 +32,4 @@ That is the scope for v0.1. Anything more is post-Gate-3.
 
 Pre-alpha. The Studio surface is the visible part of the killer demo and the validation tests. If the demo doesn't make sense in Studio, the demo is broken.
 
-See [`/PIVOT.md`](../../PIVOT.md), [`/wedge/60-day-plan.md`](../../wedge/60-day-plan.md), [`/wedge/anti-scope.md`](../../wedge/anti-scope.md).
+See [`/PIVOT.md`](../../PIVOT.md), [`/CHANGELOG.md`](../../CHANGELOG.md), [`/CHANGELOG.md`](../../CHANGELOG.md).

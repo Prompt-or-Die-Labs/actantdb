@@ -20,4 +20,4 @@ v0.1 policy capabilities:
 - Sensitivity ceiling per route.
 - Built-in defaults for destructive shell, file write, email send.
 
-See [`/wedge/killer-demo.md`](../../wedge/killer-demo.md) for the verdict path the demo exercises.
+See [`/examples/test-cleanup/README.md`](../../examples/test-cleanup/README.md) for the verdict path the demo exercises.

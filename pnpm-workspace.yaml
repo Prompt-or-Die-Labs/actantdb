@@ -1,5 +1,5 @@
 packages:
   - "packages/*"
-  - "wedge/demo"
-  - "wedge/demo-langgraph"
-  - "wedge/demo-cli"
+  - "examples/test-cleanup"
+  - "examples/langgraph-router"
+  - "examples/cli-only"

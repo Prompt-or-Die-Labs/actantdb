@@ -20,4 +20,4 @@ Shared types + local event ledger + capture protocol. Used by every wrapper (`@a
 
 Pre-alpha. The Phase 1 milestone is the smallest core that makes `@actantdb/mastra` work end-to-end. Anything beyond that waits.
 
-See [`/PIVOT.md`](../../PIVOT.md), [`/wedge/60-day-plan.md`](../../wedge/60-day-plan.md), [`/wedge/anti-scope.md`](../../wedge/anti-scope.md).
+See [`/PIVOT.md`](../../PIVOT.md), [`/CHANGELOG.md`](../../CHANGELOG.md), [`/CHANGELOG.md`](../../CHANGELOG.md).

@@ -4,7 +4,7 @@ The contract crate. Every cross-package type lives here exactly once.
 
 ## Why this exists
 
-`/wedge/f2-f3-prevention.md` §F3 names the failure mode: prose specs do not survive parallel coding-agent implementation across many crates. Agents re-derive their own interpretations of `AccountableAction`, `GovernanceContext`, the audit schema, the error hierarchy, the event taxonomy. Each derivation compiles locally; the workspace-level build fails in hundreds of places three months later.
+`/CLAUDE.md` §F3 names the failure mode: prose specs do not survive parallel coding-agent implementation across many crates. Agents re-derive their own interpretations of `AccountableAction`, `GovernanceContext`, the audit schema, the error hierarchy, the event taxonomy. Each derivation compiles locally; the workspace-level build fails in hundreds of places three months later.
 
 The fix: machine-checked contracts. Every public type, error, event name, command name, schema, wire shape is defined here once. `cargo check` is the source of truth.
 
@@ -35,4 +35,4 @@ Each of these symptoms is invalidated by structure rather than vigilance:
 - Schema fields that appear in one crate's writer and not the matching reader.
 - Workspace builds that succeed locally per-crate and fail catastrophically on integration.
 
-See [`/wedge/f2-f3-prevention.md`](../../wedge/f2-f3-prevention.md).
+See [`/CLAUDE.md`](../../CLAUDE.md).

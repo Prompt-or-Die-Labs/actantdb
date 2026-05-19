@@ -6,10 +6,10 @@ The earlier "freeze everything but two features" framing (2026-05-17, premortem-
 
 ActantDB shipped two things in parallel:
 
-1. **The v0.1 wedge** — `@actantdb/mastra` + Studio + replay — TypeScript-first, npm-installable, works on Mastra, LangGraph, and hand-rolled agents. Three runnable demos under `/wedge/demo*` with recorded SQLite event ledgers.
+1. **The v0.1 baseline** — `@actantdb/mastra` + Studio + replay — TypeScript-first, npm-installable, works on Mastra, LangGraph, and hand-rolled agents. Three runnable demos under `/examples/test-cleanup*` with recorded SQLite event ledgers.
 2. **The substrate underneath** — the full multi-phase plan from `/specs/`: command engine, effect queue, governed memory, context firewall, workflows, replay engine, ActantIndex, MCP/A2A/AP2 protocols, observability, reliability primitives, hot kernel, six deployment modes. **All present in real Rust code** across ~49 crates.
 
-The wedge is what a developer installs. The substrate is what they get when they outgrow the wedge — same API, more behind it.
+The packages are what a developer installs. The substrate is what they get when they outgrow the basic install — same API, more behind it.
 
 ## What ships today
 
@@ -44,9 +44,9 @@ The wedge is what a developer installs. The substrate is what they get when they
 
 ### Demos
 
-- `/wedge/demo/` — the killer "Why did this agent delete the wrong file?" walkthrough on Mastra.
-- `/wedge/demo-langgraph/` — same wedge, LangGraph-shaped agent.
-- `/wedge/demo-cli/` — pure-CLI variant for the keep-it-tiny crowd.
+- `/examples/test-cleanup/` — the killer "Why did this agent delete the wrong file?" walkthrough on Mastra.
+- `/examples/langgraph-router/` — same the codebase, LangGraph-shaped agent.
+- `/examples/cli-only/` — pure-CLI variant for the keep-it-tiny crowd.
 
 Each ships a `.actantdb/<project>/events.sqlite` with a recorded run so the demo opens in Studio without re-running.
 
@@ -82,9 +82,9 @@ These survived the freeze lift because they were the right call regardless:
 
 ## Gates and the road from here
 
-[`GATES.md`](./GATES.md) tracks the three validation gates from the original wedge plan. Status as of the most recent build:
+[`GATES.md`](./GATES.md) tracks the three validation gates from the original operational plan. Status as of the most recent build:
 
-- **Gate 1 — Wedge MVP green** (target 2026-06-30): implementation-complete. The artifact prerequisites are all met; the human leftovers are a 90-second screencast, a hero PNG, and three-platform install verification.
+- **Gate 1 — MVP green** (target 2026-06-30): implementation-complete. The artifact prerequisites are all met; the human leftovers are a 90-second screencast, a hero PNG, and three-platform install verification.
 - **Gate 2 — External adoption** (target 2026-07-31): all 8 `@actantdb/*` packages published to npm under `latest` + `shadow` tags as of 0.0.2 (currently 0.0.6). Outreach to design partners pending.
 - **Gate 3 — Shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
 
@@ -107,11 +107,11 @@ These are tracked, not silent.
 ## Reading order
 
 1. [`README.md`](./README.md) — the install pitch.
-2. [`CHANGELOG.md`](./CHANGELOG.md) — what landed this session (Phases 1–6 + production-readiness round + the v0.1 wedge).
+2. [`CHANGELOG.md`](./CHANGELOG.md) — what landed this session (Phases 1–6 + production-readiness round + the v0.1 baseline).
 3. [`SPECS_STATUS.md`](./SPECS_STATUS.md) — per-spec verification (every active spec has a `tests/spec_NN_verification.rs`).
 4. [`GATES.md`](./GATES.md) — punch list against the three validation gates.
 5. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) — the 5-step path to close Gates 2 + 3.
-6. [`wedge/`](./wedge) — the operational wedge plan + the three demo packages.
+6. [`examples/`](./examples) — three runnable end-to-end demos.
 7. [`/specs`](./specs), [`/specs/adr`](./specs/adr) — design documents (the substrate that the code implements).
 8. [`/agents`](./agents) — the per-crate implementation briefs (still useful as orienting documents).
 9. [`/planning`](./planning) — phase plans, lane catalog, performance budgets, SDK plans, Studio design, worker fleet, test strategy, eval catalog, deployment playbook.
@@ -126,4 +126,4 @@ The premortem named real adoption + execution risks. Even with the substrate bui
 - Convex still has the closest direct-competitor architecture.
 - 5 external developers shipping on Actant beats 250 unit tests for the goal of "wide developer adoption."
 
-The premortem is the reason `wedge/` still exists as the operational frame — the substrate makes the wedge stronger, not different.
+The substrate ships as both the demo flow and the full backend. Same API, additional capabilities behind it.

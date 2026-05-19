@@ -2,7 +2,7 @@
 
 Replay engine: checkpoint, run-from-event, diff, override (policy / memory / model).
 
-v0.1 scope (per [`/wedge/60-day-plan.md`](../../wedge/60-day-plan.md) days 36–50):
+v0.1 scope (per [`/CHANGELOG.md`](../../CHANGELOG.md) days 36–50):
 
 ```ts
 import { Replay } from "@actantdb/replay";

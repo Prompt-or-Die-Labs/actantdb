@@ -6,7 +6,7 @@ Generated TypeScript bindings of [`crates/actant-contracts`](../../crates/actant
 
 ## Why this exists
 
-See [`/wedge/f2-f3-prevention.md`](../../wedge/f2-f3-prevention.md) §F3. Prose specs do not survive parallel coding-agent implementation across many crates: agents re-derive their own interpretations. The contract crate is the only place these types live; this package is the consumable TypeScript view.
+See [`/CLAUDE.md`](../../CLAUDE.md) §F3. Prose specs do not survive parallel coding-agent implementation across many crates: agents re-derive their own interpretations. The contract crate is the only place these types live; this package is the consumable TypeScript view.
 
 ## Update protocol
 
