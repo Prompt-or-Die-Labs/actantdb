@@ -32,6 +32,8 @@ actant-throttle  = { workspace = true }
 anyhow           = { workspace = true }
 axum             = { workspace = true }
 axum-server      = { workspace = true }
+hex              = { workspace = true }
+time             = { workspace = true }
 rustls           = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 clap             = { workspace = true }
 serde            = { workspace = true }

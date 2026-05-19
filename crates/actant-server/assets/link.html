@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claim this ActantDB workspace</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0e0f12;
+    --panel: #15171c;
+    --text: #e9ecf2;
+    --muted: #8b93a3;
+    --accent: #6cb6ff;
+    --error: #ff7676;
+    --ok: #69d28a;
+    --border: #262932;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --text: #161821;
+      --muted: #5d6373;
+      --accent: #1f5fff;
+      --border: #d9dde6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  main {
+    width: 100%;
+    max-width: 460px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 28px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+  }
+  .sub { color: var(--muted); margin: 0 0 22px; font-size: 13px; }
+  .code-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 6px;
+    align-items: center;
+    margin: 18px 0 6px;
+  }
+  .code-row input {
+    text-align: center;
+    font: 600 16px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.12em;
+    padding: 12px 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    text-transform: lowercase;
+    width: 100%;
+    min-width: 0;
+  }
+  .code-row input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+  .dash { color: var(--muted); user-select: none; }
+  button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 14px;
+    background: var(--accent);
+    color: #000;
+    border: 0;
+    border-radius: 8px;
+    font: 600 14px inherit;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .msg { min-height: 18px; margin-top: 10px; font-size: 13px; }
+  .msg.error { color: var(--error); }
+  .msg.ok { color: var(--ok); }
+  footer {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Claim this workspace</h1>
+  <p class="sub">Paste the one-time linking code printed in the server log.</p>
+
+  <form id="link-form" autocomplete="off" novalidate>
+    <div class="code-row">
+      <input id="c1" maxlength="4" inputmode="latin" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <span class="dash">&ndash;</span>
+      <input id="c2" maxlength="4" inputmode="latin" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <span class="dash">&ndash;</span>
+      <input id="c3" maxlength="4" inputmode="latin" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    </div>
+    <button id="submit" type="submit">Claim</button>
+    <div id="msg" class="msg" role="status" aria-live="polite"></div>
+  </form>
+
+  <footer>
+    After claiming, you'll be asked to set a password. That account becomes the workspace owner.
+  </footer>
+</main>
+
+<script>
+(function () {
+  const inputs = [c1, c2, c3].map(id => document.getElementById(id.id));
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('submit');
+
+  // Auto-tab forward; Backspace tabs back.
+  inputs.forEach((el, i) => {
+    el.addEventListener('input', () => {
+      el.value = el.value.replace(/[^a-z0-9]/gi, '').toLowerCase();
+      if (el.value.length >= 4 && i < inputs.length - 1) inputs[i + 1].focus();
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && el.value.length === 0 && i > 0) inputs[i - 1].focus();
+    });
+    el.addEventListener('paste', e => {
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      if (!text) return;
+      e.preventDefault();
+      const clean = text.replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 12);
+      for (let j = 0; j < inputs.length; j++) {
+        inputs[j].value = clean.slice(j * 4, (j + 1) * 4);
+      }
+      const last = inputs[inputs.length - 1];
+      last.focus();
+      last.setSelectionRange(last.value.length, last.value.length);
+    });
+  });
+
+  document.getElementById('link-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    msg.className = 'msg';
+    msg.textContent = '';
+    const code = inputs.map(el => el.value).join('-');
+    if (code.replace(/-/g, '').length !== 12) {
+      msg.className = 'msg error';
+      msg.textContent = 'Code must be 12 characters.';
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const r = await fetch('/v1/auth/link', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) {
+        msg.className = 'msg ok';
+        msg.textContent = 'Linked. Redirecting…';
+        // Browser already received Set-Cookie; redirect into Studio.
+        setTimeout(() => { location.href = '/'; }, 600);
+      } else {
+        msg.className = 'msg error';
+        msg.textContent = (data && data.message) || ('Failed (' + r.status + ').');
+      }
+    } catch (err) {
+      msg.className = 'msg error';
+      msg.textContent = 'Network error.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Auto-fill from URL path: /link/xxxx-xxxx-xxxx
+  const m = location.pathname.match(/\/link\/([a-z0-9-]+)$/i);
+  if (m) {
+    const clean = m[1].replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 12);
+    for (let j = 0; j < inputs.length; j++) {
+      inputs[j].value = clean.slice(j * 4, (j + 1) * 4);
+    }
+  }
+
+  inputs[0].focus();
+})();
+</script>
+</body>
+</html>

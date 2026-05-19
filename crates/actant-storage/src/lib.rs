@@ -17,6 +17,7 @@ mod repo;
 
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use actant_core::ActantError;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
@@ -24,6 +25,14 @@ use sqlx::SqlitePool;
 
 pub use backend::{StorageBackend, PG_NOT_IMPLEMENTED_HINT};
 pub use postgres::PgStorage;
+
+// Re-export the object-store abstraction so downstream crates have a single
+// `use actant_storage::*` import point. The actant-objectstore default-feature
+// build is lean (filesystem + memory only); S3 / IPFS remain opt-in.
+pub use actant_objectstore::{
+    is_safe_key as is_safe_blob_key, sha256_hex as blob_sha256_hex, BlobError, BlobRef, BlobResult,
+    BlobStore, FilesystemStore, Layered, MemoryStore,
+};
 
 // `repo` extends `Storage` with inherent impls; the module itself doesn't
 // export new names.
@@ -42,6 +51,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
     (
         "0003_ai_native_and_reliability",
         include_str!("../../../migrations/0003_ai_native_and_reliability.sql"),
+    ),
+    (
+        "0004_auth",
+        include_str!("../../../migrations/0004_auth.sql"),
     ),
 ];
 
@@ -77,9 +90,19 @@ impl StorageConfig {
 }
 
 /// Opened storage handle. Cheap to clone (wraps an `Arc`d pool).
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Storage {
     pool: SqlitePool,
+    // Blob store for artifact payloads. Defaults to a filesystem store rooted
+    // at `<db parent>/blobs` for file-backed DBs, and a `MemoryStore` for
+    // `:memory:`. Injected via `with_blob_store` for production setups.
+    pub(crate) blob_store: Arc<dyn BlobStore>,
+}
+
+impl std::fmt::Debug for Storage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Storage").field("pool", &self.pool).finish()
+    }
 }
 
 impl Storage {
@@ -106,11 +129,37 @@ impl Storage {
             .await
             .map_err(|e| ActantError::Storage(e.to_string()))?;
 
-        let storage = Storage { pool };
+        let blob_store: Arc<dyn BlobStore> = default_blob_store(&config.db_path)
+            .map_err(|e| ActantError::Storage(format!("blob store: {e}")))?;
+
+        let storage = Storage { pool, blob_store };
         if config.apply_migrations {
             storage.run_migrations().await?;
         }
         Ok(storage)
+    }
+
+    /// Swap in a custom [`BlobStore`] for artifact payloads. Returns `self`
+    /// for builder-style use:
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use actant_storage::{Storage, StorageConfig, MemoryStore};
+    /// # async fn ex() -> anyhow::Result<()> {
+    /// let storage = Storage::open(StorageConfig::in_memory())
+    ///     .await?
+    ///     .with_blob_store(Arc::new(MemoryStore::new()));
+    /// # let _ = storage;
+    /// # Ok(()) }
+    /// ```
+    pub fn with_blob_store(mut self, store: Arc<dyn BlobStore>) -> Self {
+        self.blob_store = store;
+        self
+    }
+
+    /// Access the configured blob store.
+    pub fn blob_store(&self) -> Arc<dyn BlobStore> {
+        self.blob_store.clone()
     }
 
     /// Underlying connection pool.
@@ -194,4 +243,18 @@ fn strip_comments(s: &str) -> String {
 
 fn first_line(s: &str) -> &str {
     s.lines().next().unwrap_or("").trim()
+}
+
+/// Build the default blob store for a given database path. For file-backed
+/// databases this is a [`FilesystemStore`] rooted at `<db parent>/blobs`; for
+/// `:memory:` it is a [`MemoryStore`].
+fn default_blob_store(db_path: &Path) -> std::io::Result<Arc<dyn BlobStore>> {
+    if db_path.as_os_str() == ":memory:" {
+        return Ok(Arc::new(MemoryStore::new()));
+    }
+    let blobs_dir = db_path
+        .parent()
+        .map(|p| p.join("blobs"))
+        .unwrap_or_else(|| PathBuf::from("blobs"));
+    Ok(Arc::new(FilesystemStore::new(blobs_dir)?))
 }

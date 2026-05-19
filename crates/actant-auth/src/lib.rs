@@ -13,8 +13,15 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod link;
 pub mod oidc;
+pub mod password;
+pub mod session;
+
+pub use link::{verify_link_code, LinkCode};
 pub use oidc::{DiscoveryDoc, HttpFetcher, Jwk, JwkSet, OidcResolver};
+pub use password::{hash_password, verify_password};
+pub use session::{hash_token, verify_csrf, SessionToken, COOKIE_NAME, CSRF_HEADER};
 
 use actant_core::{ActantError, ActorId, WorkspaceId};
 use base64::Engine;

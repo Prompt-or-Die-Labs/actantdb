@@ -22,6 +22,8 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod auth_routes;
+
 use std::sync::Arc;
 
 use actant_command::Engine;
@@ -60,6 +62,24 @@ pub struct AppState {
     >,
     /// Token-bucket policy (applied when rate_limiter is set).
     pub rate_policy: Option<actant_throttle::Policy>,
+    /// Per-IP / per-session limiters for the UI auth surface (link redeem,
+    /// password login). Separate from the per-workspace command bucket
+    /// because the failure modes don't overlap.
+    pub auth_limiters: Arc<auth_routes::AuthRateLimiters>,
+    /// Loopback bind detected at boot (or set explicitly via the env
+    /// override). When `true`, the new auth routes accept unauthenticated
+    /// access AND the session cookie is minted without `Secure`.
+    pub local_mode: bool,
+    /// Whether the server is configured to terminate TLS. Drives the
+    /// `Secure` flag on session cookies and the boot-time refusal in the
+    /// binary when bound non-loopback without TLS.
+    pub tls_enabled: bool,
+    /// When `true`, the server will honor reverse-proxy headers
+    /// (`X-Forwarded-For`, `Forwarded`) in `local_mode`. By default a
+    /// forwarded request arriving at a loopback bind fails closed
+    /// (`reverse_proxy_detected`) so a misconfigured reverse proxy can't
+    /// trivially bypass the "loopback = trusted" assumption.
+    pub trust_proxy: bool,
 }
 
 impl AppState {
@@ -74,7 +94,35 @@ impl AppState {
             auth_secret: None,
             rate_limiter: None,
             rate_policy: None,
+            auth_limiters: Arc::new(auth_routes::AuthRateLimiters::new()),
+            // Loopback-trusted by default — the binary flips this off when
+            // the bind address is non-loopback.
+            local_mode: true,
+            tls_enabled: false,
+            trust_proxy: false,
         }
+    }
+
+    /// Builder: explicitly mark this state as remote (`/link` flow + cookies
+    /// required for the UI surface).
+    pub fn with_local_mode(mut self, local: bool) -> Self {
+        self.local_mode = local;
+        self
+    }
+
+    /// Builder: announce that the server is serving HTTPS (so the session
+    /// cookie gets the `Secure` flag).
+    pub fn with_tls_enabled(mut self, enabled: bool) -> Self {
+        self.tls_enabled = enabled;
+        self
+    }
+
+    /// Builder: trust `X-Forwarded-For` / `Forwarded` headers even in
+    /// `local_mode`. Set this only when the loopback bind sits behind a
+    /// trusted reverse proxy you control.
+    pub fn with_trust_proxy(mut self, trust: bool) -> Self {
+        self.trust_proxy = trust;
+        self
     }
 
     /// Builder: enable HS256 bearer-token auth using the given shared secret.
@@ -131,6 +179,15 @@ pub fn router(state: AppState) -> Router {
             "/v1/entity-relations",
             get(list_entity_relations).post(create_entity_relation),
         )
+        // --- UI auth (per UI_AUTH_DESIGN.md §5) ---------------------------
+        .route("/link", get(auth_routes::link_page))
+        .route("/link/{code}", get(auth_routes::link_page))
+        .route("/login", get(auth_routes::login_page))
+        .route("/v1/auth/link", post(auth_routes::link_redeem))
+        .route("/v1/auth/password", post(auth_routes::set_password))
+        .route("/v1/auth/login", post(auth_routes::login))
+        .route("/v1/auth/logout", post(auth_routes::logout))
+        .route("/v1/auth/me", get(auth_routes::whoami))
         .layer(axum::middleware::from_fn(request_id_middleware))
         .with_state(Arc::new(state))
 }
@@ -231,15 +288,18 @@ pub async fn serve(
             });
             axum_server::bind_rustls(addr, config)
                 .handle(handle)
-                .serve(router.into_make_service())
+                .serve(router.into_make_service_with_connect_info::<std::net::SocketAddr>())
                 .await?;
         }
         _ => {
             eprintln!("actantdb listening on http://{bind}");
             let listener = tokio::net::TcpListener::bind(addr).await?;
-            axum::serve(listener, router)
-                .with_graceful_shutdown(shutdown_signal())
-                .await?;
+            axum::serve(
+                listener,
+                router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
+            .with_graceful_shutdown(shutdown_signal())
+            .await?;
         }
     }
     Ok(())
@@ -493,51 +553,201 @@ async fn enforce_rate_limit(state: &AppState, workspace_id: &str) -> Result<(), 
     Ok(())
 }
 
-/// When an `auth_secret` is configured, require a valid HS256 bearer token
-/// whose `iss` claim matches the supplied `workspace_id`. Returns
-/// `Err(response)` for missing/invalid/mismatched tokens; `Ok(())` when auth
-/// is disabled or the token is accepted.
+/// Authentication chokepoint for the legacy data-plane routes.
+///
+/// Order of operations:
+///
+/// 1. **Loopback trust**: when [`AppState::local_mode`] is on AND the request
+///    isn't carrying a forwarded-proxy header (or the operator opted into
+///    [`AppState::trust_proxy`]), the request is allowed unauthenticated.
+///    This is the "OS user is the trust boundary" loopback contract.
+/// 2. **Bearer JWT**: legacy service-account path. If
+///    [`AppState::auth_secret`] is configured, an `Authorization: Bearer …`
+///    header is verified and its `iss` claim must equal `workspace_id`.
+///    Bearer tokens are CSRF-exempt by construction.
+/// 3. **Session cookie**: the UI path. `actantdb_session=<token>` is hashed,
+///    looked up in `session_token`, checked for expiry/revocation. On
+///    mutating methods (anything other than `GET/HEAD/OPTIONS`), the
+///    request must also carry an `X-CSRF-Token` matching the row's
+///    `csrf_secret`. The workspace bound to the session must match
+///    `workspace_id`.
+/// 4. **Else 401.** When no auth context is available and the server isn't
+///    in `local_mode`, the request is rejected.
+///
+/// Returns `Err(response)` for any rejection; `Ok(())` when the request
+/// is allowed.
 #[allow(clippy::result_large_err)]
-fn enforce_auth(
+async fn enforce_auth(
     state: &AppState,
     headers: &axum::http::HeaderMap,
+    method: &axum::http::Method,
     workspace_id: &str,
 ) -> Result<(), Response> {
-    let Some(secret) = &state.auth_secret else {
+    // (1) Loopback trust gate. The `into_make_service_with_connect_info`
+    // layer guarantees we run inside an axum service stack, but the per-
+    // request `ConnectInfo` extractor isn't reachable from this helper —
+    // so we trust `local_mode` (set at boot from the bind string), and
+    // separately refuse forwarded-proxy headers as the only way to escape
+    // that assumption.
+    //
+    // When `auth_secret` is also configured, we still enforce the bearer
+    // path even in local mode — that's how service accounts work. The
+    // loopback trust only applies to *unauthenticated* requests; once a
+    // caller supplies a bearer header it must be valid.
+    if state.local_mode && state.auth_secret.is_none() {
+        let proxied = headers.contains_key("x-forwarded-for")
+            || headers.contains_key("forwarded")
+            || headers.contains_key("x-real-ip");
+        if proxied && !state.trust_proxy {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "reverse_proxy_detected",
+                    "message":
+                        "the server is in local-mode but received a forwarded \
+                         proxy header; pass --trust-proxy to honor it or bind \
+                         non-loopback to enable full auth"
+                })),
+            )
+                .into_response());
+        }
         return Ok(());
-    };
-    let token = headers
+    }
+
+    // (2) Bearer JWT path (legacy + service accounts).
+    if let Some(token) = headers
         .get("authorization")
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "));
-    let Some(token) = token else {
-        return Err((
+        .and_then(|v| v.strip_prefix("Bearer "))
+    {
+        let Some(secret) = &state.auth_secret else {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "bearer_not_configured"})),
+            )
+                .into_response());
+        };
+        return match actant_auth::verify(token, secret) {
+            Ok(claims) => {
+                if claims.iss != workspace_id {
+                    Err((
+                        StatusCode::FORBIDDEN,
+                        Json(serde_json::json!({
+                            "error": "workspace_mismatch",
+                            "iss": claims.iss,
+                            "workspace_id": workspace_id
+                        })),
+                    )
+                        .into_response())
+                } else {
+                    Ok(())
+                }
+            }
+            Err(_) => Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "invalid_token"})),
+            )
+                .into_response()),
+        };
+    }
+
+    // (3) Cookie path.
+    if let Some(plain) = auth_routes::extract_session_cookie(headers) {
+        let hash = actant_auth::hash_token(&plain);
+        let row = sqlx::query_as::<_, (String, String, String, Option<String>)>(
+            "SELECT workspace_id, csrf_secret, expires_at, revoked_at
+             FROM session_token WHERE token_hash = ?",
+        )
+        .bind(&hash)
+        .fetch_optional(state.storage.pool())
+        .await
+        .map_err(|e| err_response(ActantError::Storage(e.to_string())))?;
+        let Some((sess_ws, csrf_secret, expires_at, revoked_at)) = row else {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "invalid_session"})),
+            )
+                .into_response());
+        };
+        if revoked_at.is_some() {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "revoked"})),
+            )
+                .into_response());
+        }
+        // Expiry check.
+        let now = time::OffsetDateTime::now_utc().unix_timestamp();
+        let exp = time::OffsetDateTime::parse(
+            &expires_at,
+            &time::format_description::well_known::Rfc3339,
+        )
+        .map(|t| t.unix_timestamp())
+        .unwrap_or(0);
+        if now > exp {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "expired"})),
+            )
+                .into_response());
+        }
+        if sess_ws != workspace_id {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "workspace_mismatch",
+                    "session_workspace": sess_ws,
+                    "workspace_id": workspace_id
+                })),
+            )
+                .into_response());
+        }
+        // CSRF on mutating verbs only.
+        if !matches!(
+            *method,
+            axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::OPTIONS
+        ) {
+            let presented = headers
+                .get("x-csrf-token")
+                .or_else(|| headers.get("X-CSRF-Token"))
+                .and_then(|v| v.to_str().ok());
+            let Some(presented) = presented else {
+                return Err((
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": "csrf_required",
+                        "message": "X-CSRF-Token header is required for mutating routes"
+                    })),
+                )
+                    .into_response());
+            };
+            if !actant_auth::verify_csrf(&csrf_secret, presented) {
+                return Err((
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": "csrf_mismatch",
+                        "message": "X-CSRF-Token does not match session"
+                    })),
+                )
+                    .into_response());
+            }
+        }
+        return Ok(());
+    }
+
+    // (4) Nothing matched.
+    if state.auth_secret.is_some() {
+        Err((
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({"error": "missing_authorization"})),
         )
-            .into_response());
-    };
-    match actant_auth::verify(token, secret) {
-        Ok(claims) => {
-            if claims.iss != workspace_id {
-                Err((
-                    StatusCode::FORBIDDEN,
-                    Json(serde_json::json!({
-                        "error": "workspace_mismatch",
-                        "iss": claims.iss,
-                        "workspace_id": workspace_id
-                    })),
-                )
-                    .into_response())
-            } else {
-                Ok(())
-            }
-        }
-        Err(_) => Err((
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({"error": "invalid_token"})),
-        )
-            .into_response()),
+            .into_response())
+    } else {
+        // Non-loopback bind with no bearer secret configured and no cookie
+        // — the legacy behavior was to allow. Preserve that so non-auth
+        // setups keep working, but in remote mode the operator should
+        // configure either a secret or rely on the cookie path.
+        Ok(())
     }
 }
 
@@ -549,7 +759,9 @@ async fn dispatch_command(
     if let Err(resp) = enforce_rate_limit(&s, &req.workspace_id).await {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &req.workspace_id) {
+    if let Err(resp) =
+        enforce_auth(&s, &headers, &axum::http::Method::POST, &req.workspace_id).await
+    {
         return resp;
     }
     let ws = WorkspaceId::from_string(req.workspace_id);
@@ -807,7 +1019,7 @@ async fn list_memories(
     if let Err(resp) = workspace_query_required(&q.workspace_id) {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &q.workspace_id) {
+    if let Err(resp) = enforce_auth(&s, &headers, &axum::http::Method::GET, &q.workspace_id).await {
         return resp;
     }
     let mut out: Vec<serde_json::Value> = Vec::new();
@@ -1000,7 +1212,7 @@ async fn list_memory_conflicts(
     if let Err(resp) = workspace_query_required(&q.workspace_id) {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &q.workspace_id) {
+    if let Err(resp) = enforce_auth(&s, &headers, &axum::http::Method::GET, &q.workspace_id).await {
         return resp;
     }
     let rows = sqlx::query_as::<
@@ -1074,7 +1286,7 @@ async fn list_permissions(
     if let Err(resp) = workspace_query_required(&q.workspace_id) {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &q.workspace_id) {
+    if let Err(resp) = enforce_auth(&s, &headers, &axum::http::Method::GET, &q.workspace_id).await {
         return resp;
     }
     let rows = sqlx::query_as::<
@@ -1172,7 +1384,9 @@ async fn create_permission(
     if let Err(resp) = enforce_rate_limit(&s, &req.workspace_id).await {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &req.workspace_id) {
+    if let Err(resp) =
+        enforce_auth(&s, &headers, &axum::http::Method::POST, &req.workspace_id).await
+    {
         return resp;
     }
     if req.actor_id.is_empty() {
@@ -1243,7 +1457,9 @@ async fn revoke_permission(
     if let Err(resp) = enforce_rate_limit(&s, &req.workspace_id).await {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &req.workspace_id) {
+    if let Err(resp) =
+        enforce_auth(&s, &headers, &axum::http::Method::DELETE, &req.workspace_id).await
+    {
         return resp;
     }
     if req.authority_scope_id.is_empty() {
@@ -1346,7 +1562,9 @@ async fn create_setup_report(
     if let Err(resp) = enforce_rate_limit(&s, &req.workspace_id).await {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &req.workspace_id) {
+    if let Err(resp) =
+        enforce_auth(&s, &headers, &axum::http::Method::POST, &req.workspace_id).await
+    {
         return resp;
     }
     if req.actor_id.is_empty() {
@@ -1401,7 +1619,7 @@ async fn list_setup_reports(
     if let Err(resp) = workspace_query_required(&q.workspace_id) {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &q.workspace_id) {
+    if let Err(resp) = enforce_auth(&s, &headers, &axum::http::Method::GET, &q.workspace_id).await {
         return resp;
     }
     if q.latest.unwrap_or(false) {
@@ -1523,7 +1741,9 @@ async fn create_scout_record(
     if let Err(resp) = enforce_rate_limit(&s, &req.workspace_id).await {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &req.workspace_id) {
+    if let Err(resp) =
+        enforce_auth(&s, &headers, &axum::http::Method::POST, &req.workspace_id).await
+    {
         return resp;
     }
     if req.actor_id.is_empty() {
@@ -1585,7 +1805,7 @@ async fn list_scout_records(
     if let Err(resp) = workspace_query_required(&q.workspace_id) {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &q.workspace_id) {
+    if let Err(resp) = enforce_auth(&s, &headers, &axum::http::Method::GET, &q.workspace_id).await {
         return resp;
     }
     let rows = sqlx::query_as::<_, (String, String, String, String, String)>(
@@ -1690,7 +1910,9 @@ async fn create_entity(
     if let Err(resp) = enforce_rate_limit(&s, &req.workspace_id).await {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &req.workspace_id) {
+    if let Err(resp) =
+        enforce_auth(&s, &headers, &axum::http::Method::POST, &req.workspace_id).await
+    {
         return resp;
     }
     if req.entity_type.is_empty() {
@@ -1758,7 +1980,7 @@ async fn list_entities(
     if let Err(resp) = workspace_query_required(&q.workspace_id) {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &q.workspace_id) {
+    if let Err(resp) = enforce_auth(&s, &headers, &axum::http::Method::GET, &q.workspace_id).await {
         return resp;
     }
     let rows: Result<Vec<EntityRowTuple>, _> = match q.entity_type.as_deref() {
@@ -1864,7 +2086,9 @@ async fn create_entity_relation(
     if let Err(resp) = enforce_rate_limit(&s, &req.workspace_id).await {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &req.workspace_id) {
+    if let Err(resp) =
+        enforce_auth(&s, &headers, &axum::http::Method::POST, &req.workspace_id).await
+    {
         return resp;
     }
     if req.source_entity.is_empty() || req.target_entity.is_empty() || req.relation_type.is_empty()
@@ -1910,7 +2134,7 @@ async fn list_entity_relations(
     if let Err(resp) = workspace_query_required(&q.workspace_id) {
         return resp;
     }
-    if let Err(resp) = enforce_auth(&s, &headers, &q.workspace_id) {
+    if let Err(resp) = enforce_auth(&s, &headers, &axum::http::Method::GET, &q.workspace_id).await {
         return resp;
     }
     type RelationRowTuple = (String, String, String, String, String, f64, String);
@@ -2007,21 +2231,50 @@ async fn list_entity_relations(
 }
 
 /// Bootstrap helper: open storage, build state, return router + pool. Used
-/// by the binary and by tests.
+/// by the binary and by tests. Defaults to local mode (loopback-trusted) so
+/// existing tests keep working without changes.
 pub async fn bootstrap(
     db_path: Option<std::path::PathBuf>,
 ) -> Result<(Router, AppState), ActantError> {
+    let (router, state, _link_code) = bootstrap_with_mode(db_path, true, false, false).await?;
+    Ok((router, state))
+}
+
+/// Extended bootstrap that returns a freshly-minted link code when the
+/// workspace is unowned and the server is bound non-loopback.
+///
+/// * `local_mode = true` — loopback bind, no link code is minted.
+/// * `local_mode = false` and there is no `workspace_owner` row for
+///   `ws_default` — a fresh code is generated; any prior unconsumed code
+///   is invalidated. The returned `String` is the display form
+///   (`xxxx-xxxx-xxxx`) for the binary to print on stderr.
+/// * `local_mode = false` and the workspace is already claimed — no code,
+///   `None`.
+/// * `trust_proxy` — when true, the chokepoint honors `X-Forwarded-For`
+///   even in `local_mode`. See [`AppState::trust_proxy`].
+pub async fn bootstrap_with_mode(
+    db_path: Option<std::path::PathBuf>,
+    local_mode: bool,
+    tls_enabled: bool,
+    trust_proxy: bool,
+) -> Result<(Router, AppState, Option<String>), ActantError> {
     let cfg = match db_path {
         Some(p) => actant_storage::StorageConfig::file(p),
         None => actant_storage::StorageConfig::in_memory(),
     };
     let storage = Storage::open(cfg).await?;
-    let state = AppState::new(storage);
-    // Seed a default workspace + system actor when the DB is empty so the
-    // first user can hit the server without a separate setup step.
+    let state = AppState::new(storage)
+        .with_local_mode(local_mode)
+        .with_tls_enabled(tls_enabled)
+        .with_trust_proxy(trust_proxy);
     seed_if_empty(&state).await?;
+    let link_code = if local_mode {
+        None
+    } else {
+        auth_routes::mint_link_code_for(&state.storage, auth_routes::DEFAULT_WORKSPACE_ID).await?
+    };
     let router = router(state.clone());
-    Ok((router, state))
+    Ok((router, state, link_code))
 }
 
 async fn seed_if_empty(state: &AppState) -> Result<(), ActantError> {

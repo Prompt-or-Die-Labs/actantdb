@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/mastra",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Wrap a Mastra agent: capture model + tool + approval events, expose to Actant Studio, support replay.",
   "type": "module",
   "license": "Apache-2.0",

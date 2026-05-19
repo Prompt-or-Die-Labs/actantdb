@@ -2,9 +2,10 @@
 //! the higher-level crates don't reach for `sqlx` directly.
 
 use actant_core::*;
+use bytes::Bytes;
 use sqlx::Row;
 
-use crate::Storage;
+use crate::{blob_sha256_hex, Storage};
 
 impl Storage {
     /// Insert a workspace.
@@ -247,6 +248,75 @@ impl Storage {
         .await
         .map_err(|e| ActantError::Storage(e.to_string()))?;
         Ok(())
+    }
+
+    /// Store an artifact body in the configured [`BlobStore`] and insert the
+    /// metadata row. Returns the new [`ArtifactId`].
+    ///
+    /// The key handed to the blob store is the lowercase-hex SHA-256 of `body`,
+    /// which doubles as the content hash recorded in `artifact.content_hash`.
+    /// Calling [`Self::put_artifact`] with identical bytes is therefore
+    /// idempotent at the blob level: a subsequent caller writes the same key
+    /// and the underlying object is identical. Two `artifact` rows are still
+    /// inserted because the artifact table is the metadata projection — the
+    /// rows differ in `id`, `workspace_id`, `created_by_actor_id`, and
+    /// `created_at`.
+    ///
+    /// The `kind` value lands in `artifact.kind` verbatim — callers should use
+    /// the canonical strings documented on the table (`'screenshot'`, `'file'`,
+    /// `'tool_output'`, `'transcript'`, `'report'`, `'model_output'`,
+    /// `'audio'`, `'video'`).
+    pub async fn put_artifact(
+        &self,
+        workspace_id: &WorkspaceId,
+        actor_id: &ActorId,
+        kind: &str,
+        body: Bytes,
+        sensitivity: Sensitivity,
+    ) -> Result<ArtifactId, ActantError> {
+        let content_hash = blob_sha256_hex(&body);
+        let bytes = body.len() as i64;
+        let blob_ref = self
+            .blob_store
+            .put(&content_hash, body)
+            .await
+            .map_err(|e| ActantError::Storage(format!("blob put: {e}")))?;
+
+        let id = ArtifactId::from_string(format!("art_{}", ulid::Ulid::new()));
+        let sens_s = serde_json::to_string(&sensitivity)
+            .unwrap_or_else(|_| "\"low\"".into())
+            .trim_matches('"')
+            .to_string();
+        let created_at = now_rfc3339();
+        sqlx::query(
+            "INSERT INTO artifact
+                (id, workspace_id, kind, uri, content_hash, bytes, sensitivity,
+                 created_by_actor_id, created_at, deleted_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",
+        )
+        .bind(id.as_str())
+        .bind(workspace_id.as_str())
+        .bind(kind)
+        .bind(&blob_ref.uri)
+        .bind(&content_hash)
+        .bind(bytes)
+        .bind(&sens_s)
+        .bind(actor_id.as_str())
+        .bind(&created_at)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| ActantError::Storage(e.to_string()))?;
+        Ok(id)
+    }
+
+    /// Fetch an artifact metadata row by id.
+    pub async fn get_artifact_uri(&self, id: &ArtifactId) -> Result<Option<String>, ActantError> {
+        let row = sqlx::query("SELECT uri FROM artifact WHERE id = ?")
+            .bind(id.as_str())
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| ActantError::Storage(e.to_string()))?;
+        Ok(row.map(|r| r.get::<String, _>("uri")))
     }
 
     /// Query Chronicle events for a session, oldest first.

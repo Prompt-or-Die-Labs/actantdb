@@ -6,12 +6,12 @@ Snapshot of every kind of test ActantDB runs through, as of `0.0.9` (2026-05-18)
 
 | Suite | Passing | Method |
 | --- | ---: | --- |
-| Rust unit + integration | **331** | `cargo test --workspace` |
+| Rust unit + integration | **384** | `cargo test --workspace` |
 | TypeScript (vitest) | **25** | `pnpm -r test` |
 | Python | **10** | `python3 -m unittest discover -s sdks/python/tests` (+ 1 skipped that needs `ACTANTDB_TEST_URL`) |
 | Swift | **62** in 12 suites | `swift test --package-path sdks/swift` |
 | Workspace smoke | **1** | `pnpm smoke` (boots Studio + appends + replays end-to-end) |
-| **Total** | **429** | — |
+| **Total** | **482** | — |
 
 CI runs every layer on every push: `.github/workflows/ci.yml` covers Rust on
 ubuntu/macOS/windows, TS on the same matrix at Node 24, Python on Linux,
