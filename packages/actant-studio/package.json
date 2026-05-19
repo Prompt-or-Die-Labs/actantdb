@@ -1,9 +1,17 @@
 {
   "name": "@actantdb/studio",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Local UI + CLI for ActantDB: timeline, context manifest, approval, replay.",
   "type": "module",
   "license": "Apache-2.0",
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/server.js",
+      "types": "./dist/server.d.ts"
+    }
+  },
   "bin": {
     "actantdb": "./dist/cli.js"
   },

@@ -26,7 +26,7 @@ import {
   diffReplayAgainstOriginal,
   tighten,
 } from "@actantdb/replay";
-import { startStudioServer } from "@actantdb/studio/dist/server.js";
+import { startStudioServer } from "@actantdb/studio";
 
 const PROJECT = "smoke-test";
 const STORE_DIR = mkdtempSync(join(tmpdir(), "actantdb-smoke-"));
