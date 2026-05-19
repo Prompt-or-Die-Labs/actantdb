@@ -1,3 +1,8 @@
+// ActantDBSupervisor is host-only (spawns the actantdb child process).
+// Gated #if !os(iOS) in Sources/ActantAgent/ActantDBSupervisor.swift; the
+// test suite mirrors the gate so iOS test builds compile clean.
+#if !os(iOS)
+
 import Foundation
 import Testing
 @testable import ActantAgent
@@ -374,3 +379,5 @@ func withEnv<R>(_ overrides: [String: String], _ body: () async throws -> R) asy
     }
     return try await body()
 }
+
+#endif // !os(iOS)

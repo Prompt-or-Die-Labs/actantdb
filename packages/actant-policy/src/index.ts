@@ -1,7 +1,7 @@
 /**
  * @actantdb/policy — Guard verdict builders and the v0.1 policy evaluator.
  *
- * The v0.1 policy supports four mechanisms (see /wedge/60-day-plan.md days 22–35):
+ * The v0.1 policy supports four mechanisms (see /CHANGELOG.md days 22–35):
  *   - per-tool risk class
  *   - regex deny-list on argument JSON
  *   - sensitivity ceiling (max sensitivity allowed without approval)

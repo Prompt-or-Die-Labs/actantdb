@@ -2,7 +2,7 @@
  * @actantdb/mastra — wrap a Mastra agent (or any agent that follows the same
  * tool shape) for ActantDB capture, approval, and replay.
  *
- * Phase 1 surface (per /wedge/60-day-plan.md):
+ * Phase 1 surface (per /CHANGELOG.md):
  *
  *   const wrapped = withActant(agent, {
  *     project: "support-agent",

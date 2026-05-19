@@ -2,7 +2,7 @@
 /**
  * actantdb — local CLI for the Studio package.
  *
- * Subcommands (per /wedge/anti-scope.md §5):
+ * Subcommands (per /CHANGELOG.md §5):
  *   actantdb studio                            open local Studio
  *   actantdb approve <tool_call_id> [--scope=<>]
  *   actantdb deny    <tool_call_id> [--reason=<>]
@@ -103,7 +103,7 @@ GLOBAL OPTIONS:
 
 EXAMPLES:
   # Open Studio against the in-repo demo store:
-  ACTANTDB_STORE_DIR=./wedge/demo/.actantdb actantdb studio --project demo-test-cleanup
+  ACTANTDB_STORE_DIR=../examples/test-cleanup/.actantdb actantdb studio --project demo-test-cleanup
 
   # List pending approvals for a project:
   actantdb approvals --project my-agent

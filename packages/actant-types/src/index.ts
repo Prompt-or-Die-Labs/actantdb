@@ -6,7 +6,7 @@
  *
  * Hand-edits to `src/generated/*` are forbidden. New cross-package types
  * must be added to `crates/actant-contracts` first. See
- * `/wedge/f2-f3-prevention.md`.
+ * `/CLAUDE.md`.
  */
 
 export * from "./generated/index.js";

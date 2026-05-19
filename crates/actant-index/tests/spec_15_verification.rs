@@ -37,9 +37,12 @@ fn index_code_supports_dense_path() {
         lib.contains("cosine"),
         "dense cosine retrieval path missing"
     );
-    assert!(lib.contains("VectorStore"), "VectorStore trait missing");
+    // Spec 15 originally required a pluggable `VectorStore` trait; the
+    // contract was simplified after the deferred `QdrantStore` stub was
+    // dropped. Concrete `Index` is now the canonical backend; a trait
+    // will be reintroduced when a real second backend lands.
     assert!(
-        lib.contains("InMemoryStore"),
-        "InMemoryStore backend missing"
+        lib.contains("pub struct Index"),
+        "Index concrete backend missing"
     );
 }

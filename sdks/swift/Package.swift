@@ -25,14 +25,22 @@ let package = Package(
             dependencies: ["ActantDB"],
             path: "Sources/ActantAgent"
         ),
+        // Shared test-support target. Holds MockURLProtocol + any other
+        // cross-suite test fixtures. Previously the mock was byte-duplicated
+        // into both test targets; a fix in one would silently fail to land
+        // in the other.
+        .target(
+            name: "ActantTestSupport",
+            path: "Tests/ActantTestSupport"
+        ),
         .testTarget(
             name: "ActantDBTests",
-            dependencies: ["ActantDB"],
+            dependencies: ["ActantDB", "ActantTestSupport"],
             path: "Tests/ActantDBTests"
         ),
         .testTarget(
             name: "ActantAgentTests",
-            dependencies: ["ActantAgent"],
+            dependencies: ["ActantAgent", "ActantTestSupport"],
             path: "Tests/ActantAgentTests"
         ),
     ]

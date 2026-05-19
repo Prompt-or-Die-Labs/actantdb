@@ -1,14 +1,16 @@
 //! actant-index — hybrid retrieval over indexed objects.
 //!
-//! Phase 1: dense cosine similarity over an in-memory `Index`.
-//! Phase 6+: pluggable `VectorStore` trait so the same `Index` API can be
-//! backed by Qdrant / LanceDB / pgvector.
+//! In-memory cosine similarity over `Index`. The previous `VectorStore`
+//! trait + deferred `QdrantStore` stub were dropped — single-impl trait
+//! was dead weight and the stub returned `anyhow::bail!("integration
+//! deferred")` on every method. Reintroduce a trait when a second real
+//! backend (LanceDB, pgvector, etc.) actually lands; until then this is
+//! a concrete type with a focused API.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
 use actant_embed::{Embedder, Embedding};
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// One indexed object.
@@ -31,97 +33,13 @@ pub struct Hit {
     pub score: f32,
 }
 
-/// Pluggable vector store.
-#[async_trait]
-pub trait VectorStore: Send + Sync {
-    /// Persist an item.
-    async fn upsert(&mut self, item: IndexedItem) -> anyhow::Result<()>;
-    /// Top-k by cosine similarity to the query embedding.
-    async fn search(&self, query: &Embedding, k: usize) -> anyhow::Result<Vec<Hit>>;
-    /// Number of items stored.
-    async fn len(&self) -> anyhow::Result<usize>;
-    /// Whether the store is empty.
-    async fn is_empty(&self) -> anyhow::Result<bool> {
-        Ok(self.len().await? == 0)
-    }
-}
-
-/// Default in-memory backend.
-#[derive(Debug, Default)]
-pub struct InMemoryStore {
-    items: Vec<IndexedItem>,
-}
-
-impl InMemoryStore {
-    /// New empty store.
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-#[async_trait]
-impl VectorStore for InMemoryStore {
-    async fn upsert(&mut self, item: IndexedItem) -> anyhow::Result<()> {
-        if let Some(slot) = self.items.iter_mut().find(|x| x.id == item.id) {
-            *slot = item;
-        } else {
-            self.items.push(item);
-        }
-        Ok(())
-    }
-    async fn search(&self, query: &Embedding, k: usize) -> anyhow::Result<Vec<Hit>> {
-        let mut scored: Vec<Hit> = self
-            .items
-            .iter()
-            .map(|it| Hit {
-                item: it.clone(),
-                score: cosine(&it.embedding.vector, &query.vector),
-            })
-            .collect();
-        scored.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-        scored.truncate(k);
-        Ok(scored)
-    }
-    async fn len(&self) -> anyhow::Result<usize> {
-        Ok(self.items.len())
-    }
-}
-
-/// Qdrant adapter scaffold. Wraps a configured HTTP endpoint; calls land on
-/// the standard Qdrant REST API. Implementations of the trait methods are
-/// stubbed for Phase 6; full integration is deferred until a design partner
-/// asks for it.
-#[derive(Debug, Clone)]
-pub struct QdrantStore {
-    /// Base URL.
-    pub base_url: String,
-    /// Collection name.
-    pub collection: String,
-}
-
-#[async_trait]
-impl VectorStore for QdrantStore {
-    async fn upsert(&mut self, _item: IndexedItem) -> anyhow::Result<()> {
-        anyhow::bail!("QdrantStore::upsert: integration deferred; configure InMemoryStore for now")
-    }
-    async fn search(&self, _q: &Embedding, _k: usize) -> anyhow::Result<Vec<Hit>> {
-        anyhow::bail!("QdrantStore::search: integration deferred")
-    }
-    async fn len(&self) -> anyhow::Result<usize> {
-        anyhow::bail!("QdrantStore::len: integration deferred")
-    }
-}
-
-/// In-memory index — a convenience facade over `InMemoryStore` for the
-/// existing call-sites. Equivalent to constructing an `InMemoryStore` and
-/// invoking its trait methods directly.
+/// In-memory vector index. Cosine similarity over a flat `Vec<IndexedItem>`.
+/// Reasonable up to ~10k items per index; beyond that, a real ANN backend
+/// is the answer (and gets its own dedicated type, not a re-introduced
+/// `VectorStore` trait — see the crate-level doc).
 #[derive(Debug, Default)]
 pub struct Index {
-    inner: InMemoryStore,
+    items: Vec<IndexedItem>,
 }
 
 impl Index {
@@ -130,15 +48,28 @@ impl Index {
         Self::default()
     }
 
-    /// Insert an item synchronously (blocks the runtime briefly).
-    pub fn insert(&mut self, item: IndexedItem) {
-        self.inner.items.push(item);
+    /// Number of items stored.
+    pub fn len(&self) -> usize {
+        self.items.len()
     }
 
-    /// Top-k by cosine similarity. Synchronous over the in-memory backend.
+    /// Whether the index is empty.
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    /// Insert an item. Replaces any existing item with the same `id`.
+    pub fn insert(&mut self, item: IndexedItem) {
+        if let Some(slot) = self.items.iter_mut().find(|x| x.id == item.id) {
+            *slot = item;
+        } else {
+            self.items.push(item);
+        }
+    }
+
+    /// Top-k by cosine similarity.
     pub fn search(&self, query: &Embedding, k: usize) -> Vec<(f32, &IndexedItem)> {
         let mut scored: Vec<(f32, &IndexedItem)> = self
-            .inner
             .items
             .iter()
             .map(|it| (cosine(&it.embedding.vector, &query.vector), it))
@@ -146,6 +77,18 @@ impl Index {
         scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
         scored.truncate(k);
         scored
+    }
+
+    /// Top-k as owned `Hit` records — convenience for callers who don't
+    /// want to borrow the index.
+    pub fn search_owned(&self, query: &Embedding, k: usize) -> Vec<Hit> {
+        self.search(query, k)
+            .into_iter()
+            .map(|(score, item)| Hit {
+                item: item.clone(),
+                score,
+            })
+            .collect()
     }
 
     /// Convenience: embed `text` and store with `id`.
@@ -208,45 +151,29 @@ mod tests {
         assert_eq!(r[0].1.id, "a");
     }
 
-    #[tokio::test]
-    async fn in_memory_store_round_trip() {
-        let mut s = InMemoryStore::new();
-        s.upsert(IndexedItem {
+    #[test]
+    fn upsert_replaces_existing_id() {
+        let mut idx = Index::new();
+        idx.insert(IndexedItem {
             id: "x".into(),
             text: "hello".into(),
             embedding: emb(vec![1.0, 0.0, 0.0]),
-        })
-        .await
-        .unwrap();
-        s.upsert(IndexedItem {
+        });
+        idx.insert(IndexedItem {
             id: "y".into(),
             text: "world".into(),
             embedding: emb(vec![0.0, 1.0, 0.0]),
-        })
-        .await
-        .unwrap();
-        assert_eq!(s.len().await.unwrap(), 2);
+        });
+        assert_eq!(idx.len(), 2);
         // Upsert same id replaces.
-        s.upsert(IndexedItem {
+        idx.insert(IndexedItem {
             id: "x".into(),
             text: "hello2".into(),
             embedding: emb(vec![1.0, 0.0, 0.0]),
-        })
-        .await
-        .unwrap();
-        assert_eq!(s.len().await.unwrap(), 2);
-        let hits = s.search(&emb(vec![0.95, 0.1, 0.0]), 1).await.unwrap();
+        });
+        assert_eq!(idx.len(), 2);
+        let hits = idx.search_owned(&emb(vec![0.95, 0.1, 0.0]), 1);
         assert_eq!(hits[0].item.id, "x");
         assert_eq!(hits[0].item.text, "hello2");
-    }
-
-    #[tokio::test]
-    async fn qdrant_stub_errors_clearly() {
-        let q = QdrantStore {
-            base_url: "http://localhost:6333".into(),
-            collection: "test".into(),
-        };
-        let r = q.search(&emb(vec![1.0]), 1).await;
-        assert!(r.is_err());
     }
 }

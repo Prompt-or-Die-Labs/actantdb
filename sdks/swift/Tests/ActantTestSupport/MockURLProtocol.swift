@@ -5,16 +5,20 @@ import Foundation
 /// release the barrier. The barrier is necessary because Swift Testing's
 /// `.serialized` trait only serializes within a suite — the static handler
 /// would otherwise race across suites.
-final class MockURLProtocol: URLProtocol, @unchecked Sendable {
+///
+/// Lives in the shared `ActantTestSupport` target so both `ActantDBTests`
+/// and `ActantAgentTests` import the same impl — previously this file was
+/// byte-duplicated in both test targets.
+public final class MockURLProtocol: URLProtocol, @unchecked Sendable {
 
-    typealias Handler = @Sendable (URLRequest) -> (Int, [String: String], Data)
+    public typealias Handler = @Sendable (URLRequest) -> (Int, [String: String], Data)
 
     private static let lock = NSLock()
     nonisolated(unsafe) private static var _handler: Handler?
 
     /// Run `body` with the given mock handler installed. Other suites awaiting
     /// the same mutex will queue up and run serially.
-    static func with<R: Sendable>(
+    public static func with<R: Sendable>(
         _ handler: @escaping Handler,
         body: @Sendable () async throws -> R
     ) async throws -> R {
@@ -27,16 +31,16 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
         return try await body()
     }
 
-    static func makeSession() -> URLSession {
+    public static func makeSession() -> URLSession {
         let cfg = URLSessionConfiguration.ephemeral
         cfg.protocolClasses = [MockURLProtocol.self]
         return URLSession(configuration: cfg)
     }
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    public override class func canInit(with request: URLRequest) -> Bool { true }
+    public override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
-    override func startLoading() {
+    public override func startLoading() {
         let handler = Self.lock.withLock { Self._handler }
         guard let handler else {
             client?.urlProtocol(self, didFailWithError: NSError(
@@ -57,7 +61,7 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
         client?.urlProtocolDidFinishLoading(self)
     }
 
-    override func stopLoading() {}
+    public override func stopLoading() {}
 }
 
 /// Tiny actor-based mutex. Used to serialize MockURLProtocol handler

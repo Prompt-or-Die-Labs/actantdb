@@ -210,6 +210,25 @@ for them; the substrate work for each is tracked in
 gap (`DEVX_GAPS.md` X88–X95) that has to ship before the cloud surface can
 go live.
 
+## Part G — Cross-OS sync relay (post-CloudKit phase)
+
+CloudKit covers Apple-ecosystem sync (Phase 1; see
+[`docs/SYNC_DESIGN.md`](./docs/SYNC_DESIGN.md)). For Android / Linux /
+Windows devices or for sharing workspaces between two people, ActantDB
+Cloud needs to ship a sync relay. These rows track that work; all are
+🌐 Phase 3.
+
+| # | Item | Status | Notes |
+|---|---|--------|-------|
+| G1 | **ActantDB Cloud sync relay endpoint** | 🌐 | Hosted CKRecord-equivalent — accept event rows from any device, deliver to subscribed devices. WebSocket + REST. Per-workspace sharded; uses the existing `actant-objectstore` (S3) for large payload offload. |
+| G2 | **Group / workspace-shared sync** | 🌐 | Two or more humans share one workspace. Auth model: workspace owner invites collaborators (already partially in `actant-auth`); sync relay enforces membership. Conflict policy unchanged (HLC-LWW) — just more devices in the convergence pool. |
+| G3 | **Cross-OS device pairing** | 🌐 | Linking-code (CLOUD_GAPS.md C2 substrate) extended to "pair this Android phone with my Mac" flow. QR code on Mac → scan with Android → both devices register against the same relay-side workspace. |
+| G4 | **Push notification fan-out** | 🌐 | APNs (iOS), FCM (Android), Web Push (PWAs / Chrome). Triggered by the relay when new events land for a sleeping device. |
+| G5 | **Per-device sync quotas + billing** | 🌐 | Hosted sync is paid-tier; quota per workspace (e.g. 10 GB synced data, X devices). Wires into CLOUD_GAPS.md C8 metering. |
+
+**Part G totals:** 5 🌐. Lands after CloudKit Phase 1 proves the
+replication semantics and after Phase 2 Cloud control plane lands.
+
 ## Cross-link audit (so nothing slips between docs)
 
 | Doc | What lives there | What does NOT live there |

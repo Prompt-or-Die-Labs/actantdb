@@ -1,7 +1,7 @@
 /**
  * @actantdb/replay — replay engine.
  *
- * Scope (per /wedge/60-day-plan.md days 36–50):
+ * Scope (per /CHANGELOG.md days 36–50):
  *   - checkpoint(eventId): capture (manifest hash, policy hash, memory ids, prior tool results).
  *   - runFromEvent(eventId, overrides): replay from a checkpoint with overrides
  *     (policy, exclude memory, alternate model).

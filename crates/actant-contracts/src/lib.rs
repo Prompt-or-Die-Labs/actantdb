@@ -2,7 +2,7 @@
 //!
 //! Every cross-package type lives here. Other ActantDB crates and SDKs
 //! consume their types from here; hand-edits to generated outputs are
-//! forbidden. See `/wedge/f2-f3-prevention.md`.
+//! forbidden. See `/CLAUDE.md`.
 //!
 //! v0.1 scope: only the types the killer demo emits (Guard Authority +
 //! Chronicle Replay). Per anti-scope rule #2, nothing here exists without

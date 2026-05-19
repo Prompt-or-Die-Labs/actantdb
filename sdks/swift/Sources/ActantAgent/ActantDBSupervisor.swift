@@ -1,3 +1,11 @@
+// ActantDBSupervisor spawns the `actantdb` Rust binary as a child process.
+// That doesn't work in the iOS sandbox (no `posix_spawn` / `Process` to
+// arbitrary binaries; no writable arbitrary filesystem paths). On iOS the
+// path forward is direct FFI embedding via `actant-ffi` — see
+// `docs/IOS_EMBEDDING.md`. Gating the whole supervisor here keeps the
+// ActantAgent target buildable for `.iOS(.v26)` without runtime errors.
+#if !os(iOS)
+
 import Foundation
 #if canImport(Darwin)
 import Darwin
@@ -556,3 +564,5 @@ final class LineBuffer: @unchecked Sendable {
         return lines
     }
 }
+
+#endif // !os(iOS)
