@@ -7,6 +7,28 @@
  */
 
 import type { MastraAgentLike } from "@actantdb/mastra";
+import type { AgentHarness } from "./harnesses/types.js";
+
+/** Configuration for the agent the Box drives. */
+export interface AgentConfig {
+  /**
+   * Preset harness — one of `Agent.ClaudeCode | Agent.Codex | Agent.OpenCode |
+   * Agent.Cursor`. Spawns the corresponding CLI inside the workspace on
+   * `box.agent.run`. If omitted, supply a `custom` agent instead.
+   */
+  harness?: AgentHarness | string;
+  /** Model id (e.g. `ClaudeCode.Sonnet_4_6`). Falls back to the harness default. */
+  model?: string;
+  /** API key forwarded to the harness's expected env var. */
+  apiKey?: string;
+  /**
+   * Custom agent — used when `harness` is omitted (or set to `Agent.Custom`).
+   * Must conform to `MastraAgentLike`.
+   */
+  custom?: MastraAgentLike;
+  /** Extra args appended to the CLI invocation. */
+  extraArgs?: string[];
+}
 
 /** Configuration passed to `Box.create`. */
 export interface BoxConfig {
@@ -15,12 +37,13 @@ export interface BoxConfig {
   /** "local" runs on the host (default). "cloud" throws — see CLOUD_ROADMAP.md. */
   mode?: "local" | "cloud";
   /**
-   * Pre-existing agent the Box will run. The agent must conform to the
-   * `MastraAgentLike` shape (a `tools` record and an optional `generate()`).
-   * If omitted you can still use `box.exec`/`box.files`/etc., but
-   * `box.agent.run` will throw.
+   * Agent the Box drives. Either a preset harness (recommended — drop-in
+   * Upstash Box parity) OR a custom user-supplied agent.
+   *
+   * Backwards-compat: a bare `MastraAgentLike` object is still accepted
+   * and treated as `{ custom: <agent> }`.
    */
-  agent?: MastraAgentLike;
+  agent?: AgentConfig | MastraAgentLike;
   /** Override the ~/.actantdb/boxes root. */
   storeRoot?: string;
   /** Initial cwd relative to the workspace dir. Default: "". */

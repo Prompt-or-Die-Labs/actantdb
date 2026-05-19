@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/sdk",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "TypeScript client SDK for the ActantDB server. Talks to /v1/command and /v1/ws.",
   "type": "module",
   "license": "Apache-2.0",

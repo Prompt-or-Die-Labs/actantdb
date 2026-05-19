@@ -20,8 +20,37 @@ No Rust toolchain, no Docker, no exposed ports.
 ## Quickstart
 
 ```ts
-import { Box } from "@actantdb/box";
+import { Box, Agent, ClaudeCode } from "@actantdb/box";
 
+// Box.create with a preset coding-agent harness — drop-in for @upstash/box.
+const box = await Box.create({
+  name: "my-workspace",
+  agent: {
+    harness: Agent.ClaudeCode,        // or Agent.Codex / Agent.OpenCode / Agent.Cursor
+    model: ClaudeCode.Sonnet_4_6,
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  },
+});
+
+const run = await box.agent.run({ prompt: "Add a /healthz endpoint to server.ts" });
+console.log(run.result);
+
+// Or stream chunks:
+for await (const chunk of box.agent.stream({ prompt: "Refactor auth.ts" })) {
+  if (chunk.type === "text-delta") process.stdout.write(chunk.text);
+}
+```
+
+The harness spawns the configured CLI (`claude`, `codex`, `opencode`, …) inside
+the workspace. Install the CLI on PATH or set `CLAUDE_PATH` / `CODEX_PATH` /
+`OPENCODE_PATH`. Every spawn lands as a typed event in the box's hash-chained
+ledger so you can replay the run later.
+
+## Custom agent (no preset)
+
+If you'd rather plug in your own Mastra / LangGraph / hand-rolled agent:
+
+```ts
 const box = await Box.create({ name: "my-workspace" });
 
 // Files

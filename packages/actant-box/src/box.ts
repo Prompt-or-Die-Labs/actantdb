@@ -95,6 +95,8 @@ export class Box {
   private _status: BoxStatus;
   private _keepAlive: boolean;
   private _agentRef: BoxAgentAPI["agent"]; // kept stable for box.agent
+  /** Raw agent config from BoxConfig — preset harness or bare custom agent. */
+  private _agentConfig: BoxConfig["agent"];
 
   private constructor(args: {
     metadata: BoxMetadata;
@@ -114,6 +116,7 @@ export class Box {
     this._model = metadata.model;
     this._initCommand = metadata.initCommand;
     this._status = metadata.status;
+    this._agentConfig = config.agent;
     this._keepAlive = metadata.keepAlive;
 
     const ctxProvider = () => ({
@@ -126,7 +129,18 @@ export class Box {
       mode: this.mode,
     });
 
-    this.agent = new BoxAgentAPI(ctxProvider, config.agent);
+    // Accept either { harness, model, ... } (preset) or a bare MastraAgentLike
+    // (custom). The agent layer normalizes both internally.
+    const cfg = config.agent;
+    const isAgentConfig =
+      !!cfg && typeof cfg === "object" && ("harness" in cfg || "custom" in cfg);
+    const customAgent = isAgentConfig
+      ? (cfg as { custom?: import("@actantdb/mastra").MastraAgentLike }).custom
+      : (cfg as import("@actantdb/mastra").MastraAgentLike | undefined);
+    this.agent = new BoxAgentAPI(ctxProvider, customAgent);
+    if (isAgentConfig && (cfg as { harness?: string }).harness) {
+      this.agent.setHarness(cfg as import("./types.js").AgentConfig);
+    }
     this.exec = new BoxExecAPI(ctxProvider);
     this.files = new BoxFilesAPI(ctxProvider);
     this.git = new BoxGitAPI(ctxProvider);
@@ -330,9 +344,22 @@ export class Box {
     return this._cwd;
   }
 
-  /** Same shape Upstash exposes: `{ harness, model }`. Harness is always "local". */
-  get modelConfig(): { harness: string; model: string | undefined } {
-    return { harness: this.mode === "cloud" ? "cloud" : "local", model: this._model };
+  /**
+   * Same shape Upstash exposes: `{ harness, model }`. `harness` is the
+   * configured preset (`claude-code` / `codex` / `opencode` / `cursor`) or
+   * `undefined` when running a custom agent.
+   */
+  get modelConfig(): { harness: string | undefined; model: string | undefined } {
+    const cfg = this._agentConfig;
+    const harness =
+      cfg && typeof cfg === "object" && "harness" in cfg
+        ? (cfg as { harness?: string }).harness
+        : undefined;
+    const modelFromCfg =
+      cfg && typeof cfg === "object" && "model" in cfg
+        ? (cfg as { model?: string }).model
+        : undefined;
+    return { harness, model: modelFromCfg ?? this._model };
   }
 
   get keepAlive(): boolean {

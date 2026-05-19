@@ -16,7 +16,10 @@ export type BoxErrorCode =
   | "snapshot_not_found"
   | "invalid_argument"
   | "cloud_unsupported"
-  | "deleted";
+  | "deleted"
+  | "harness_cli_missing"
+  | "harness_timeout"
+  | "unknown_harness";
 
 export class BoxError extends Error {
   readonly code: BoxErrorCode;

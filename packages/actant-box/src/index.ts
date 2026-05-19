@@ -43,3 +43,28 @@ export type {
 
 export type { AgentRunInput } from "./agent.js";
 export type { ExecOptions } from "./exec.js";
+
+// Upstash-Box-parity harness presets + model enums.
+export type { AgentConfig } from "./types.js";
+export { Agent } from "./harnesses/types.js";
+export type {
+  Harness,
+  HarnessRunInput,
+  HarnessRunResult,
+  AgentHarness,
+} from "./harnesses/types.js";
+export { getHarness, listHarnesses } from "./harnesses/index.js";
+export {
+  ClaudeCode,
+  OpenAICodex,
+  OpenRouterModel,
+  OpenCodeModel,
+  CursorModel,
+} from "./models.js";
+export type {
+  ClaudeCodeModel,
+  OpenAICodexModel,
+  OpenRouterModelId,
+  OpenCodeModelId,
+  CursorModelId,
+} from "./models.js";

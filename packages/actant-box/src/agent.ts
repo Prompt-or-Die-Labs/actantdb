@@ -16,7 +16,9 @@ import type { Policy } from "@actantdb/types";
 
 import { BoxError } from "./errors.js";
 import { Run } from "./run.js";
-import type { AgentChunk } from "./types.js";
+import type { AgentChunk, AgentConfig } from "./types.js";
+import { getHarness } from "./harnesses/index.js";
+import type { Harness } from "./harnesses/types.js";
 
 export interface AgentCtx {
   ledger: Ledger;
@@ -49,12 +51,39 @@ export class BoxAgentAPI {
   private wrapped: WrappedAgent<MastraAgentLike> | undefined;
   /** Stable handle the consumer can reassign tools onto. */
   agent: MastraAgentLike;
+  /** Harness adapter (set when config.agent.harness is configured). */
+  private harness: Harness | undefined;
+  /** Per-harness model override (from config). */
+  private harnessModel: string | undefined;
+  /** Per-harness api-key override. */
+  private harnessApiKey: string | undefined;
+  /** Extra CLI args from config. */
+  private harnessExtraArgs: string[] | undefined;
 
   constructor(
     private readonly ctx: CtxProvider,
     initialAgent?: MastraAgentLike,
   ) {
     this.agent = initialAgent ?? { tools: {} };
+  }
+
+  /** Configure a preset CLI harness (Agent.ClaudeCode / Codex / OpenCode). */
+  setHarness(config: AgentConfig): void {
+    if (!config.harness) {
+      this.harness = undefined;
+      return;
+    }
+    const h = getHarness(config.harness);
+    if (!h) {
+      throw new BoxError(
+        "unknown_harness",
+        `Unknown harness "${config.harness}". Choose one of: claude-code, codex, opencode, cursor, or omit for a custom agent.`,
+      );
+    }
+    this.harness = h;
+    this.harnessModel = config.model;
+    this.harnessApiKey = config.apiKey;
+    this.harnessExtraArgs = config.extraArgs;
   }
 
   /** Swap the underlying agent. Resets the cached wrapper. */
@@ -74,8 +103,41 @@ export class BoxAgentAPI {
   }
 
   async run(input: AgentRunInput): Promise<Run> {
-    const wrapped = this.ensureWrapped(input.policy, input.autoApprove);
     const ctx = this.ctx();
+    if (ctx.mode === "cloud") {
+      throw new BoxError(
+        "cloud_unsupported",
+        "box.agent.run: cloud control plane is in development — see docs/CLOUD_ROADMAP.md Phase 2",
+      );
+    }
+    // Harness path: spawn the configured CLI in the workspace, record the
+    // result as a tool_call_completed event so the run lands in the ledger
+    // just like a custom-agent path would.
+    if (this.harness) {
+      if (!input.prompt) {
+        throw new BoxError(
+          "exec_failed",
+          `box.agent.run requires a prompt when using harness "${this.harness.name}"`,
+        );
+      }
+      const t0 = performance.now();
+      const res = await this.harness.run({
+        prompt: input.prompt,
+        cwd: `${ctx.workspaceDir}${ctx.cwd ? "/" + ctx.cwd : ""}`,
+        model: this.harnessModel ?? this.harness.defaultModel,
+        ...(this.harnessApiKey !== undefined ? { apiKey: this.harnessApiKey } : {}),
+        ...(input.timeout !== undefined ? { timeoutMs: input.timeout } : {}),
+        ...(this.harnessExtraArgs !== undefined ? { extraArgs: this.harnessExtraArgs } : {}),
+      });
+      const runId = `agent-${Date.now()}`;
+      const r = new Run({ id: runId, ledger: ctx.ledger });
+      if (res.ok) r.complete(res.result);
+      else r.fail(new Error(`harness "${this.harness.name}" exited ${res.exitCode}: ${res.output.slice(-2000)}`));
+      r.cost = { ...r.cost, computeMs: res.computeMs };
+      return r;
+    }
+
+    const wrapped = this.ensureWrapped(input.policy, input.autoApprove);
     const ledger = ctx.ledger;
     const t0 = performance.now();
 
@@ -122,6 +184,33 @@ export class BoxAgentAPI {
   }
 
   async *stream(input: AgentRunInput): AsyncIterable<AgentChunk> {
+    const ctx = this.ctx();
+    if (ctx.mode === "cloud") {
+      throw new BoxError(
+        "cloud_unsupported",
+        "box.agent.stream: cloud control plane is in development — see docs/CLOUD_ROADMAP.md Phase 2",
+      );
+    }
+    if (this.harness) {
+      if (!input.prompt) {
+        throw new BoxError(
+          "exec_failed",
+          `box.agent.stream requires a prompt when using harness "${this.harness.name}"`,
+        );
+      }
+      for await (const chunk of this.harness.stream({
+        prompt: input.prompt,
+        cwd: `${ctx.workspaceDir}${ctx.cwd ? "/" + ctx.cwd : ""}`,
+        model: this.harnessModel ?? this.harness.defaultModel,
+        ...(this.harnessApiKey !== undefined ? { apiKey: this.harnessApiKey } : {}),
+        ...(input.timeout !== undefined ? { timeoutMs: input.timeout } : {}),
+        ...(this.harnessExtraArgs !== undefined ? { extraArgs: this.harnessExtraArgs } : {}),
+      })) {
+        yield chunk;
+      }
+      return;
+    }
+
     const wrapped = this.ensureWrapped(input.policy, input.autoApprove);
     const generatePayload = buildGeneratePayload(input);
     const agent = wrapped.agent;
