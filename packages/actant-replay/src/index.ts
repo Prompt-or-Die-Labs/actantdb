@@ -48,15 +48,35 @@ export interface RunFromEventOptions {
   /** Alternate policy used to re-evaluate Guard verdicts. */
   policy?: Policy;
   /**
+   * Replay mode. `undefined` / `"recorded"` is the default: recorded
+   * tool/model outputs are replayed verbatim, only overrides apply.
+   *
+   * - `"tool"`: substitute the recorded result of named tool calls with
+   *   the values in `toolSubstitutions`. The substituted completion is
+   *   marked `status: "substituted"`.
+   * - `"experimental"`: re-invoke one tool with a supplied replacement
+   *   result, leaving downstream events to fan out with that new result.
+   *   Throws if `experimentalToolCallId` is not in the recorded run.
+   *
+   * `local_only` is implemented in the Rust side; surface here is the
+   * default replay shape — pass overrides instead.
+   */
+  mode?: "recorded" | "tool" | "experimental";
+  /**
+   * For `mode: "tool"` — `tool_call_id` -> replacement result. Tool calls
+   * not listed pass through unchanged.
+   */
+  toolSubstitutions?: Record<string, unknown>;
+  /** For `mode: "experimental"` — the tool to re-invoke. */
+  experimentalToolCallId?: string;
+  /** For `mode: "experimental"` — the supplied replacement result. */
+  experimentalReplacementResult?: unknown;
+  /**
    * Optional: alternate planner result. If provided, the replayed model_call
    * will use this string as the new planner summary. Defaults to the
    * recorded summary — except when memory exclusions cause the planner to
    * notionally "change its mind"; in that case the test harness must pass
    * the synthetic alternate.
-   *
-   * For the killer demo: if any excluded memory item's id was a substring of
-   * the original tool args, we drop those args, producing the "safer
-   * command" pattern Studio shows in the diff.
    */
   alternatePlannerOutput?: string;
 }
@@ -68,12 +88,35 @@ export interface RunFromEventOptions {
  * returned to the caller (Studio can re-render from the result).
  */
 export function runFromEvent(opts: RunFromEventOptions): ReplayRun {
-  const { ledger, eventId, overrides = {}, policy } = opts;
+  const { ledger, eventId, overrides = {}, policy, mode } = opts;
   const anchor = ledger.get(eventId);
   if (!anchor) throw new Error(`event not found: ${eventId}`);
 
   // Collect the original run's events.
   const original = ledger.query({ runId: anchor.run_id });
+
+  // Validate experimental mode: the named tool call must exist in this run.
+  // (Throwing here keeps the caller honest — silent fallback to a regular
+  // replay would mask test-harness mistakes.)
+  if (mode === "experimental") {
+    const target = opts.experimentalToolCallId;
+    if (!target) {
+      throw new Error("experimental mode requires `experimentalToolCallId`");
+    }
+    const present = original.some(
+      (e) =>
+        (e.kind === "tool_call_requested" ||
+          e.kind === "tool_call_completed" ||
+          e.kind === "tool_call_started") &&
+        (e.payload as { tool_call_id?: string } | undefined)?.tool_call_id ===
+          target,
+    );
+    if (!present) {
+      throw new Error(
+        `tool_call_id "${target}" not present in run ${anchor.run_id}`,
+      );
+    }
+  }
   // Pre-checkpoint events are kept verbatim; post-checkpoint events are
   // recomputed under overrides.
   const before = original.filter((e) => e.id <= eventId);
@@ -122,6 +165,12 @@ export function runFromEvent(opts: RunFromEventOptions): ReplayRun {
     }
   }
 
+  // For mode=experimental, track when the re-invocation has fired so we
+  // can mark every downstream event as "fanned out from a different
+  // result" — payload_hash gets a `_replay` marker which makes the diff
+  // surface them as `changed` rather than accidentally `identical`.
+  let experimentalSubstituted = false;
+
   // Re-run each post-checkpoint event under overrides.
   for (const e of after) {
     if (e.kind === "model_call" && opts.alternatePlannerOutput !== undefined) {
@@ -168,6 +217,47 @@ export function runFromEvent(opts: RunFromEventOptions): ReplayRun {
     }
     if (e.kind === "tool_call_completed") {
       const recorded = e.payload as ToolCallCompleted;
+      const tcid = (recorded as { tool_call_id?: string }).tool_call_id;
+
+      // mode=tool: caller-supplied result wins for named tool calls.
+      if (mode === "tool" && tcid && opts.toolSubstitutions && tcid in opts.toolSubstitutions) {
+        const newPayload = {
+          ...recorded,
+          status: "substituted",
+          result: opts.toolSubstitutions[tcid],
+        };
+        events.push({
+          ...e,
+          id: ulid(),
+          payload: newPayload,
+          payload_hash: sha256OfJSON(newPayload),
+        });
+        continue;
+      }
+
+      // mode=experimental: re-invoke the named tool with the supplied result.
+      if (
+        mode === "experimental" &&
+        tcid === opts.experimentalToolCallId
+      ) {
+        experimentalSubstituted = true;
+        const newPayload = {
+          ...recorded,
+          status: "reinvoked",
+          result:
+            opts.experimentalReplacementResult ?? {
+              status: "live-reinvocation-pending",
+            },
+        };
+        events.push({
+          ...e,
+          id: ulid(),
+          payload: newPayload,
+          payload_hash: sha256OfJSON(newPayload),
+        });
+        continue;
+      }
+
       events.push({
         ...e,
         id: ulid(),
@@ -176,6 +266,23 @@ export function runFromEvent(opts: RunFromEventOptions): ReplayRun {
       continue;
     }
     // Default: pass-through (re-id so replay events remain causally distinct).
+    // Under mode=experimental, after the re-invocation has fired, mark
+    // downstream events with a `_replay` field so the diff sees them as
+    // `changed` (the recorded payload hashes the same; the marker carries
+    // "this event re-walked under a different upstream result").
+    if (experimentalSubstituted) {
+      const tagged = {
+        ...(e.payload as object),
+        _replay: { mode: "experimental", downstream_of: opts.experimentalToolCallId },
+      };
+      events.push({
+        ...e,
+        id: ulid(),
+        payload: tagged,
+        payload_hash: sha256OfJSON(tagged),
+      });
+      continue;
+    }
     events.push({ ...e, id: ulid() });
   }
 
