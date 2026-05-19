@@ -61,7 +61,10 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # @actantdb/core uses node:sqlite, unflagged starting at Node 24.
+          # Node 22 needs --experimental-sqlite; keep this aligned with the
+          # publish workflow.
+          node-version: 24
           cache: pnpm
       - run: pnpm install --ignore-scripts
       - run: pnpm -r build
@@ -77,6 +80,15 @@ jobs:
         with:
           python-version: "3.11"
       - run: python3 -m unittest discover -s sdks/python/tests -v
+
+  test-swift:
+    name: swift test (sdks/swift)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift version
+        run: swift --version
+      - run: swift test --package-path sdks/swift
 
   bench-build:
     name: benchmark crate compiles
