@@ -146,6 +146,32 @@ After these four, every code-shaped gap inside the self-hosting boundary
 is closed and the next move is genuinely the Cloud Phase 2 work in
 `docs/CLOUD_ROADMAP.md`.
 
+## Part C — iOS embedding + CloudKit sync (new this pass)
+
+Direction: the Rust core becomes embeddable on iOS as a static library
+(no subprocess, no HTTP loopback on-device). Swift SDK gains a third mode
+alongside remote/spawned. Sync rides CloudKit private database. Design in
+[`docs/IOS_EMBEDDING.md`](./docs/IOS_EMBEDDING.md) +
+[`docs/SYNC_DESIGN.md`](./docs/SYNC_DESIGN.md).
+
+| # | Gap | Status | Notes |
+|---|-----|--------|-------|
+| 39 | **`actant-ffi` crate — uniffi-rs bindings** | 🔴 | New crate exposing `ActantHandle::open / dispatch / events_since / ingest / close` over uniffi. Auto-generates Swift glue + Kotlin glue later. Replaces today's HTTP/WS surface for in-process callers. |
+| 40 | **iOS-clean Rust core audit + feature gates** | 🔴 | Audit for `std::process::Command`, system `libsqlite3`, hard-coded `~/.actantdb` paths, `native-tls`, etc. Result: an `ios` feature profile that excludes worker bins + uses `sqlx --features sqlite-bundled` + `reqwest --features rustls-tls`. |
+| 41 | **XCFramework build + Swift binaryTarget** | 🔴 | CI workflow builds `libactant_ffi.a` for the 5 iOS/macOS slices, lipos sim+mac, runs `xcodebuild -create-xcframework`, ships zip + checksum as a release artifact. `sdks/swift/Package.swift` gains `.binaryTarget(url, checksum)`. |
+| 42 | **HLC clock + content-derived event IDs** | 🔴 | Replace ULID-monotonic event ids with HLC + sha256(payload, hlc, actor_id). Migration `0007_replication.sql` adds `device_id`, `hlc_physical_ms`, `hlc_logical`. Mirror in `migrations/pg/0007_replication.sql` to keep parity gate at 92/92. |
+| 43 | **`Storage::ingest(events)` idempotent API** | 🔴 | Validate each event's id (recompute hash, compare), insert on conflict-do-nothing. Returns `IngestReport { accepted, skipped, rejected }`. Wired through `actant-ffi`. |
+| 44 | **Per-projection conflict policy table** | 🔴 | `crates/actant-replay/src/conflict.rs` ships a `ConflictPolicy` with per-field LWW for `memory.{approved_at, rejected_at, last_verified_at}`, `session.{title, phase}`, `actor.display_name`. Row-level LWW for everything else. |
+| 45 | **ActantDBSupervisor `#if !os(iOS)` gate** | 🟢 | This pass. `Sources/ActantAgent/ActantDBSupervisor.swift` + `Tests/ActantAgentTests/SupervisorTests.swift` both wrapped in `#if !os(iOS) ... #endif`. iOS test builds compile clean. |
+| 46 | **Swift `Actant.embedded(storeDir:)` mode** | 🔴 | New construction path alongside `Actant.remote(url:)` and `Actant.spawned(supervisor:)`. Backed by `actant-ffi`'s `ActantHandle`. Same `ActantClient`-shaped API surface; consumer doesn't notice which mode is in use. |
+| 47 | **CloudKit sync target (`Sources/ActantDB/Sync/CloudKit/`)** | 🔴 | Per-workspace CKRecord schema, push subscriptions for resume, retain-30-days default, `actant.sync.enable(container:)` API. Stub `Sources/ActantDB/Sync/None/` for non-Apple. Persisted outbox drains via `actant-reliability::circuit`. |
+| 48 | **VectorStore trait dropped (was scaffolding)** | 🟢 | This pass. Removed `trait VectorStore` + `InMemoryStore` + the `QdrantStore` stub that returned `anyhow::bail!("integration deferred")` on every call. `Index` is the concrete in-memory type; reintroduce a trait when a real second backend lands. |
+| 49 | **Wedge-path stragglers in source headers** | 🟢 | This pass. 6 source files (`crates/actant-contracts/src/lib.rs`, `packages/actant-{mastra,studio,types,policy,replay}/src/index.ts`) had `/wedge/…` references in doc-comment paths. Sed-replaced with substrate-equivalent paths. |
+| 50 | **`deploy/docker/` duplicate compose+Dockerfile** | 🟢 | This pass. The older 36-line `deploy/docker/docker-compose.yaml` was a stale parallel of the 90-line `deploy/docker-compose.yml`. Deleted; canonical compose path stays at `deploy/`. |
+| 51 | **`MockURLProtocol.swift` byte-duplicated across test targets** | 🟢 | This pass. Extracted to new `Tests/ActantTestSupport/` SwiftPM target; both `ActantDBTests` and `ActantAgentTests` now depend on it. 11 test files patched to `import ActantTestSupport`. |
+
+**Part C sub-totals:** 4 🟢 (this pass), 9 🔴 (FFI + sync work tracked).
+
 ## Slim refactor (kept from prior pass)
 
 - **53 → 36 crates (-32%)**.
