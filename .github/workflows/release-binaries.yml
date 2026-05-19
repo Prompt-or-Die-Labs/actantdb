@@ -1,0 +1,132 @@
+name: release-binaries
+
+# Builds prebuilt `actantdb` + `actantdb-server` binaries for macOS (arm64+x64)
+# and Linux (x64) and attaches them to a GitHub Release.
+#
+# This is the binary distribution path for consumers who don't want to
+# `cargo install` from source. Notably: the Swift SDK's ActantDBSupervisor
+# downloads/locates a prebuilt `actantdb` binary at runtime.
+#
+# Trigger paths:
+#   - Push a tag matching `v*` (e.g. `v0.0.5`) → builds + creates a release.
+#   - workflow_dispatch with a `version` input → builds + creates a draft release.
+#
+# Requirements:
+#   - Standard GITHUB_TOKEN (no extra secret needed).
+#   - The Rust workspace must build clean on every matrix target.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to attach to the draft release (e.g. v0.0.5)"
+        required: true
+        type: string
+      draft:
+        description: "Create as draft (default true for manual; false for tag pushes)"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive_ext: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-13
+            archive_ext: tar.gz
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive_ext: tar.gz
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: build release binaries
+        run: |
+          cargo build --release --target ${{ matrix.target }} \
+            -p actant-cli -p actant-server
+
+      - name: stage artifacts
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          STAGE="actantdb-${VERSION}-${{ matrix.target }}"
+          mkdir -p "dist/$STAGE"
+          cp "target/${{ matrix.target }}/release/actantdb"        "dist/$STAGE/" || true
+          cp "target/${{ matrix.target }}/release/actantdb-server" "dist/$STAGE/" || true
+          cp LICENSE README.md "dist/$STAGE/" || true
+          (cd dist && tar -czf "${STAGE}.tar.gz" "$STAGE")
+          ls -lh "dist/${STAGE}.tar.gz"
+          shasum -a 256 "dist/${STAGE}.tar.gz" > "dist/${STAGE}.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: actantdb-${{ matrix.target }}
+          path: |
+            dist/actantdb-*.tar.gz
+            dist/actantdb-*.tar.gz.sha256
+          if-no-files-found: error
+
+  release:
+    name: create release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          pattern: actantdb-*
+          merge-multiple: true
+
+      - name: list assets
+        run: ls -lh dist/
+
+      - name: derive tag + draft flag
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "draft=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "draft=${{ github.event.inputs.draft }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: create or update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          DRAFT_FLAG=""
+          [[ "${{ steps.meta.outputs.draft }}" == "true" ]] && DRAFT_FLAG="--draft"
+
+          # Try to create; if it already exists, edit + upload.
+          if ! gh release create "$TAG" $DRAFT_FLAG \
+               --title "$TAG" \
+               --notes "Prebuilt binaries for actantdb $TAG. Verify with the .sha256 sidecars." \
+               dist/*.tar.gz dist/*.sha256; then
+            echo "release exists — uploading additional assets"
+            gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
+          fi
