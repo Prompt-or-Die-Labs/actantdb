@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/studio",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Local UI + CLI for ActantDB: timeline, context manifest, approval, replay.",
   "type": "module",
   "license": "Apache-2.0",

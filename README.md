@@ -16,7 +16,7 @@ Concrete state of the repo at the most recent build. Not aspirational.
 
 | Layer                | What ships                                                                                  | Evidence                                       |
 | -------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **Wedge (npm)**      | 8 TypeScript packages: `@actantdb/mastra`, `core`, `policy`, `replay`, `studio`, `types`, `sdk`, `convex`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-shadow.yml` |
+| **Wedge (npm)**      | 8 TypeScript packages: `@actantdb/mastra`, `core`, `policy`, `replay`, `studio`, `types`, `sdk`, `convex`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-npm.yml` |
 | **Demos**            | 3 runnable demos with recorded SQLite event ledgers (Mastra, LangGraph, pure CLI).            | `wedge/demo/`, `wedge/demo-langgraph/`, `wedge/demo-cli/` |
 | **Rust workspace**   | 49 crates, ~15k lines, Rust 1.88. Full Phase 1–6 implementation.                            | `crates/`, `cargo metadata`                    |
 | **HTTP server**      | Axum HTTP + WebSocket. TLS (rustls). `actantdb serve --tls-cert/--tls-key`.                   | `crates/actant-server`, `tests/tls.rs`         |
@@ -35,7 +35,7 @@ Concrete state of the repo at the most recent build. Not aspirational.
 | **Python SDK**       | pip-installable, mirrors the TS SDK surface. Integration test passes against a real server.    | `sdks/python/`                                 |
 | **Swift SDK**        | Two-tier (Swift 6.3, macOS 26 / iOS 26). `ActantDB` is a 1:1 HTTP+WS client; `ActantAgent` is the opinionated facade (Session / MemoryStore / Auditor / ApprovalCenter / ReplayClient / RelationshipStore / ActantDBSupervisor) that lets a consumer like Swoosh add ActantDB by one-line conformance extensions. | `sdks/swift/` |
 | **Benchmarks**       | Criterion + HTTP load. `storage_append_event ≈ 60 µs`. `command_append_user_message ≈ 116 µs`. HTTP `POST /v1/command` median **341 µs**. | `bench/`, `docs/SLO.md`            |
-| **Tests**            | **186 Rust + 25 TypeScript + 4 Python + 1 workspace smoke = 216 passing.** 0 failed.            | `cargo test --workspace`, `pnpm -r test`, `pnpm smoke` |
+| **Tests**            | **331 Rust + 25 TypeScript + 10 Python + 62 Swift + 1 workspace smoke = 429 passing.** 0 failed.            | `cargo test --workspace`, `pnpm -r test`, `pnpm smoke`, `swift test --package-path sdks/swift` |
 | **Spec verification**| Every active spec has `tests/spec_NN_verification.rs`. The harness caught **8 real drifts** before they shipped (event-name drift, missing diff kinds, FK ordering, etc.). | `SPECS_STATUS.md`                              |
 | **CI bundle**        | `fmt-check + clippy -D warnings + test + verify-specs + verify-agents`. Green.                  | `.github/workflows/ci.yml`, `justfile`         |
 
@@ -257,7 +257,7 @@ cargo bench -p actant-bench --bench http_command -- --sample-size 20
 ## Status
 
 - **Gate 1 — wedge MVP** (target 2026-06-30): implementation-complete. Three runnable demos. Human leftovers: 90-second screencast, hero PNG, three-platform install verification.
-- **Gate 2 — external adoption** (target 2026-07-31): blocked on first `npm publish` + outreach. The repo ships a manual-trigger publish workflow at [`.github/workflows/publish-shadow.yml`](./.github/workflows/publish-shadow.yml) that builds, tests, and publishes every `@actantdb/*` package under the `shadow` dist-tag.
+- **Gate 2 — external adoption** (target 2026-07-31): blocked on first `npm publish` + outreach. The repo ships a manual-trigger publish workflow at [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) that builds, tests, and publishes every `@actantdb/*` package under the `shadow` dist-tag.
 - **Gate 3 — shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
 
 [`GATES.md`](./GATES.md) is the punch list. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the 5-step sequence to close Gates 2 + 3. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current substrate-plus-wedge shape.

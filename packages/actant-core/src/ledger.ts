@@ -23,6 +23,19 @@ export interface LedgerOptions {
   dbPath?: string;
   /** Root storage directory (overrides ~/.actantdb). */
   storeDir?: string;
+  /**
+   * Open the ledger entirely in RAM (uses node:sqlite's `:memory:`).
+   *
+   * Intended for tests, CI environments where `~/.actantdb` isn't writable,
+   * and any case where you want a `Ledger` instance to be sharable across
+   * an in-process agent and Studio without touching disk. Mutually
+   * exclusive with `dbPath`/`storeDir` — if `inMemory` is true, those are
+   * ignored and `dbPath` reports `:memory:`.
+   *
+   * In-memory ledgers cannot be shared across processes — each process
+   * gets its own independent `:memory:` database.
+   */
+  inMemory?: boolean;
 }
 
 /** Filter for ledger queries. */
@@ -53,10 +66,15 @@ export class Ledger {
 
   constructor(opts: LedgerOptions) {
     this.project = opts.project;
-    const root = opts.storeDir ?? join(homedir(), ".actantdb");
-    this.dbPath = opts.dbPath ?? join(root, opts.project, "events.sqlite");
-    mkdirSync(dirname(this.dbPath), { recursive: true });
-    this.db = new DatabaseSync(this.dbPath);
+    if (opts.inMemory) {
+      this.dbPath = ":memory:";
+      this.db = new DatabaseSync(":memory:");
+    } else {
+      const root = opts.storeDir ?? join(homedir(), ".actantdb");
+      this.dbPath = opts.dbPath ?? join(root, opts.project, "events.sqlite");
+      mkdirSync(dirname(this.dbPath), { recursive: true });
+      this.db = new DatabaseSync(this.dbPath);
+    }
     this.db.exec(SCHEMA);
   }
 

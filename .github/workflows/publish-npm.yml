@@ -1,4 +1,4 @@
-name: publish-shadow
+name: publish-npm
 
 # Publishes every @actantdb/* package under the `shadow` npm dist-tag.
 # Runs only on manual trigger so a routine push to main can never publish.

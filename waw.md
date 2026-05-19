@@ -85,7 +85,7 @@ These survived the freeze lift because they were the right call regardless:
 [`GATES.md`](./GATES.md) tracks the three validation gates from the original wedge plan. Status as of the most recent build:
 
 - **Gate 1 — Wedge MVP green** (target 2026-06-30): implementation-complete. The artifact prerequisites are all met; the human leftovers are a 90-second screencast, a hero PNG, and three-platform install verification.
-- **Gate 2 — External adoption** (target 2026-07-31): blocked on `npm publish` + outreach. Tarballs in `/dist-publish` are install-verified into a fresh `npm install`-only sandbox.
+- **Gate 2 — External adoption** (target 2026-07-31): all 8 `@actantdb/*` packages published to npm under `latest` + `shadow` tags as of 0.0.2 (currently 0.0.6). Outreach to design partners pending.
 - **Gate 3 — Shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
 
 [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the precise 5-step sequence to close Gates 2 + 3.

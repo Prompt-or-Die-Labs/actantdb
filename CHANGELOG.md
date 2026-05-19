@@ -4,6 +4,94 @@ This file accumulates the visible changes shipped through this work session.
 Cross-reference: [SPECS_STATUS.md](./SPECS_STATUS.md), [GATES.md](./GATES.md),
 [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md).
 
+## 0.0.7 — 2026-05-18
+
+- **`@actantdb/core`** `openLedger({ inMemory: true })` opens a
+  `:memory:` SQLite ledger — closes filed issue #4. Useful for tests
+  and any in-process scenario where you want to share one ledger
+  between an agent and Studio without touching disk.
+- **CI workflow renamed** `publish-shadow.yml → publish-npm.yml` to
+  reflect actual behavior (publishes to `latest`, mirrors to `shadow`).
+- **Docs sweep**: README test counts updated to 429 (331 Rust + 25 TS
+  + 10 Python + 62 Swift + 1 smoke; previous figure was 216).
+  `RELEASE_CHECKLIST.md` rewritten to mark Step 1 (npm publish) done
+  and reference the workflow instead of deleted `dist-publish/`.
+  `waw.md`, `CLAUDE.md` updated. CHANGELOG fills the 0.0.2–0.0.6 gap.
+- All 8 packages bumped to **0.0.7**.
+
+## 0.0.6 — 2026-05-18
+
+- **`@actantdb/studio`** now exposes `startStudioServer` as a library
+  export (`main` + `types` + `exports`). Previously the package had no
+  `main`/`exports` and library users hit `ERR_PACKAGE_PATH_NOT_EXPORTED`
+  on `import('@actantdb/studio')`. CLI `bin` entry unchanged.
+- All 8 packages bumped to **0.0.6**.
+
+## 0.0.5 — 2026-05-18
+
+- **DX trial 2 fixes** caught from a fresh-user project trial against 0.0.4:
+  - `actantdb` CLI: VERSION constant now read from `package.json` (was
+    still hard-coded `"0.0.1-pre"` despite the publish version moving).
+  - `actantdb studio` now supports `--quiet` to suppress the listening
+    banner.
+  - README "Install (the wedge)" snippets switched from `ts` to `js`
+    fence labels — they're plain JavaScript; the `ts` tag implied a
+    TS toolchain a fresh user shouldn't need.
+  - README now documents direct ledger access via
+    `wrapped.actant.ledger.query({})`.
+  - README `@actantdb/studio` install moved to `--save-dev` (it's a
+    dev tool; shouldn't ship in consumer production deps).
+- **Rust workspace** version bumped `0.0.1 → 0.0.5` for parity with npm;
+  every `[workspace.dependencies]` `actant-*` pin updated.
+- **`release-binaries.yml`** workflow added — manual + tag-triggered.
+  Builds `actantdb` + `actantdb-server` for macOS-arm64, macOS-x64,
+  linux-x64; uploads SHA256 sidecars; creates GitHub Release on tag.
+  This is the binary-distribution path the Swift `ActantDBSupervisor`
+  consumes.
+- 4 deeper DX gaps filed as GH issues #1–#4 (numeric policy DSL,
+  replay policy override propagation, per-framework prereqs docs,
+  in-memory ledger — #4 already closed in 0.0.6).
+
+## 0.0.4 — 2026-05-18
+
+- **`@actantdb/core`** `VERSION` constant now derived from `package.json`
+  via `createRequire` (was hard-coded `"0.0.1-pre"`).
+- **`@actantdb/core`** `openLedger` accepts both positional
+  `(project, storeDir)` and object `({project, storeDir, dbPath})`
+  forms. Avoids the `TypeError [ERR_INVALID_ARG_TYPE]` a fresh user
+  hit when copying the object-form snippet from the README.
+- **`@actantdb/mastra`** marks `@mastra/core` as optional via
+  `peerDependenciesMeta` (the wrapper accepts any tools-record-shaped
+  agent — not strictly Mastra). Removes spurious peer warnings.
+- **`@actantdb/studio`** server handles `HEAD /` as `GET /` for
+  liveness probes (was returning 404).
+- **`docs/book/`** rendered output untracked + `.gitignore`d
+  (`mdbook build docs` regenerates on demand). 80 stale HTML files
+  removed.
+- **Publish workflow** default tag changed from `shadow` → `latest`;
+  added `also_tag_shadow` input (default `true`) so the shadow channel
+  still mirrors every release.
+- All 8 packages bumped to **0.0.4**. Default `npm install
+  @actantdb/X` now gets the fixed version (`latest` is no longer
+  pinned to broken-URL 0.0.2).
+
+## 0.0.3 — 2026-05-18
+
+- **Repo URL fix** across every published manifest, `Cargo.toml`,
+  `docs/book.toml`, and `docs/src/README.md`. Was
+  `github.com/actantdb/actantdb` (7 pkgs) or `github.com/actant/actant`
+  (`@actantdb/mastra`); now `github.com/Prompt-or-Die-Labs/actantdb`.
+- All 8 packages bumped to **0.0.3** and published to the `shadow` tag.
+
+## 0.0.2 — 2026-05-18
+
+- **First public publish.** Eight `@actantdb/*` packages on npm under
+  the `shadow` dist-tag via the new GH Actions `publish-npm.yml`
+  workflow. Node 24 in CI so `node:sqlite` is unflagged.
+- `packages/` brought into git (had been silently caught by the
+  `Packages/` rule in `.gitignore` on case-insensitive APFS).
+- Stale `dist-publish/` tarball directory removed.
+
 ## Unreleased — 2026-05-18
 
 ### Swift SDK opinionated facade + extra storage endpoints

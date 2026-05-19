@@ -4,7 +4,7 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 
 ## Repository status — read before doing anything
 
-The 2026-05-17 premortem proposed freezing everything except a 2-feature wedge. The freeze was **lifted the same day**. The substrate was built out: ~49 Rust crates, 8 npm packages, three runnable demos, 216 passing tests, full Phase 1–6 implementation. The wedge frame is still useful for *external* developer narrative; internally, everything is active.
+The 2026-05-17 premortem proposed freezing everything except a 2-feature wedge. The freeze was **lifted the same day**. The substrate was built out: ~49 Rust crates, 8 npm packages (now published as `@actantdb/*@0.0.6`), three runnable demos, **429 passing tests** (331 Rust + 25 TS + 10 Python + 62 Swift + 1 smoke), full Phase 1–6 implementation. The wedge frame is still useful for *external* developer narrative; internally, everything is active.
 
 Read [PIVOT.md](PIVOT.md) for the current state, [CHANGELOG.md](CHANGELOG.md) for what landed, [GATES.md](GATES.md) for outstanding gate work, and [SPECS_STATUS.md](SPECS_STATUS.md) for per-spec verification.
 
@@ -83,7 +83,7 @@ These survived the freeze lift because they're the right design regardless:
 just            # list recipes
 just check      # cargo check --workspace --all-targets   (fast)
 just build      # cargo build --workspace --all-targets
-just test       # cargo test  --workspace --all-targets   (186 passing)
+just test       # cargo test  --workspace --all-targets   (331 passing)
 just fmt        # cargo fmt --all
 just fmt-check  # CI mode
 just lint       # cargo clippy --workspace --all-targets -- -D warnings
@@ -97,7 +97,7 @@ Single Rust test: `cargo test -p <crate> <test_name>`.
 ```bash
 pnpm install
 pnpm -r build         # build all packages
-pnpm -r test          # 25 vitest tests
+pnpm -r test          # 25 vitest tests across the @actantdb/* packages
 pnpm -r --parallel dev
 pnpm -r lint          # tsc --noEmit per package
 pnpm smoke            # workspace E2E (must pass on every PR)

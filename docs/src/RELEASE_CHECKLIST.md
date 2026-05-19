@@ -4,50 +4,40 @@ This is the artifact that converts "ready" to "shipped". Every step below
 is one the **user** runs (not the agent). The repo is staged such that each
 step is a single command or a single short outreach.
 
-Pre-conditions verified by the agent (all green at the time of writing):
+Pre-conditions verified by the agent (current at HEAD):
 
-- [x] `cargo test --workspace` → 53 passing, 0 failures
-- [x] `pnpm -r test` → 19 passing
+- [x] `cargo test --workspace` → **331 passing, 0 failed**, 13 ignored
+- [x] `pnpm -r test` → **25 passing**
 - [x] `pnpm smoke` → green
+- [x] `swift test --package-path sdks/swift` → **62 tests in 12 suites passing**
+- [x] `(cd sdks/python && python3 -m unittest discover -s tests)` → **10 passing**, 1 skipped (integration test needs `ACTANTDB_TEST_URL`)
 - [x] Three public examples exist: [`wedge/demo/`](./wedge/demo), [`wedge/demo-langgraph/`](./wedge/demo-langgraph), [`wedge/demo-cli/`](./wedge/demo-cli)
-- [x] Publish-ready tarballs in [`dist-publish/`](./dist-publish/) — every `@actantdb/*` package, install-verified into a fresh `npm install`-only sandbox
+- [x] All 8 `@actantdb/*` packages published to npm at `0.0.6` (`latest` + `shadow` tags)
+- [x] CI publish workflow: [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) — `workflow_dispatch`, builds + tests + smoke + dry-run-publish + publish + tag-mirror
+- [x] CI binary-release workflow: [`.github/workflows/release-binaries.yml`](./.github/workflows/release-binaries.yml) — tag-driven and manual; produces `actantdb` + `actantdb-server` for macOS-arm64, macOS-x64, linux-x64
 
 ---
 
-## Step 1 — Publish to npm (closes Gate 2 "publishable" prereq)
+## Step 1 — npm publish (DONE)
 
-The tarballs are pre-built. The first publish bumps versions from
-`0.0.1-pre` to `0.0.1` and sets the right tag.
+Eight `@actantdb/*` packages live on npm under `latest` and `shadow`
+tags. Manual republish:
 
 ```bash
-# 0. Confirm you're on the right npm user.
-npm whoami
-# Expect: your npm user. If not: `npm login --scope=@actantdb`.
-
-# 1. Verify the dry-run.
-for p in actantdb-types actantdb-core actantdb-policy actantdb-replay actantdb-mastra actantdb-studio; do
-  echo "=== $p ==="
-  npm publish dist-publish/${p}-0.0.1-pre.tgz --dry-run
-done
-
-# 2. Real publish.
-for p in actantdb-types actantdb-core actantdb-policy actantdb-replay actantdb-mastra actantdb-studio; do
-  npm publish dist-publish/${p}-0.0.1-pre.tgz --tag pre --access public
-done
-
-# 3. Sanity-check the installable surface from outside the workspace.
-mkdir -p /tmp/actant-check && cd /tmp/actant-check && npm init -y > /dev/null
-npm install @actantdb/mastra@pre
-node -e 'import("@actantdb/mastra").then(m => console.log(typeof m.withActant))'
-# Expect: "function"
+# Go to Actions → "publish-npm" → Run workflow.
+# Defaults: tag=latest, also_tag_shadow=true, dry_run=false.
+# Workflow installs, builds, tests, smokes, dry-runs the publish,
+# then publishes and mirrors to shadow.
 ```
 
-**Why this matters for Gate 2:** the gate threshold is "10 non-Wes
-developers installed". Until `npm install @actantdb/mastra` actually works
-from a stranger's machine, the gate cannot close on anyone's effort but
-yours.
+To verify externally:
 
----
+```bash
+mkdir /tmp/actantdb-check && cd /tmp/actantdb-check && npm init -y > /dev/null
+npm install @actantdb/mastra
+node -e "import('@actantdb/mastra').then(m => console.log(typeof m.withActant))"
+# Expect: "function"
+```
 
 ## Step 2 — Cold-README test outreach (Gate 2 §1)
 
@@ -71,15 +61,12 @@ Threshold to pass (PIVOT gate language):
 Track replies in a spreadsheet (suggest: a Numbers / Google Sheet at
 `gates/cold-readme-results.csv`, ungitted).
 
----
-
 ## Step 3 — 10-minute install test (Gate 2 §2)
 
 Per `wedge/validation-tests.md` §2, give 10 developers a 10-minute install
-script. The repo already contains one:
+script. The repo already contains one (verified against `0.0.6`):
 
 ```bash
-# What you send them (or paste into a call):
 npm install @actantdb/mastra
 # Then wrap one of their agents:
 import { withActant } from "@actantdb/mastra";
@@ -96,8 +83,6 @@ Threshold:
 
 Every failure produces exactly one ticket against this repo — no silent
 failures (`wedge/validation-tests.md` §2 "Iteration rule").
-
----
 
 ## Step 4 — Design partner conversion (Gate 2 §"adoption", Gate 3 §"named")
 
@@ -119,8 +104,6 @@ By Aug 17, 2026 (Gate 3 threshold):
 These two cannot be manufactured. They are the only remaining work after
 the artifacts above ship.
 
----
-
 ## Step 5 — Public examples + screen recording (Gate 1 leftovers)
 
 The agent built three demos under `wedge/demo*`. To close Gate 1 leftovers
@@ -141,30 +124,27 @@ authored an asciinema cast at [`wedge/demo/killer-demo.cast`](./wedge/demo/kille
 with `asciinema play`). Upload the cast or the video to YouTube /
 asciinema.org / GitHub Releases.
 
----
-
 ## What is impossible without you
 
 The agent cannot:
 
-- Execute `npm publish` (requires your npm authentication; reversible
-  failures + irreversible side-effects).
 - Send emails, Discord messages, or GitHub mentions to developers.
 - Land a named design partner (requires a human relationship).
 - Verify on 10+ external machines that the install works (requires those
   machines to exist outside this sandbox).
 
-Everything that could be staged in code has been staged. The remaining
-work is in the world.
+Note: `npm publish` itself is no longer impossible — the
+`publish-npm.yml` workflow uses the repo's `NPM_TOKEN` automation token
+and runs from a manual trigger.
 
 ## Status at the time of this checklist
 
 - **Gate 1** — implementation-complete; the four leftovers (screencast,
   hero PNG, three-platform-developer verification, public examples) are
   one human action each, with public examples already done.
-- **Gate 2** — every prerequisite that lives in code is green; the threshold
-  itself requires Steps 1–4 above.
-- **Gate 3** — two of the "2 public examples" exist (three, actually);
-  threshold itself requires Steps 4–5.
+- **Gate 2** — every prerequisite that lives in code is green; the
+  threshold itself requires Steps 2–4 above. Step 1 (publish) is done.
+- **Gate 3** — three runnable demos exist; threshold itself requires
+  Steps 4–5.
 
-Run Steps 1 → 2 → 3 → 4 → 5 in order, and the gates close.
+Run Steps 2 → 3 → 4 → 5 in order, and the gates close.

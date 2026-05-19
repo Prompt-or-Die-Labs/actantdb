@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/replay",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Replay engine: checkpoint, run-from-event, diff, override (policy / memory / model).",
   "type": "module",
   "license": "Apache-2.0",
