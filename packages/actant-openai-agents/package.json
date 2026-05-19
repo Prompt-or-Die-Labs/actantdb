@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/openai-agents",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Adapter for the @openai/agents SDK: capture every model call, tool call, approval, and effect to the ActantDB ledger.",
   "type": "module",
   "license": "Apache-2.0",

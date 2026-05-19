@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/testing",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Testing helpers for ActantDB consumers — in-memory test ledgers, event-emitted assertions, Guard-verdict assertions, snapshot helpers.",
   "type": "module",
   "license": "Apache-2.0",

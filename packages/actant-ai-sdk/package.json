@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/ai-sdk",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Vercel AI SDK adapter: wrap streamText / generateText / generateObject so every model call and tool call lands in the ActantDB ledger.",
   "type": "module",
   "license": "Apache-2.0",

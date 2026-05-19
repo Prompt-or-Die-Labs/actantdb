@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/openai",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Drop-in replacement for the openai package that records every chat.completions.create() / responses.create() call to the ActantDB ledger as a model_call event.",
   "type": "module",
   "license": "Apache-2.0",

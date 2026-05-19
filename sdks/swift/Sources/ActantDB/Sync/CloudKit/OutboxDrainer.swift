@@ -7,10 +7,16 @@ import CloudKit
 /// breaker shape modeled on `actant-reliability::circuit` — failures bump a
 /// backoff counter; success resets it.
 ///
-/// TODO(substrate): the outbox is currently held in memory. The durable
-/// `cloudkit_outbox` table lands in the Rust core (see SYNC_DESIGN.md +
-/// GAPS.md "cloudkit_outbox table"). When the FFI surfaces an outbox iterator
-/// + ack method, swap the in-memory queue out for the persistent one.
+/// TODO(substrate, two-part):
+///   1. The outbox is currently held in memory. Durable `cloudkit_outbox`
+///      persistence lands in the Rust core (see SYNC_DESIGN.md +
+///      GAPS.md "cloudkit_outbox table").
+///   2. *Nothing currently calls `enqueue(_:)`*. The push path needs
+///      `Actant.dispatch(...)` (embedded mode) to call back into `sync` with
+///      the post-commit `EventRow`, OR the FFI bridge needs a "tail since"
+///      iterator the drainer pulls from. Until either lands, the push half
+///      of CloudKit sync is dormant — the pull half (subscribe + ingest
+///      inbound records) is the only live half.
 actor OutboxDrainer {
     private let actant: Actant
     private let database: CKDatabase
@@ -78,9 +84,6 @@ actor OutboxDrainer {
         guard !pendingOutbox.isEmpty else { return }
         let batch = pendingOutbox
         let records = batch.map { $0.toRecord(zoneID: zoneID) }
-        let op = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: nil)
-        op.savePolicy = .ifServerRecordUnchanged
-        // The new async API:
         let (results, _) = try await database.modifyRecords(
             saving: records,
             deleting: [],

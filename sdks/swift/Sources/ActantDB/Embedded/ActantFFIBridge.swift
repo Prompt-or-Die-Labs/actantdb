@@ -93,12 +93,24 @@ public actor ActantFFIBridge: EmbeddedHandle {
 
     // MARK: - Conversion helpers (FFI ↔ SDK types)
     //
-    // Lazy/optional fields and the FFI's String-vs-Data trade-offs are
-    // normalized here so the rest of the SDK only sees SDK-native types.
+    // !!! PLACEHOLDER — WILL NOT COMPILE AGAINST REAL `ActantFFI` MODULE !!!
+    //
+    // The bodies below treat the uniffi-generated types as `Any` and try a
+    // JSON round-trip, which fails at compile time the moment a real
+    // `ActantFFI` module exposes the typed records (uniffi-generated structs
+    // are not `Encodable`). This is intentional: the bridge has to be
+    // rewritten once the parallel `crates/actant-ffi` agent finalizes the
+    // generated Swift surface (see GAPS row #39). At that point:
+    //   1. Replace `_ ffi: Any` with the concrete generated record types
+    //      (e.g. `ActantFFICommandOutcome`).
+    //   2. Map field-by-field — uniffi gives camelCased property accessors.
+    //   3. Drop the JSON round-trip entirely.
+    //
+    // Keeping the bridge file present (rather than stubbing it out entirely)
+    // means consumers see the planned shape today; the integration agent
+    // touches one file when the FFI surface is real.
 
     private static func convertOutcome(_ ffi: Any) throws -> CommandOutcome {
-        // TODO(ffi): swap this fallback decode for direct field access once
-        // the uniffi-generated struct surface is finalized.
         if let data = try? JSONEncoder().encode(AnyEncodable(ffi)),
            let decoded = try? JSONDecoder.actant.decode(CommandOutcome.self, from: data) {
             return decoded

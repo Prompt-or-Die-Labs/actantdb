@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/box",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Local-first ActantDB Box — Upstash-Box-shaped SDK for sandboxed agent workspaces (exec, files, git, schedules, snapshots, agent) backed entirely by ActantDB primitives.",
   "type": "module",
   "license": "Apache-2.0",

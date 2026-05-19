@@ -125,26 +125,44 @@ fn per_field_policy_picks_different_winners_per_field() {
     );
     assert!(p.is_per_field("memory", "rejected_at"));
 
-    // Sanity: per-field map advertises *different* winners depending on
-    // which field the caller asks about.
-    let x = Row {
-        hlc: Hlc::new(5_000, 0),
+    // Sanity: per-field LWW lets the *same pair of writers* land on
+    // different winners across fields when the caller hands `resolve`
+    // the per-field HasHlc values. Writer X owns approved_at (higher HLC
+    // when projected onto that field); writer Y owns rejected_at.
+    let x_on_approved = Row {
+        hlc: Hlc::new(7_000, 0),
         actor: "act_writer_x".into(),
     };
-    let y = Row {
+    let y_on_approved = Row {
         hlc: Hlc::new(6_000, 0),
         actor: "act_writer_y".into(),
     };
-    // For approved_at, y has the higher HLC -> y wins.
+    let x_on_rejected = Row {
+        hlc: Hlc::new(5_000, 0),
+        actor: "act_writer_x".into(),
+    };
+    let y_on_rejected = Row {
+        hlc: Hlc::new(8_000, 0),
+        actor: "act_writer_y".into(),
+    };
+    // For approved_at: writer_x wins.
     assert_eq!(
-        p.resolve("memory", Some("approved_at"), &x, &y),
-        Ordering::Less
+        p.resolve(
+            "memory",
+            Some("approved_at"),
+            &x_on_approved,
+            &y_on_approved
+        ),
+        Ordering::Greater
     );
-    // For rejected_at, y still has the higher HLC -> y wins again,
-    // but the "interesting" case is that we got asked about it by name
-    // and the policy table recognizes both as per-field.
+    // For rejected_at: writer_y wins (different winner, same pair of writers).
     assert_eq!(
-        p.resolve("memory", Some("rejected_at"), &x, &y),
+        p.resolve(
+            "memory",
+            Some("rejected_at"),
+            &x_on_rejected,
+            &y_on_rejected
+        ),
         Ordering::Less
     );
 }

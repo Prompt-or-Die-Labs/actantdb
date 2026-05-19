@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/workflow",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Drop-in port of Upstash Workflow on top of ActantDB's ledger. Same serve() / Client / context API; persistence is the local ledger, no QStash required.",
   "type": "module",
   "license": "Apache-2.0",

@@ -73,19 +73,22 @@ impl ConflictPolicy {
             .unwrap_or(false)
     }
 
-    /// Resolve which of two rows wins for the given `table` / optional `field`.
+    /// Resolve which of two `HasHlc` values wins.
     ///
     /// * `Ordering::Greater` — `a` wins (apply `a`'s value).
     /// * `Ordering::Less`    — `b` wins.
     /// * `Ordering::Equal`   — HLC + actor_id both tied; caller may treat as
     ///   "either is fine; pick one deterministically" (typically `a`).
     ///
-    /// When `field` is `Some` and the table+field is registered for
-    /// per-field LWW, the field's HLC stamps are compared independently;
-    /// when `field` is `None` (or the table+field isn't registered) the
-    /// rule degenerates to row-level LWW. Both call sites use the same
-    /// `HasHlc` impl — the policy's only knob is *which* `(table, field)`
-    /// pairs are eligible for per-field resolution.
+    /// The `table` / `field` arguments are passed for symmetry with the
+    /// caller's call site but the underlying comparison is just
+    /// `(a.hlc(), a.actor_id())` vs `(b.hlc(), b.actor_id())`. Per-field
+    /// LWW is realised by the caller constructing a `HasHlc` value whose
+    /// `hlc()` reflects the most recent write *to that field*; the
+    /// `per_field_lww` map (queried via [`Self::is_per_field`]) declares
+    /// which `(table, field)` pairs are eligible for that treatment.
+    /// Anything not in the map should be built as a row-level `HasHlc`
+    /// (single HLC per row).
     pub fn resolve<T: HasHlc>(&self, _table: &str, _field: Option<&str>, a: &T, b: &T) -> Ordering {
         match a.hlc().cmp(&b.hlc()) {
             Ordering::Equal => a.actor_id().cmp(b.actor_id()),

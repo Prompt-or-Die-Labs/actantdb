@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/anthropic",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Drop-in replacement for @anthropic-ai/sdk that records every messages.create() call to the ActantDB ledger as a model_call event.",
   "type": "module",
   "license": "Apache-2.0",

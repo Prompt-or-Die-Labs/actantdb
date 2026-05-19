@@ -1,6 +1,6 @@
 {
   "name": "create-actantdb",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Scaffold a new ActantDB project. `npm create actantdb@latest my-app` or `npx create-actantdb my-app --template coding-agent`.",
   "type": "module",
   "license": "Apache-2.0",

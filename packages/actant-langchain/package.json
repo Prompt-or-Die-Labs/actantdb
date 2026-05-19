@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/langchain",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "LangChain JS callback handler that records every LLM, chain, and tool event to the ActantDB ledger.",
   "type": "module",
   "license": "Apache-2.0",
