@@ -271,9 +271,22 @@ CREATE TABLE IF NOT EXISTS replay_runs (
 );
 `;
 
-/** Convenience: open the default ledger location for a project. */
-export function openLedger(project: string, storeDir?: string): Ledger {
-  return new Ledger({ project, ...(storeDir !== undefined ? { storeDir } : {}) });
+/** Convenience: open the default ledger location for a project.
+ *
+ * Accepts either a positional `(project, storeDir?)` pair or the same
+ * options object the `Ledger` constructor accepts. Object form is
+ * preferred — it parallels the constructor and is easier to extend.
+ */
+export function openLedger(opts: LedgerOptions): Ledger;
+export function openLedger(project: string, storeDir?: string): Ledger;
+export function openLedger(
+  arg: string | LedgerOptions,
+  storeDir?: string,
+): Ledger {
+  if (typeof arg === "string") {
+    return new Ledger({ project: arg, ...(storeDir !== undefined ? { storeDir } : {}) });
+  }
+  return new Ledger(arg);
 }
 
 /** Check whether a local ledger exists for a project. */

@@ -62,15 +62,18 @@ async function handle(
 ): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const route = url.pathname;
+  // Treat HEAD as GET for routing; we just won't write the body.
+  const method = req.method === "HEAD" ? "GET" : req.method;
+  const headOnly = req.method === "HEAD";
 
-  if (req.method === "GET" && (route === "/" || route === "/index.html")) {
-    return staticFile(res, "index.html", "text/html");
+  if (method === "GET" && (route === "/" || route === "/index.html")) {
+    return staticFile(res, "index.html", "text/html", headOnly);
   }
-  if (req.method === "GET" && route === "/studio.css") {
-    return staticFile(res, "studio.css", "text/css");
+  if (method === "GET" && route === "/studio.css") {
+    return staticFile(res, "studio.css", "text/css", headOnly);
   }
-  if (req.method === "GET" && route === "/studio.js") {
-    return staticFile(res, "studio.js", "application/javascript");
+  if (method === "GET" && route === "/studio.js") {
+    return staticFile(res, "studio.js", "application/javascript", headOnly);
   }
   if (req.method === "GET" && route === "/api/info") {
     return json(res, {
@@ -141,11 +144,18 @@ async function handle(
   return json(res, { error: "not found", route });
 }
 
-async function staticFile(res: ServerResponse, name: string, mime: string): Promise<void> {
+async function staticFile(
+  res: ServerResponse,
+  name: string,
+  mime: string,
+  headOnly = false,
+): Promise<void> {
   const body = await readFile(join(UI_DIR, name));
   res.setHeader("content-type", mime + "; charset=utf-8");
+  res.setHeader("content-length", String(body.byteLength));
   res.statusCode = 200;
-  res.end(body);
+  if (headOnly) res.end();
+  else res.end(body);
 }
 
 function json(res: ServerResponse, payload: unknown): void {

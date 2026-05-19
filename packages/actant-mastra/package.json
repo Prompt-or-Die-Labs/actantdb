@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/mastra",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Wrap a Mastra agent: capture model + tool + approval events, expose to Actant Studio, support replay.",
   "type": "module",
   "license": "Apache-2.0",
@@ -25,6 +25,11 @@
   },
   "peerDependencies": {
     "@mastra/core": ">=1.0.0 <3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@mastra/core": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@actantdb/core": "workspace:*",

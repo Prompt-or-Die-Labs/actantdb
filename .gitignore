@@ -66,3 +66,6 @@ lcov.info
 # OS
 Thumbs.db
 ehthumbs.db
+
+# mdbook rendered output (rebuild via 'mdbook build docs')
+docs/book/

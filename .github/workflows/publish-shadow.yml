@@ -22,10 +22,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "npm dist-tag to publish under"
+        description: "npm dist-tag to publish under (default: latest)"
         required: true
-        default: "shadow"
+        default: "latest"
         type: string
+      also_tag_shadow:
+        description: "After publish, also point the `shadow` tag at this version"
+        required: false
+        default: true
+        type: boolean
       dry_run:
         description: "Skip the actual publish step (build + dry-run only)"
         required: false
@@ -75,6 +80,18 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm -r publish --tag ${{ inputs.tag }} --no-git-checks --access public
 
+      - name: also point shadow tag at this version
+        if: ${{ !inputs.dry_run && inputs.also_tag_shadow && inputs.tag != 'shadow' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for f in packages/*/package.json; do
+            name=$(jq -r .name "$f")
+            ver=$(jq -r .version "$f")
+            echo "Tagging $name@$ver as shadow"
+            npm dist-tag add "$name@$ver" shadow || echo "  (failed — non-fatal)"
+          done
+
       - name: summarize what shipped
         if: ${{ !inputs.dry_run }}
         run: |
@@ -84,3 +101,7 @@ jobs:
             ver=$(jq -r .version "$f")
             echo "- \`$name@$ver\` → npm install $name@${{ inputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
           done
+          if [[ "${{ inputs.also_tag_shadow }}" == "true" ]]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Also tagged as \`shadow\` for backward compatibility with the earlier opt-in channel." >> "$GITHUB_STEP_SUMMARY"
+          fi

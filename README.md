@@ -77,19 +77,40 @@ This isn't theoretical. Each of the things below is supported by code that compi
 
 ## Install (the wedge)
 
+Requires **Node ≥22.5**. `@actantdb/core` uses `node:sqlite`, which is unflagged starting at Node 24 (Node 22 needs `--experimental-sqlite`).
+
 ```bash
+# Wrap your agent:
 npm install @actantdb/mastra
+
+# Studio CLI (provides `npx actantdb`):
+npm install --save-dev @actantdb/studio
 ```
+
+`@actantdb/mastra` works with **any** agent that exposes a tools record — Mastra, LangGraph, OpenAI Agents SDK, hand-rolled. If you're using Mastra, also `npm install @mastra/core`; for other frameworks no extra peer is needed.
 
 ```ts
 import { withActant } from "@actantdb/mastra";
+import { demoPolicy } from "@actantdb/policy";
 
-export const agent = withActant(myMastraAgent, {
+const wrapped = withActant(myAgent, {
   project: "prod-support-agent",
   policy: demoPolicy,
 });
 
-await agent.run({ message: "Clean up the test artifacts." });
+await wrapped.run({ message: "Clean up the test artifacts." });
+```
+
+If you just want the embedded ledger (no agent framework):
+
+```ts
+import { openLedger, ulid } from "@actantdb/core";
+
+const ledger = openLedger({ project: "demo" });
+const runId = ulid();
+ledger.append({ kind: "user_message", runId, payload: { text: "hello" } });
+for (const e of ledger.query({ runId })) console.log(e.kind, e.chain_hash);
+ledger.close();
 ```
 
 ```bash
