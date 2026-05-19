@@ -2,9 +2,16 @@ import Foundation
 import ActantDB
 
 /// Conversational role a message belongs to. Mirrors typical chat semantics
-/// — the underlying ledger only has `append_user_message` /
-/// `append_agent_message`, so `tool` / `system` fall back to agent-message
-/// with a `[role=<role>]` prefix so they survive a round-trip.
+/// (`user` / `assistant` / `tool` / `system`) — the underlying ledger only
+/// has `append_user_message` / `append_agent_message`, so `tool` / `system`
+/// fall back to agent-message with a `[role=<role>]` prefix so they survive
+/// a round-trip.
+///
+/// Note: this is `.assistant`, not `.agent`. The ledger event type is
+/// `agent_message` but the conversational role we expose follows the
+/// industry-standard chat-completion vocabulary (matches OpenAI / Anthropic
+/// / Vertex / etc.) so consumer `Codable` types map cleanly without a
+/// translation layer.
 public enum SessionRole: String, Sendable, Codable {
     case user
     case assistant

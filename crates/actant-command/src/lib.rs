@@ -133,9 +133,29 @@ impl Engine {
         input: serde_json::Value,
         idempotency_key: Option<&str>,
     ) -> Result<CommandOutcome, ActantError> {
+        // DX fix: auto-create the calling actor if it doesn't exist. The
+        // command_record + session tables both FK actor_id REFERENCES
+        // actor(id), so without this every fresh consumer's first call
+        // returned a cryptic 500 "FOREIGN KEY constraint failed". The
+        // workspace must already exist (seeded as `ws_default` by the
+        // migration); the actor is consumer-defined and previously required
+        // an explicit setup step nobody documented.
+        let storage = self.sqlite_storage()?;
+        if storage.get_actor(actor_id).await?.is_none() {
+            storage
+                .insert_actor(&Actor {
+                    id: actor_id.clone(),
+                    workspace_id: workspace_id.clone(),
+                    kind: ActorKind::Human,
+                    display_name: actor_id.as_str().to_string(),
+                    created_at: now_rfc3339(),
+                    disabled_at: None,
+                })
+                .await?;
+        }
+
         if let Some(key) = idempotency_key {
-            if let Some(prior) = self
-                .sqlite_storage()?
+            if let Some(prior) = storage
                 .idempotency_lookup(workspace_id, key)
                 .await?
             {
@@ -164,7 +184,7 @@ impl Engine {
             created_at: now_rfc3339(),
             committed_at: None,
         };
-        self.sqlite_storage()?.insert_command(&cmd).await?;
+        storage.insert_command(&cmd).await?;
 
         let result = match command_type {
             "create_session" => {
@@ -307,6 +327,23 @@ impl Engine {
             .get("agent_actor_id")
             .and_then(|v| v.as_str())
             .map(|s| ActorId::from_string(s.to_string()));
+        let storage = self.sqlite_storage()?;
+        // Initiator actor was bootstrapped in `dispatch()`. Bootstrap the
+        // optional agent_actor_id here too — same FK trap.
+        if let Some(agent_id) = &agent {
+            if storage.get_actor(agent_id).await?.is_none() {
+                storage
+                    .insert_actor(&Actor {
+                        id: agent_id.clone(),
+                        workspace_id: ws.clone(),
+                        kind: ActorKind::Agent,
+                        display_name: agent_id.as_str().to_string(),
+                        created_at: now_rfc3339(),
+                        disabled_at: None,
+                    })
+                    .await?;
+            }
+        }
         let session = Session {
             id: SessionId::new(),
             workspace_id: ws.clone(),
@@ -317,7 +354,7 @@ impl Engine {
             created_at: now_rfc3339(),
             closed_at: None,
         };
-        self.sqlite_storage()?.insert_session(&session).await?;
+        storage.insert_session(&session).await?;
         let event_id = self
             .append_chronicle(
                 ws,

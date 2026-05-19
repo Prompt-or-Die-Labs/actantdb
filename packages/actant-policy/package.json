@@ -1,6 +1,6 @@
 {
   "name": "@actantdb/policy",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Policy DSL + Guard verdict builders (allow / constrain / require_approval / block / halt).",
   "type": "module",
   "license": "Apache-2.0",

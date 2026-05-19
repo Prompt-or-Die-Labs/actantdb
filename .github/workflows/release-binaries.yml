@@ -76,9 +76,13 @@ jobs:
           cp "target/${{ matrix.target }}/release/actantdb"        "dist/$STAGE/" || true
           cp "target/${{ matrix.target }}/release/actantdb-server" "dist/$STAGE/" || true
           cp LICENSE README.md "dist/$STAGE/" || true
-          (cd dist && tar -czf "${STAGE}.tar.gz" "$STAGE")
-          ls -lh "dist/${STAGE}.tar.gz"
-          shasum -a 256 "dist/${STAGE}.tar.gz" > "dist/${STAGE}.tar.gz.sha256"
+          # Run tar + shasum from inside dist/ so the sidecar contains just
+          # the filename (verifiable with `shasum -c` from any cwd next to
+          # the .tar.gz), not the relative `dist/...` path.
+          (cd dist && tar -czf "${STAGE}.tar.gz" "$STAGE" \
+                  && shasum -a 256 "${STAGE}.tar.gz" > "${STAGE}.tar.gz.sha256")
+          ls -lh "dist/${STAGE}.tar.gz" "dist/${STAGE}.tar.gz.sha256"
+          cat "dist/${STAGE}.tar.gz.sha256"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "actant-audit-export"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -21,7 +21,7 @@ dependencies = [
 
 [[package]]
 name = "actant-auth"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -43,14 +43,16 @@ dependencies = [
 
 [[package]]
 name = "actant-bench"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-command",
  "actant-core",
  "actant-server",
  "actant-storage",
  "axum",
+ "clap",
  "criterion",
+ "futures",
  "reqwest",
  "serde_json",
  "tokio",
@@ -58,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "actant-cache"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -77,7 +79,7 @@ dependencies = [
 
 [[package]]
 name = "actant-capsule"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -93,7 +95,7 @@ dependencies = [
 
 [[package]]
 name = "actant-circuit"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -109,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "actant-cli"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-command",
  "actant-core",
@@ -129,7 +131,7 @@ dependencies = [
 
 [[package]]
 name = "actant-codegen-project"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-schema-dsl",
@@ -144,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "actant-command"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-policy",
@@ -163,7 +165,7 @@ dependencies = [
 
 [[package]]
 name = "actant-compensation"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -179,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "actant-context"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-policy",
@@ -198,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "actant-contracts"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "schemars",
  "serde",
@@ -210,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "actant-core"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "hex",
  "serde",
@@ -224,7 +226,7 @@ dependencies = [
 
 [[package]]
 name = "actant-drift"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -240,7 +242,7 @@ dependencies = [
 
 [[package]]
 name = "actant-effects"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -259,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "actant-embed"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -275,7 +277,7 @@ dependencies = [
 
 [[package]]
 name = "actant-embedders"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-embed",
@@ -296,7 +298,7 @@ dependencies = [
 
 [[package]]
 name = "actant-eval"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-policy",
@@ -314,7 +316,7 @@ dependencies = [
 
 [[package]]
 name = "actant-flow"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -333,7 +335,7 @@ dependencies = [
 
 [[package]]
 name = "actant-index"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-embed",
@@ -353,7 +355,7 @@ dependencies = [
 
 [[package]]
 name = "actant-ingress"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -374,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "actant-kernel"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-command",
  "actant-core",
@@ -395,7 +397,7 @@ dependencies = [
 
 [[package]]
 name = "actant-lock"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -413,7 +415,7 @@ dependencies = [
 
 [[package]]
 name = "actant-memory"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -431,7 +433,7 @@ dependencies = [
 
 [[package]]
 name = "actant-models"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -447,7 +449,7 @@ dependencies = [
 
 [[package]]
 name = "actant-napi"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-contracts",
  "actant-kernel",
@@ -457,7 +459,7 @@ dependencies = [
 
 [[package]]
 name = "actant-policy"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -473,7 +475,7 @@ dependencies = [
 
 [[package]]
 name = "actant-prompts"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -489,7 +491,7 @@ dependencies = [
 
 [[package]]
 name = "actant-protocol"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -506,7 +508,7 @@ dependencies = [
 
 [[package]]
 name = "actant-replay"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-policy",
@@ -526,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "actant-schema-dsl"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "anyhow",
@@ -538,7 +540,7 @@ dependencies = [
 
 [[package]]
 name = "actant-sdk-codegen"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "anyhow",
@@ -553,7 +555,7 @@ dependencies = [
 
 [[package]]
 name = "actant-server"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-auth",
  "actant-command",
@@ -594,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "actant-storage"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "anyhow",
@@ -610,7 +612,7 @@ dependencies = [
 
 [[package]]
 name = "actant-subscribe"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-policy",
@@ -627,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "actant-sync"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -644,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "actant-templates"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "anyhow",
@@ -658,7 +660,7 @@ dependencies = [
 
 [[package]]
 name = "actant-tenant"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-auth",
  "actant-core",
@@ -675,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "actant-throttle"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-circuit",
  "actant-core",
@@ -692,7 +694,7 @@ dependencies = [
 
 [[package]]
 name = "actant-trace"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -710,7 +712,7 @@ dependencies = [
 
 [[package]]
 name = "actant-trigger"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -730,7 +732,7 @@ dependencies = [
 
 [[package]]
 name = "actant-trust"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-storage",
@@ -746,7 +748,7 @@ dependencies = [
 
 [[package]]
 name = "actant-wasm"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-contracts",
  "actant-kernel",
@@ -756,7 +758,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-browser"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -774,7 +776,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-email"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -792,7 +794,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-file"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -811,7 +813,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-manager"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -835,7 +837,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-mcp"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -854,7 +856,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-model"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -873,7 +875,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-protocol"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -892,7 +894,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-shell"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
@@ -911,7 +913,7 @@ dependencies = [
 
 [[package]]
 name = "actant-worker-slack"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "actant-core",
  "actant-effects",
