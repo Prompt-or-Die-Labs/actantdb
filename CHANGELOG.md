@@ -4,6 +4,34 @@ This file accumulates the visible changes shipped through this work session.
 Cross-reference: [SPECS_STATUS.md](./SPECS_STATUS.md), [GATES.md](./GATES.md),
 [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md).
 
+## 0.0.8 — 2026-05-18
+
+- **`CommandEngine::dispatch()`** auto-creates the caller's actor row if
+  it doesn't exist. Closes the trial-3 FK trap: every fresh consumer's
+  first command (any command, not just `create_session`) used to return
+  a cryptic `500: storage error: error returned from database: (code:
+  787) FOREIGN KEY constraint failed`. The `command_record` and
+  `session` tables both FK `actor_id` → `actor(id)`; pre-fix you had to
+  manually insert an actor row before any wire call. Now zero-bootstrap.
+- **Rust workspace bumped `0.0.5 → 0.0.7 → 0.0.8`** to track npm. Every
+  `[workspace.dependencies]` `actant-*` pin updated in lockstep.
+  `actantdb --version` now prints `actantdb 0.0.8` (was stuck at 0.0.5
+  on the v0.0.7 release because Cargo wasn't synced).
+- **`release-binaries.yml`** sha256 sidecar fix. shasum ran from above
+  `dist/`, so the sidecar carried `dist/actantdb-...tar.gz` which broke
+  `shasum -c` verification anywhere except the workflow runner. Now
+  runs from inside `dist/`; sidecar contains just the filename.
+- **`SessionRole`** doc comment clarifies `.assistant` vs `.agent`.
+- **`COMPARISON.md`** (473 lines) — competitive landscape vs Temporal,
+  Inngest, Restate, DBOS, Mastra, LangGraph, OpenAI Agents, CrewAI,
+  Langfuse, LangSmith, Phoenix, Helicone, Mem0, Zep. Three honest
+  differentiators (hash-chained ledger, Guard verdict as typed event,
+  capsule sensitivity ceiling) + explicit "where competitors win".
+- **Multi-scenario E2E suite** added at `/tmp/actantdb-scenarios/`
+  (approval flow, replay overrides, 20-concurrent-session burst,
+  server-mode via `@actantdb/sdk` against the prebuilt binary).
+- All 8 packages bumped to **0.0.8**.
+
 ## 0.0.7 — 2026-05-18
 
 - **`@actantdb/core`** `openLedger({ inMemory: true })` opens a

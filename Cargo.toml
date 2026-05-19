@@ -68,7 +68,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.7"
+version = "0.0.9"
 edition = "2021"
 rust-version = "1.75"
 license = "Apache-2.0"
@@ -77,55 +77,55 @@ authors = ["The ActantDB Authors"]
 
 [workspace.dependencies]
 # Internal crates
-actant-core         = { path = "crates/actant-core",         version = "0.0.7" }
-actant-storage      = { path = "crates/actant-storage",      version = "0.0.7" }
-actant-cli          = { path = "crates/actant-cli",          version = "0.0.7" }
-actant-command      = { path = "crates/actant-command",      version = "0.0.7" }
-actant-policy       = { path = "crates/actant-policy",       version = "0.0.7" }
-actant-effects      = { path = "crates/actant-effects",      version = "0.0.7" }
-actant-context      = { path = "crates/actant-context",      version = "0.0.7" }
-actant-memory       = { path = "crates/actant-memory",       version = "0.0.7" }
-actant-flow         = { path = "crates/actant-flow",         version = "0.0.7" }
-actant-replay       = { path = "crates/actant-replay",       version = "0.0.7" }
-actant-subscribe    = { path = "crates/actant-subscribe",    version = "0.0.7" }
-actant-server       = { path = "crates/actant-server",       version = "0.0.7" }
-actant-sdk-codegen  = { path = "crates/actant-sdk-codegen",  version = "0.0.7" }
-actant-worker-protocol = { path = "crates/actant-worker-protocol", version = "0.0.7" }
-actant-embed        = { path = "crates/actant-embed",        version = "0.0.7" }
-actant-capsule      = { path = "crates/actant-capsule",      version = "0.0.7" }
-actant-trust        = { path = "crates/actant-trust",        version = "0.0.7" }
-actant-trigger      = { path = "crates/actant-trigger",      version = "0.0.7" }
-actant-eval         = { path = "crates/actant-eval",         version = "0.0.7" }
-actant-sync         = { path = "crates/actant-sync",         version = "0.0.7" }
-actant-audit-export = { path = "crates/actant-audit-export", version = "0.0.7" }
-actant-templates       = { path = "crates/actant-templates",       version = "0.0.7" }
-actant-schema-dsl      = { path = "crates/actant-schema-dsl",      version = "0.0.7" }
-actant-codegen-project = { path = "crates/actant-codegen-project", version = "0.0.7" }
-actant-index           = { path = "crates/actant-index",           version = "0.0.7" }
-actant-embedders       = { path = "crates/actant-embedders",       version = "0.0.7" }
-actant-prompts         = { path = "crates/actant-prompts",         version = "0.0.7" }
-actant-models          = { path = "crates/actant-models",          version = "0.0.7" }
-actant-cache           = { path = "crates/actant-cache",           version = "0.0.7" }
-actant-trace           = { path = "crates/actant-trace",           version = "0.0.7" }
-actant-protocol        = { path = "crates/actant-protocol",        version = "0.0.7" }
-actant-throttle        = { path = "crates/actant-throttle",        version = "0.0.7" }
-actant-circuit         = { path = "crates/actant-circuit",         version = "0.0.7" }
-actant-lock            = { path = "crates/actant-lock",            version = "0.0.7" }
-actant-ingress         = { path = "crates/actant-ingress",         version = "0.0.7" }
-actant-kernel          = { path = "crates/actant-kernel",          version = "0.0.7" }
-actant-contracts       = { path = "crates/actant-contracts",       version = "0.0.7" }
-actant-napi            = { path = "crates/actant-napi",            version = "0.0.7" }
-actant-wasm            = { path = "crates/actant-wasm",            version = "0.0.7" }
-actant-auth            = { path = "crates/actant-auth",            version = "0.0.7" }
-actant-tenant          = { path = "crates/actant-tenant",          version = "0.0.7" }
-actant-drift           = { path = "crates/actant-drift",           version = "0.0.7" }
-actant-worker-browser  = { path = "crates/actant-worker-browser",  version = "0.0.7" }
-actant-worker-email    = { path = "crates/actant-worker-email",    version = "0.0.7" }
-actant-worker-slack    = { path = "crates/actant-worker-slack",    version = "0.0.7" }
-actant-worker-shell    = { path = "crates/actant-worker-shell",    version = "0.0.7" }
-actant-worker-file     = { path = "crates/actant-worker-file",     version = "0.0.7" }
-actant-worker-model    = { path = "crates/actant-worker-model",    version = "0.0.7" }
-actant-worker-mcp      = { path = "crates/actant-worker-mcp",      version = "0.0.7" }
+actant-core         = { path = "crates/actant-core",         version = "0.0.9" }
+actant-storage      = { path = "crates/actant-storage",      version = "0.0.9" }
+actant-cli          = { path = "crates/actant-cli",          version = "0.0.9" }
+actant-command      = { path = "crates/actant-command",      version = "0.0.9" }
+actant-policy       = { path = "crates/actant-policy",       version = "0.0.9" }
+actant-effects      = { path = "crates/actant-effects",      version = "0.0.9" }
+actant-context      = { path = "crates/actant-context",      version = "0.0.9" }
+actant-memory       = { path = "crates/actant-memory",       version = "0.0.9" }
+actant-flow         = { path = "crates/actant-flow",         version = "0.0.9" }
+actant-replay       = { path = "crates/actant-replay",       version = "0.0.9" }
+actant-subscribe    = { path = "crates/actant-subscribe",    version = "0.0.9" }
+actant-server       = { path = "crates/actant-server",       version = "0.0.9" }
+actant-sdk-codegen  = { path = "crates/actant-sdk-codegen",  version = "0.0.9" }
+actant-worker-protocol = { path = "crates/actant-worker-protocol", version = "0.0.9" }
+actant-embed        = { path = "crates/actant-embed",        version = "0.0.9" }
+actant-capsule      = { path = "crates/actant-capsule",      version = "0.0.9" }
+actant-trust        = { path = "crates/actant-trust",        version = "0.0.9" }
+actant-trigger      = { path = "crates/actant-trigger",      version = "0.0.9" }
+actant-eval         = { path = "crates/actant-eval",         version = "0.0.9" }
+actant-sync         = { path = "crates/actant-sync",         version = "0.0.9" }
+actant-audit-export = { path = "crates/actant-audit-export", version = "0.0.9" }
+actant-templates       = { path = "crates/actant-templates",       version = "0.0.9" }
+actant-schema-dsl      = { path = "crates/actant-schema-dsl",      version = "0.0.9" }
+actant-codegen-project = { path = "crates/actant-codegen-project", version = "0.0.9" }
+actant-index           = { path = "crates/actant-index",           version = "0.0.9" }
+actant-embedders       = { path = "crates/actant-embedders",       version = "0.0.9" }
+actant-prompts         = { path = "crates/actant-prompts",         version = "0.0.9" }
+actant-models          = { path = "crates/actant-models",          version = "0.0.9" }
+actant-cache           = { path = "crates/actant-cache",           version = "0.0.9" }
+actant-trace           = { path = "crates/actant-trace",           version = "0.0.9" }
+actant-protocol        = { path = "crates/actant-protocol",        version = "0.0.9" }
+actant-throttle        = { path = "crates/actant-throttle",        version = "0.0.9" }
+actant-circuit         = { path = "crates/actant-circuit",         version = "0.0.9" }
+actant-lock            = { path = "crates/actant-lock",            version = "0.0.9" }
+actant-ingress         = { path = "crates/actant-ingress",         version = "0.0.9" }
+actant-kernel          = { path = "crates/actant-kernel",          version = "0.0.9" }
+actant-contracts       = { path = "crates/actant-contracts",       version = "0.0.9" }
+actant-napi            = { path = "crates/actant-napi",            version = "0.0.9" }
+actant-wasm            = { path = "crates/actant-wasm",            version = "0.0.9" }
+actant-auth            = { path = "crates/actant-auth",            version = "0.0.9" }
+actant-tenant          = { path = "crates/actant-tenant",          version = "0.0.9" }
+actant-drift           = { path = "crates/actant-drift",           version = "0.0.9" }
+actant-worker-browser  = { path = "crates/actant-worker-browser",  version = "0.0.9" }
+actant-worker-email    = { path = "crates/actant-worker-email",    version = "0.0.9" }
+actant-worker-slack    = { path = "crates/actant-worker-slack",    version = "0.0.9" }
+actant-worker-shell    = { path = "crates/actant-worker-shell",    version = "0.0.9" }
+actant-worker-file     = { path = "crates/actant-worker-file",     version = "0.0.9" }
+actant-worker-model    = { path = "crates/actant-worker-model",    version = "0.0.9" }
+actant-worker-mcp      = { path = "crates/actant-worker-mcp",      version = "0.0.9" }
 
 # External — pinned at workspace level for consistent versions across crates.
 anyhow        = "1.0"
@@ -175,6 +175,19 @@ opt-level = 3
 lto = "thin"
 codegen-units = 1
 strip = "symbols"
+
+# Smallest possible binary (use for size-constrained distributions —
+# bundling actantdb into a Mac app .app, embedding in an iOS Document
+# Picker provider, container image with strict size budget). Trades
+# some throughput for a much smaller binary.
+# Build: `cargo build --profile release-min -p actant-cli -p actant-server`.
+[profile.release-min]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+panic = "abort"
+strip = "symbols"
+codegen-units = 1
 
 [profile.dev]
 opt-level = 0

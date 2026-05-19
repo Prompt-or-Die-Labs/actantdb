@@ -34,7 +34,7 @@ Concrete state of the repo at the most recent build. Not aspirational.
 | **Docs site**        | mdbook materialized from `/specs` + ADRs + operations. 20 specs + 18 ADRs.                      | `docs/book.toml`, `docs/build.sh`              |
 | **Python SDK**       | pip-installable, mirrors the TS SDK surface. Integration test passes against a real server.    | `sdks/python/`                                 |
 | **Swift SDK**        | Two-tier (Swift 6.3, macOS 26 / iOS 26). `ActantDB` is a 1:1 HTTP+WS client; `ActantAgent` is the opinionated facade (Session / MemoryStore / Auditor / ApprovalCenter / ReplayClient / RelationshipStore / ActantDBSupervisor) that lets a consumer like Swoosh add ActantDB by one-line conformance extensions. | `sdks/swift/` |
-| **Benchmarks**       | Criterion + HTTP load. `storage_append_event ≈ 60 µs`. `command_append_user_message ≈ 116 µs`. HTTP `POST /v1/command` median **341 µs**. | `bench/`, `docs/SLO.md`            |
+| **Benchmarks**       | HTTP single-session: p50 **464 µs**, p95 **1.00 ms**, p99 **2.12 ms** (1.8k req/s). 10-concurrent: **3.9k req/s** aggregate. Replay 200-event run end-to-end: **3.4 ms**. RSS only +1.4 MB per 10k events. Full table in [`BENCHMARKS.md`](./BENCHMARKS.md). | `bench/`, [`BENCHMARKS.md`](./BENCHMARKS.md) |
 | **Tests**            | **331 Rust + 25 TypeScript + 10 Python + 62 Swift + 1 workspace smoke = 429 passing.** 0 failed.            | `cargo test --workspace`, `pnpm -r test`, `pnpm smoke`, `swift test --package-path sdks/swift` |
 | **Spec verification**| Every active spec has `tests/spec_NN_verification.rs`. The harness caught **8 real drifts** before they shipped (event-name drift, missing diff kinds, FK ordering, etc.). | `SPECS_STATUS.md`                              |
 | **CI bundle**        | `fmt-check + clippy -D warnings + test + verify-specs + verify-agents`. Green.                  | `.github/workflows/ci.yml`, `justfile`         |
@@ -251,6 +251,18 @@ cargo run -p actant-contracts -- codegen-ts
 # Benchmark HTTP /v1/command
 cargo bench -p actant-bench --bench http_command -- --sample-size 20
 ```
+
+---
+
+## Compared to the competitive landscape
+
+See [`COMPARISON.md`](./COMPARISON.md) for a 13-row feature matrix vs. 14 competitors (Temporal, Inngest, Restate, DBOS, Mastra, LangGraph, OpenAI Agents, CrewAI, Langfuse, LangSmith, Phoenix, Helicone, Mem0, Zep) — with sourced vendor docs, honest "where competitors win" notes, and routing guidance for when to use each.
+
+Three places ActantDB is genuinely uncontested in 2026:
+
+1. **Hash-chained tamper-evident ledger** — every event carries `payload_hash + chain_hash`. No competitor in the surveyed set provides this.
+2. **Runtime Guard verdict as a typed ledger event** — the policy snapshot, decision, and reason are first-class rows you can replay against. Closest analog (LangGraph interrupts) is per-node, not policy-typed.
+3. **Capsule-bound context with sensitivity ceiling** — context is sealed by capsule + enforced before model dispatch, not just labeled in traces.
 
 ---
 
