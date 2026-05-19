@@ -21,4 +21,5 @@ export * from "@actantdb/policy";
 export * from "@actantdb/mastra";
 export * from "@actantdb/replay";
 export * from "@actantdb/sdk";
+export * from "@actantdb/box";
 export type * from "@actantdb/types";

@@ -81,6 +81,34 @@ importers:
         specifier: workspace:*
         version: link:../../packages/actant-types
 
+  packages/actant-box:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../actant-core
+      '@actantdb/mastra':
+        specifier: workspace:*
+        version: link:../actant-mastra
+      '@actantdb/policy':
+        specifier: workspace:*
+        version: link:../actant-policy
+      '@actantdb/replay':
+        specifier: workspace:*
+        version: link:../actant-replay
+      '@actantdb/types':
+        specifier: workspace:*
+        version: link:../actant-types
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)
+
   packages/actant-convex:
     dependencies:
       '@actantdb/core':
@@ -231,6 +259,9 @@ importers:
 
   packages/actantdb:
     dependencies:
+      '@actantdb/box':
+        specifier: workspace:*
+        version: link:../actant-box
       '@actantdb/core':
         specifier: workspace:*
         version: link:../actant-core
@@ -249,6 +280,10 @@ importers:
       '@actantdb/types':
         specifier: workspace:*
         version: link:../actant-types
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
 
 packages:
 

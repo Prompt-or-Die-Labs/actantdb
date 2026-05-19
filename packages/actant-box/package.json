@@ -1,7 +1,7 @@
 {
-  "name": "@actantdb/policy",
+  "name": "@actantdb/box",
   "version": "0.0.11",
-  "description": "Policy DSL + Guard verdict builders (allow / constrain / require_approval / block / halt).",
+  "description": "Local-first ActantDB Box — Upstash-Box-shaped SDK for sandboxed agent workspaces (exec, files, git, schedules, snapshots, agent) backed entirely by ActantDB primitives.",
   "type": "module",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
@@ -25,9 +25,13 @@
   },
   "dependencies": {
     "@actantdb/core": "workspace:*",
+    "@actantdb/mastra": "workspace:*",
+    "@actantdb/policy": "workspace:*",
+    "@actantdb/replay": "workspace:*",
     "@actantdb/types": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "typescript": "^5.4.0",
     "vitest": "^3.2.4"
   },
@@ -41,6 +45,17 @@
     "type": "git",
     "url": "https://github.com/Prompt-or-Die-Labs/actantdb"
   },
+  "keywords": [
+    "actantdb",
+    "box",
+    "sandbox",
+    "agent",
+    "workspace",
+    "upstash-box",
+    "exec",
+    "snapshot",
+    "schedule"
+  ],
   "homepage": "https://github.com/Prompt-or-Die-Labs/actantdb#readme",
   "bugs": {
     "url": "https://github.com/Prompt-or-Die-Labs/actantdb/issues"
