@@ -84,25 +84,27 @@ jobs:
       - name: install actantdb package (editable)
         run: pip install -e sdks/python
       - name: run unit tests
-        # Tests live in sdks/python/tests and import `actantdb` directly.
-        # Discover them with sdks/python as top-level so package and tests
-        # resolve consistently across local + CI.
-        run: python3 -m unittest discover -s sdks/python/tests -t sdks/python -v
+        # `pip install -e` puts `actantdb` on PYTHONPATH; discover from
+        # the tests dir directly with that as top-level so unittest finds
+        # the module without needing __init__.py in tests/.
+        working-directory: sdks/python
+        run: python3 -m unittest discover -s tests -t tests -v
 
   test-swift:
     name: swift test (sdks/swift)
     runs-on: macos-latest
-    # sdks/swift Package.swift declares swift-tools-version: 6.3 (to match
-    # the Swoosh consumer's platform floor of macOS 26 / iOS 26). GH-hosted
-    # macos-latest currently ships Swift 6.1; until Swift 6.3 lands on the
-    # default Xcode there, this job continues-on-error so it surfaces the
-    # gap without blocking the rest of CI.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: swift version
         run: swift --version
+      # sdks/swift Package.swift declares swift-tools-version: 6.3 (to
+      # match the Swoosh consumer's macOS 26 / iOS 26 platform floor).
+      # GH-hosted macos-latest currently ships Swift 6.1 — until 6.3
+      # lands on the runner Xcode, this step is allowed to fail without
+      # blocking the workflow. The step's failure is still visible in
+      # the run UI as a yellow note, so the gap doesn't go quiet.
       - run: swift test --package-path sdks/swift
+        continue-on-error: true
 
   bench-build:
     name: benchmark crate compiles
