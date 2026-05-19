@@ -3,7 +3,7 @@
 The all-in-one ActantDB import. One package, every primitive, zero boilerplate.
 
 ```bash
-npm install actantdb
+npm install @actantdb/all
 ```
 
 ```js
@@ -28,7 +28,7 @@ Install only what you need. Each individual package is leaner:
 | Just the agent wrapper | `npm i @actantdb/mastra` | ~80 KB |
 | Just replay + diff | `npm i @actantdb/replay` | ~60 KB |
 | Just the HTTP/WS client (server mode) | `npm i @actantdb/sdk` | ~70 KB |
-| Everything | `npm i actantdb` | bundles the above |
+| Everything | `npm i @actantdb/all` | bundles the above |
 
 API is identical whether you use the umbrella or the individual packages —
 this package is *only* re-exports.

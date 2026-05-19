@@ -1,5 +1,5 @@
 {
-  "name": "actantdb",
+  "name": "@actantdb/all",
   "version": "0.0.11",
   "description": "ActantDB — every primitive in one import. Or install just the piece you need: @actantdb/core for storage, @actantdb/policy for Guard, @actantdb/mastra for the agent wrapper, etc.",
   "type": "module",
@@ -47,5 +47,8 @@
   "files": [
     "dist",
     "README.md"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
