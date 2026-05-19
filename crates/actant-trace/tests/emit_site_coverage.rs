@@ -46,14 +46,14 @@ fn parse_span_names() -> Vec<String> {
                 let candidate = &rest[..end];
                 // Span names are dotted identifiers like `model.call`.
                 // Header rows have `Span name` (with space) — filter those.
-                if candidate.contains('.')
+                if (candidate.contains('.')
                     || candidate
                         .chars()
-                        .all(|c| c.is_ascii_lowercase() || c == '_')
+                        .all(|c| c.is_ascii_lowercase() || c == '_'))
+                    && !candidate.contains(' ')
+                    && !candidate.is_empty()
                 {
-                    if !candidate.contains(' ') && !candidate.is_empty() {
-                        names.push(candidate.to_string());
-                    }
+                    names.push(candidate.to_string());
                 }
             }
         }

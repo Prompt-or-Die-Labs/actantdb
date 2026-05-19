@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use actant_embed::{Embedder, Embedding};
-use actant_embedders::{cross_space_check, HashEmbedder, Registry, SpaceError};
+use actant_embedders::{cross_space_check, Registry, SpaceError};
 use async_trait::async_trait;
 
 /// A second embedder with a *different* provider id but the same dimension

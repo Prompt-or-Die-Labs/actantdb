@@ -132,10 +132,7 @@ async fn dispatch_timed(
     Ok((elapsed, v))
 }
 
-async fn create_session(
-    client: &Client,
-    cli: &Cli,
-) -> Result<String, Box<dyn std::error::Error>> {
+async fn create_session(client: &Client, cli: &Cli) -> Result<String, Box<dyn std::error::Error>> {
     let (_, v) = dispatch_timed(
         client,
         &cli.base_url,
@@ -166,8 +163,14 @@ async fn single_agent_burst(
         json!({}),
     )
     .await?;
-    let session_id = sess_resp["result"]["session_id"].as_str().unwrap().to_string();
-    println!("  create_session: {:.3} ms", session_lat_ns as f64 / 1_000_000.0);
+    let session_id = sess_resp["result"]["session_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    println!(
+        "  create_session: {:.3} ms",
+        session_lat_ns as f64 / 1_000_000.0
+    );
 
     let mut latencies = Vec::with_capacity(n_msgs);
     let wall_start = Instant::now();
@@ -196,9 +199,7 @@ async fn concurrent_sessions(
     n_sessions: usize,
     msgs_per_session: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!(
-        "== scenario: concurrent ({n_sessions} sessions x {msgs_per_session} msgs) =="
-    );
+    println!("== scenario: concurrent ({n_sessions} sessions x {msgs_per_session} msgs) ==");
 
     // Pre-create sessions sequentially so the bench measures only the
     // concurrent message phase.
@@ -286,9 +287,9 @@ async fn replay_from_event(
         .json()
         .await?;
     let cp_wall = cp_start.elapsed();
-    let checkpoint_id = cp_resp["checkpoint_id"].as_str().ok_or_else(|| {
-        format!("no checkpoint_id in response: {cp_resp}")
-    })?;
+    let checkpoint_id = cp_resp["checkpoint_id"]
+        .as_str()
+        .ok_or_else(|| format!("no checkpoint_id in response: {cp_resp}"))?;
     println!("  checkpoint: {:.2} ms", cp_wall.as_secs_f64() * 1000.0);
 
     // Run replay in 'recorded' mode + diff (server returns the diff).
@@ -308,10 +309,7 @@ async fn replay_from_event(
     if !status.is_success() {
         return Err(format!("replay run failed: {status} {run_body}").into());
     }
-    let entry_count = run_body["entries"]
-        .as_array()
-        .map(|a| a.len())
-        .unwrap_or(0);
+    let entry_count = run_body["entries"].as_array().map(|a| a.len()).unwrap_or(0);
     println!(
         "  replay run+diff: {:.2} ms ({} diff entries)",
         run_wall.as_secs_f64() * 1000.0,

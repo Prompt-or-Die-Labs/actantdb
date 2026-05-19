@@ -119,7 +119,7 @@ fn fuzz_validate_path_never_escapes_base() {
     let base = tmp.path().to_path_buf();
 
     // Seed the RNG deterministically so failures are reproducible.
-    let mut rng = Xorshift64::new(0xa11ce_b0b_d34db33fu64);
+    let mut rng = Xorshift64::new(0xa11c_eb0b_d34d_b33f_u64);
 
     let trials = 1000usize;
     let mut accepted = 0usize;
@@ -140,14 +140,12 @@ fn fuzz_validate_path_never_escapes_base() {
                 // PROPERTY 2: a write to the resolved path must land inside
                 // base. We create only files that have a parent inside base.
                 if let Some(parent) = resolved.parent() {
-                    if !parent.exists() {
-                        if std::fs::create_dir_all(parent).is_err() {
-                            // Some adversarial inputs (e.g. weird unicode)
-                            // legitimately fail on the host FS; the property
-                            // we care about is "no escape", which we already
-                            // asserted lexically.
-                            continue;
-                        }
+                    if !parent.exists() && std::fs::create_dir_all(parent).is_err() {
+                        // Some adversarial inputs (e.g. weird unicode)
+                        // legitimately fail on the host FS; the property
+                        // we care about is "no escape", which we already
+                        // asserted lexically.
+                        continue;
                     }
                     if std::fs::write(&resolved, b"x").is_err() {
                         continue;

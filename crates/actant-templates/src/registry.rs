@@ -65,7 +65,11 @@ pub struct RenderRequest {
 
 impl RenderRequest {
     /// Construct a request with default ports filled in.
-    pub fn new(template: impl Into<String>, destination: PathBuf, project_name: impl Into<String>) -> Self {
+    pub fn new(
+        template: impl Into<String>,
+        destination: PathBuf,
+        project_name: impl Into<String>,
+    ) -> Self {
         Self {
             template: template.into(),
             destination,
@@ -146,7 +150,13 @@ impl TemplateRegistry {
         let vars = build_vars(&req);
 
         let mut files_written = Vec::new();
-        write_dir(dir, &req.template, &req.destination, &vars, &mut files_written)?;
+        write_dir(
+            dir,
+            &req.template,
+            &req.destination,
+            &vars,
+            &mut files_written,
+        )?;
         files_written.sort();
         Ok(RenderOutput { files_written })
     }
@@ -157,12 +167,15 @@ fn builtin_template(name: &str) -> Template {
         "minimal" => Template {
             name: "minimal".to_string(),
             version: 1,
-            description: "Smallest functional ActantDB project — embedded ledger + a no-op agent.".to_string(),
+            description: "Smallest functional ActantDB project — embedded ledger + a no-op agent."
+                .to_string(),
         },
         "coding-agent" => Template {
             name: "coding-agent".to_string(),
             version: 1,
-            description: "Coding agent with shell.run + file.write tools, wrapped through @actantdb/mastra.".to_string(),
+            description:
+                "Coding agent with shell.run + file.write tools, wrapped through @actantdb/mastra."
+                    .to_string(),
         },
         other => Template {
             name: other.to_string(),

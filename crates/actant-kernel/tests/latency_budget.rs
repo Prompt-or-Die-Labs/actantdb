@@ -98,25 +98,19 @@ async fn dispatch_tool_call_p99_within_budget() {
     let p99 = samples[p99_idx.min(samples.len() - 1)];
 
     println!(
-        "dispatch_tool_call p50={:?} (budget {} ms) p99={:?} (budget {} ms)",
-        p50, P50_BUDGET_MS, p99, P99_BUDGET_MS
+        "dispatch_tool_call p50={p50:?} (budget {P50_BUDGET_MS} ms) p99={p99:?} (budget {P99_BUDGET_MS} ms)"
     );
 
     assert!(
         p50.as_millis() <= P50_BUDGET_MS,
-        "kernel dispatch p50 = {:?} exceeded debug-build budget of {} ms \
+        "kernel dispatch p50 = {p50:?} exceeded debug-build budget of {P50_BUDGET_MS} ms \
          (spec p50 = 5 ms × 3 = 15 ms). A p50 regression usually means a new \
          sync hop on the hot path.",
-        p50,
-        P50_BUDGET_MS,
     );
 
     assert!(
         p99.as_millis() <= P99_BUDGET_MS,
-        "kernel dispatch p99 = {:?} exceeded debug-build budget of {} ms \
-         (spec p99 = 30 ms × 10 = 300 ms). Samples: p50={:?}",
-        p99,
-        P99_BUDGET_MS,
-        p50,
+        "kernel dispatch p99 = {p99:?} exceeded debug-build budget of {P99_BUDGET_MS} ms \
+         (spec p99 = 30 ms × 10 = 300 ms). Samples: p50={p50:?}",
     );
 }

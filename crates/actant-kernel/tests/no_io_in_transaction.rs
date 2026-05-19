@@ -74,7 +74,9 @@ fn actant_command_src_has_no_external_io_calls() {
                 );
             }
             Some(1) => { /* no match → pass */ }
-            Some(2) | _ => {
+            // grep returns 2 on error and >=3 on signal — treat any other
+            // status as a scanner-level failure.
+            _ => {
                 let stderr = String::from_utf8_lossy(&out.stderr);
                 panic!("grep returned an error scanning for `{needle}`: {stderr}");
             }

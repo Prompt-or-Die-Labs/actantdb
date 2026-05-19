@@ -5,7 +5,7 @@
 //! events with no I/O. The test exists to lock the AC and catch a future
 //! regression that wires in a synchronous network call or quadratic resolver.
 
-use actant_eval::{AssertOp, Criterion, Event, SuccessCriteria};
+use actant_eval::{Criterion, Event, SuccessCriteria};
 use serde_json::json;
 use std::time::Instant;
 

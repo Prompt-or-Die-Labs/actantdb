@@ -41,8 +41,7 @@ fn most_overlapping_doc_scores_highest() {
 
     assert_eq!(
         best.0, 0,
-        "doc d1 should score highest for query 'quick brown fox'; scores={:?}",
-        scores
+        "doc d1 should score highest for query 'quick brown fox'; scores={scores:?}"
     );
 
     // And the rust-async doc has zero overlap — it must score 0.

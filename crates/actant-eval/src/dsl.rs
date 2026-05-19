@@ -125,7 +125,11 @@ fn evaluate_one(c: &Criterion, events: &[Event]) -> Result<(), String> {
             }
         }
         Criterion::LatencyLeMs(limit) => {
-            let max = events.iter().filter_map(|e| e.latency_ms).max().unwrap_or(0);
+            let max = events
+                .iter()
+                .filter_map(|e| e.latency_ms)
+                .max()
+                .unwrap_or(0);
             if max <= *limit {
                 Ok(())
             } else {
@@ -134,7 +138,11 @@ fn evaluate_one(c: &Criterion, events: &[Event]) -> Result<(), String> {
                 ))
             }
         }
-        Criterion::Assert { jsonpath, op, value } => evaluate_assert(jsonpath, *op, value, events),
+        Criterion::Assert {
+            jsonpath,
+            op,
+            value,
+        } => evaluate_assert(jsonpath, *op, value, events),
     }
 }
 

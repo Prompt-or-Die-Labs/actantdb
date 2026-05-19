@@ -54,7 +54,7 @@ pub async fn recall_at_k(fixture: &RecallFixture, idx: &Index, k: usize) -> f64 
         let returned_ids: Vec<&str> = results.iter().map(|(_, it)| it.id.as_str()).collect();
         if q.gold_doc_ids
             .iter()
-            .any(|g| returned_ids.iter().any(|r| *r == g.as_str()))
+            .any(|g| returned_ids.contains(&g.as_str()))
         {
             hits += 1;
         }

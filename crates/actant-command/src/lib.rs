@@ -155,10 +155,7 @@ impl Engine {
         }
 
         if let Some(key) = idempotency_key {
-            if let Some(prior) = storage
-                .idempotency_lookup(workspace_id, key)
-                .await?
-            {
+            if let Some(prior) = storage.idempotency_lookup(workspace_id, key).await? {
                 return Ok(CommandOutcome {
                     command_id: CommandId::from_string(prior),
                     event_id: None,
