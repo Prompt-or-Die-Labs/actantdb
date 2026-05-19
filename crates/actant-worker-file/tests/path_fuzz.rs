@@ -14,6 +14,8 @@
 //! We don't need `proptest` for this — a deterministic PRNG over a curated
 //! set of components is plenty for 1000 trials and keeps the dev-deps slim.
 
+#![allow(dead_code)] // helpers below are only used by the Unix-only fuzz test.
+
 use std::path::{Component, Path, PathBuf};
 
 use actant_worker_file::validate_path;
@@ -113,6 +115,13 @@ fn is_inside_lex(base: &Path, candidate: &Path) -> bool {
     resolved.starts_with(base_norm)
 }
 
+// The adversarial corpus targets Unix path semantics (forward slashes,
+// `/etc/passwd`-style absolutes, etc.). Windows treats backslashes,
+// drive letters, and reserved names differently — the underlying
+// `validate_path` is correct on both, but the corpus + lexical check
+// here is Unix-specific. Skip on Windows; the unit tests (NUL byte,
+// parent-dir, absolute-escape) still cover the contract.
+#[cfg(not(target_os = "windows"))]
 #[test]
 fn fuzz_validate_path_never_escapes_base() {
     let tmp = tempfile::tempdir().expect("tempdir");
