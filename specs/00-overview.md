@@ -20,11 +20,23 @@ The core idea:
 
 > Every autonomous action should be recorded, permissioned, replayable, inspectable, and attributable.
 
-SpacetimeDB is the design inspiration because it fuses database tables, server-side logic, reducers, and realtime subscriptions. ActantDB takes that pattern and specializes it for agents.
+**Inspiration, not parity.** SpacetimeDB is the design inspiration because it
+fuses database tables, server-side logic, reducers, and realtime
+subscriptions. ActantDB takes that *pattern* and specializes it for agents.
+Concretely: we adopt **typed commands as the only mutation path** (their
+"reducers"), an **append-only ledger as the source of truth**, and
+**subscribe-then-stream** delivery. We do *not* clone the parts that make
+SpacetimeDB SpacetimeDB v2 — WASM modules for consumer-supplied reducers
+running inside the DB process, or row-level subscription predicates over
+arbitrary tables. Agents need Guard verdicts, capsule sensitivity ceilings,
+hash-chained provenance, and policy/memory replay overrides; those are
+ActantDB-native concerns that have no analog in SpacetimeDB. If a future
+version of ActantDB needs WASM-reducer execution it'll be added as a
+parallel runtime, not by retrofitting the agent-specific command engine.
 
 ```
-SpacetimeDB:  realtime app/game backend
-ActantDB:     realtime autonomous-action backend
+SpacetimeDB v2:  realtime app/game backend with WASM reducers
+ActantDB:        realtime autonomous-action backend with Guard + replay
 ```
 
 The fundamental invariant — repeated in `05-security-model.md` and enforced across every subsystem:

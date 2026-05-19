@@ -132,7 +132,7 @@ That is the fundamental unit of accountable autonomy.
 
 **Purpose.** Mutate state only through explicit, typed, permission-checked commands. No raw `UPDATE` against projection tables is ever exposed.
 
-SpacetimeDB's *reducers* inspire this: they are the mutation path and run transactionally with rollback on failure. ActantDB commands are the agent-native version of that idea.
+SpacetimeDB's *reducers* inspire this: they are the mutation path and run transactionally with rollback on failure. ActantDB commands are the agent-native version of that idea — typed Rust functions in the command engine, not consumer-supplied WASM modules. See `/specs/00-overview.md` "Inspiration, not parity" for what we deliberately did not copy.
 
 **Command lifecycle.**
 

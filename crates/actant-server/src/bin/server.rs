@@ -34,8 +34,48 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
     let args = Args::parse();
+    // Fail loud on Postgres bootstrap until the substrate actually supports it.
+    // Storage audit gap #1 was: `ACTANTDB_DATABASE_URL` was silently ignored
+    // and the server opened SQLite anyway — Helm `storage.backend=postgres`
+    // looked healthy while writing to a local file. Refuse to start so the
+    // mismatch surfaces immediately. Remove this guard once
+    // `crates/actant-storage::PgStorage` ships the full repo surface (see
+    // STORAGE_AUDIT.md gap #2 + GAPS.md row #5).
+    if let Ok(url) = std::env::var("ACTANTDB_DATABASE_URL") {
+        if !url.is_empty() {
+            anyhow::bail!(
+                "ACTANTDB_DATABASE_URL is set ({}) but the Postgres backend \
+                 is not yet usable end-to-end: `crates/actant-storage::PgStorage` \
+                 ships 7 of the 87 tables and 0 of the repo methods needed by \
+                 the command engine. The server refuses to start so this \
+                 doesn't silently downgrade to SQLite. Track:\n  \
+                 - STORAGE_AUDIT.md gap #2\n  \
+                 - GAPS.md row #5\n\
+                 To run on SQLite anyway: unset ACTANTDB_DATABASE_URL and \
+                 pass --db <path>.",
+                redact_db_url(&url)
+            );
+        }
+    }
     let (router, _state) = actant_server::bootstrap(args.db).await?;
     actant_server::serve(router, &args.bind, args.tls_cert, args.tls_key).await?;
     tracing::info!("actantdb-server shutdown complete");
     Ok(())
+}
+
+/// Redact the password from a `postgres://user:pass@host/db` URL for safe
+/// inclusion in error messages and logs.
+fn redact_db_url(url: &str) -> String {
+    if let Some(scheme_end) = url.find("://") {
+        let after_scheme = &url[scheme_end + 3..];
+        if let Some(at) = after_scheme.find('@') {
+            let userinfo = &after_scheme[..at];
+            let rest = &after_scheme[at..];
+            if let Some(colon) = userinfo.find(':') {
+                let user = &userinfo[..colon];
+                return format!("{}://{}:***{}", &url[..scheme_end], user, rest);
+            }
+        }
+    }
+    url.to_string()
 }

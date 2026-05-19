@@ -14,7 +14,9 @@
  * No other subcommands ship in v0.1.
  */
 
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { platform } from "node:os";
 import { openLedger, ApprovalStore } from "@actantdb/core";
 import {
   diff,
@@ -96,6 +98,8 @@ GLOBAL OPTIONS:
   --store-dir <path>       storage root (default: ~/.actantdb; or ACTANTDB_STORE_DIR)
   --port <num>             studio HTTP port (default: 4555; pass 0 for ephemeral)
   --quiet                  suppress "Studio listening on…" banner
+  --no-open                don't auto-open the browser (open by default in local mode)
+  --open                   force-open even when ACTANTDB_NO_OPEN is set
 
 EXAMPLES:
   # Open Studio against the in-repo demo store:
@@ -158,6 +162,46 @@ async function cmdStudio(flags: Record<string, string | boolean>): Promise<void>
   if (!quiet) {
     process.stdout.write(`Studio listening on ${url}\n`);
     process.stdout.write("Press Ctrl-C to stop.\n");
+  }
+  // Auto-open the browser when running locally. Opt out via --no-open or
+  // ACTANTDB_NO_OPEN=1. Opt-in to override env via --open. Honored only
+  // for loopback URLs (http://127.0.0.1, http://localhost) so a remote
+  // deploy never tries to spawn a browser on the server host.
+  const noOpenFlag = Boolean(flags["no-open"]);
+  const openFlag = Boolean(flags.open);
+  const envOptOut = process.env.ACTANTDB_NO_OPEN === "1";
+  const isLoopback = /^https?:\/\/(127\.0\.0\.1|localhost)\b/.test(url);
+  if (isLoopback && !noOpenFlag && (openFlag || !envOptOut)) {
+    openBrowser(url);
+  }
+}
+
+/**
+ * Open `url` in the host OS's default browser. Detached + ignored so the
+ * child doesn't hold the CLI's stdio open. Fire-and-forget; spawn errors
+ * are swallowed because a missing `open`/`xdg-open` should never crash
+ * Studio.
+ */
+function openBrowser(url: string): void {
+  const opener =
+    platform() === "darwin"
+      ? { cmd: "open", args: [url] }
+      : platform() === "win32"
+        ? { cmd: "cmd", args: ["/c", "start", "", url] }
+        : { cmd: "xdg-open", args: [url] };
+  try {
+    const child = spawn(opener.cmd, opener.args, {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.on("error", () => {
+      // Swallow — most likely cause is the opener binary not being on
+      // PATH (headless containers, slim CI images). The URL is still in
+      // the launch banner above; user can open it manually.
+    });
+    child.unref();
+  } catch {
+    // Same — silent fall-through.
   }
 }
 
