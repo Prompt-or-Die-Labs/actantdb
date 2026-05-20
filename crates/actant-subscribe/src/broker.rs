@@ -23,7 +23,7 @@
 //! See `/migrations/0006_pubsub.sql`.
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use actant_core::{now_rfc3339, ActantError, WorkspaceId};
 use actant_storage::Storage;
@@ -58,6 +58,7 @@ struct Inner {
     channels: RwLock<HashMap<Key, broadcast::Sender<Envelope>>>,
     /// Per-channel broadcast capacity. Tuneable via [`Broker::with_capacity`].
     capacity: usize,
+    id_generator: Mutex<ulid::Generator>,
 }
 
 /// Named-topic pub/sub broker. Cheap to clone (wraps an `Arc`).
@@ -80,6 +81,7 @@ impl Broker {
                 storage,
                 channels: RwLock::new(HashMap::new()),
                 capacity: capacity.max(1),
+                id_generator: Mutex::new(ulid::Generator::new()),
             }),
         }
     }
@@ -95,7 +97,17 @@ impl Broker {
         if topic.is_empty() {
             return Err(ActantError::InvalidInput("topic is required".into()));
         }
-        let id = format!("psm_{}", ulid::Ulid::new());
+        let id = {
+            let mut generator = self
+                .inner
+                .id_generator
+                .lock()
+                .map_err(|_| ActantError::Internal("pubsub id generator poisoned".into()))?;
+            let ulid = generator
+                .generate()
+                .map_err(|e| ActantError::Internal(format!("pubsub id generation: {e}")))?;
+            format!("psm_{ulid}")
+        };
         let ts = now_rfc3339();
         // Persist first. If the write fails, we don't fan out — better to
         // surface the error than to deliver something that won't survive

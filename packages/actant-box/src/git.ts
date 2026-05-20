@@ -110,7 +110,10 @@ export class BoxGitAPI {
       this.recordEffect("pr_fallback", { command });
       return { url: "", submitted: false, command };
     }
-    const { output } = await runProcess("gh", ghArgs, this.workspaceCwd());
+    const { output } = await runProcess("gh", ghArgs, this.workspaceCwd(), {
+      ...process.env,
+      GH_PROMPT_DISABLED: "1",
+    });
     const urlMatch = output.match(/https?:\/\/\S+/);
     const url = urlMatch ? urlMatch[0] : "";
     this.recordEffect("pr_created", { url, command });
@@ -234,19 +237,35 @@ interface RunResult {
   exitCode: number | null;
 }
 
-function runProcess(cmd: string, args: string[], cwd: string): Promise<RunResult> {
+function runProcess(
+  cmd: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd });
+    const child = spawn(cmd, args, { cwd, env });
     let output = "";
     let stderr = "";
+    let settled = false;
     child.stdout?.on("data", (b: Buffer) => {
       output += b.toString("utf8");
     });
     child.stderr?.on("data", (b: Buffer) => {
       stderr += b.toString("utf8");
     });
-    child.on("error", (err) => reject(err));
-    child.on("exit", (code) => resolve({ output, stderr, exitCode: code }));
+    child.on("error", (err) => {
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    });
+    child.on("close", (code) => {
+      if (!settled) {
+        settled = true;
+        resolve({ output, stderr, exitCode: code });
+      }
+    });
   });
 }
 
