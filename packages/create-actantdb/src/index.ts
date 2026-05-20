@@ -70,29 +70,83 @@ export function parseArgs(argv: string[]): Args {
     version: false,
   };
   for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!;
-    if (a === "--help" || a === "-h") out.help = true;
-    else if (a === "--version") out.version = true;
-    else if (a === "--no-interactive") out.interactive = false;
-    else if (a === "--yes" || a === "-y") {
-      out.yes = true;
-      out.interactive = false;
-    } else if (a === "--force") out.force = true;
-    else if (a === "--template") out.template = argv[++i];
-    else if (a === "--framework") out.framework = argv[++i] as FrameworkChoice;
-    else if (a === "--language") out.language = argv[++i] as LanguageChoice;
-    else if (a === "--port") {
-      const v = argv[++i];
-      if (v) out.studioPort = Number(v);
-    } else if (a.startsWith("--template=")) out.template = a.slice("--template=".length);
-    else if (a.startsWith("--framework="))
-      out.framework = a.slice("--framework=".length) as FrameworkChoice;
-    else if (a.startsWith("--language="))
-      out.language = a.slice("--language=".length) as LanguageChoice;
-    else if (a.startsWith("--port=")) out.studioPort = Number(a.slice("--port=".length));
-    else if (!a.startsWith("-")) out.positional.push(a);
+    i = applyArg(argv, i, out);
   }
   return out;
+}
+
+type BooleanArg = (out: Args) => void;
+type ValueArg = (out: Args, value: string | undefined) => void;
+
+const BOOLEAN_ARGS: Record<string, BooleanArg> = {
+  "--help": (out) => {
+    out.help = true;
+  },
+  "-h": (out) => {
+    out.help = true;
+  },
+  "--version": (out) => {
+    out.version = true;
+  },
+  "--no-interactive": (out) => {
+    out.interactive = false;
+  },
+  "--yes": markYes,
+  "-y": markYes,
+  "--force": (out) => {
+    out.force = true;
+  },
+};
+
+const VALUE_ARGS: Record<string, ValueArg> = {
+  "--template": (out, value) => {
+    if (value !== undefined) out.template = value;
+  },
+  "--framework": (out, value) => {
+    if (value !== undefined) out.framework = value as FrameworkChoice;
+  },
+  "--language": (out, value) => {
+    if (value !== undefined) out.language = value as LanguageChoice;
+  },
+  "--port": (out, value) => {
+    if (value) out.studioPort = Number(value);
+  },
+};
+
+function applyArg(argv: string[], index: number, out: Args): number {
+  const arg = argv[index]!;
+  const booleanArg = BOOLEAN_ARGS[arg];
+  if (booleanArg) {
+    booleanArg(out);
+    return index;
+  }
+
+  const valueArg = VALUE_ARGS[arg];
+  if (valueArg) {
+    valueArg(out, argv[index + 1]);
+    return index + 1;
+  }
+
+  const assigned = splitAssignedArg(arg);
+  if (assigned) {
+    assigned.parser(out, assigned.value);
+  } else if (!arg.startsWith("-")) {
+    out.positional.push(arg);
+  }
+  return index;
+}
+
+function splitAssignedArg(arg: string): { parser: ValueArg; value: string } | undefined {
+  const eq = arg.indexOf("=");
+  if (eq < 0) return undefined;
+  const parser = VALUE_ARGS[arg.slice(0, eq)];
+  if (!parser) return undefined;
+  return { parser, value: arg.slice(eq + 1) };
+}
+
+function markYes(out: Args): void {
+  out.yes = true;
+  out.interactive = false;
 }
 
 export interface ScaffoldChoices {

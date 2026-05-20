@@ -185,57 +185,45 @@ export class BoxAgentAPI {
 
   async *stream(input: AgentRunInput): AsyncIterable<AgentChunk> {
     const ctx = this.ctx();
-    if (ctx.mode === "cloud") {
-      throw new BoxError(
-        "cloud_unsupported",
-        "box.agent.stream: cloud control plane is in development — see docs/CLOUD_ROADMAP.md Phase 2",
-      );
-    }
+    ensureLocalAgentCtx(ctx, "box.agent.stream");
     if (this.harness) {
-      if (!input.prompt) {
-        throw new BoxError(
-          "exec_failed",
-          `box.agent.stream requires a prompt when using harness "${this.harness.name}"`,
-        );
-      }
-      for await (const chunk of this.harness.stream({
-        prompt: input.prompt,
-        cwd: `${ctx.workspaceDir}${ctx.cwd ? "/" + ctx.cwd : ""}`,
-        model: this.harnessModel ?? this.harness.defaultModel,
-        ...(this.harnessApiKey !== undefined ? { apiKey: this.harnessApiKey } : {}),
-        ...(input.timeout !== undefined ? { timeoutMs: input.timeout } : {}),
-        ...(this.harnessExtraArgs !== undefined ? { extraArgs: this.harnessExtraArgs } : {}),
-      })) {
-        yield chunk;
-      }
+      yield* this.streamHarness(input, ctx);
       return;
     }
 
     const wrapped = this.ensureWrapped(input.policy, input.autoApprove);
     const generatePayload = buildGeneratePayload(input);
-    const agent = wrapped.agent;
+    const maybeStream = nativeStream(wrapped.agent);
 
     // Native streaming path: if the user-supplied agent has `stream`, forward.
-    const maybeStream = (agent as { stream?: (input: unknown) => AsyncIterable<unknown> }).stream;
-    if (typeof maybeStream === "function") {
-      const ctx = wrapped.startRun();
-      if (input.prompt !== undefined) ctx.recordUserMessage(input.prompt);
-      try {
-        for await (const raw of maybeStream.call(agent, generatePayload.input ?? generatePayload.message)) {
-          yield normalizeChunk(raw);
-        }
-        ctx.finish({ ok: true });
-      } catch (err) {
-        ctx.finish({ ok: false, error: (err as Error).message ?? String(err) });
-        throw err;
-      }
+    if (maybeStream) {
+      yield* streamNativeAgent(wrapped, maybeStream, input, generatePayload);
       return;
     }
 
     // Fallback: run, yield a single finish chunk.
-    const { result } = await wrapped.run(generatePayload);
-    if (typeof result === "string") yield { type: "text-delta", text: result };
-    yield { type: "finish", result };
+    yield* streamGeneratedResult(wrapped, generatePayload);
+  }
+
+  private async *streamHarness(
+    input: AgentRunInput,
+    ctx: AgentCtx,
+  ): AsyncIterable<AgentChunk> {
+    if (!this.harness) return;
+    if (!input.prompt) {
+      throw new BoxError(
+        "exec_failed",
+        `box.agent.stream requires a prompt when using harness "${this.harness.name}"`,
+      );
+    }
+    yield* this.harness.stream({
+      prompt: input.prompt,
+      cwd: agentCwd(ctx),
+      model: this.harnessModel ?? this.harness.defaultModel,
+      ...(this.harnessApiKey !== undefined ? { apiKey: this.harnessApiKey } : {}),
+      ...(input.timeout !== undefined ? { timeoutMs: input.timeout } : {}),
+      ...(this.harnessExtraArgs !== undefined ? { extraArgs: this.harnessExtraArgs } : {}),
+    });
   }
 
   private ensureWrapped(policy?: Policy, autoApprove?: boolean): WrappedAgent<MastraAgentLike> {
@@ -263,6 +251,20 @@ export class BoxAgentAPI {
 
 // ----- helpers -----
 
+type NativeStream = (input: unknown) => AsyncIterable<unknown>;
+
+function ensureLocalAgentCtx(ctx: AgentCtx, operation: string): void {
+  if (ctx.mode !== "cloud") return;
+  throw new BoxError(
+    "cloud_unsupported",
+    `${operation}: cloud control plane is in development — see docs/CLOUD_ROADMAP.md Phase 2`,
+  );
+}
+
+function agentCwd(ctx: AgentCtx): string {
+  return `${ctx.workspaceDir}${ctx.cwd ? "/" + ctx.cwd : ""}`;
+}
+
 function buildGeneratePayload(input: AgentRunInput): { message?: string; input?: unknown } {
   const payload: { message?: string; input?: unknown } = {};
   if (input.prompt !== undefined) payload.message = input.prompt;
@@ -280,4 +282,37 @@ function normalizeChunk(raw: unknown): AgentChunk {
     return r;
   }
   return { type: "text-delta", text: String(raw) };
+}
+
+function nativeStream(agent: MastraAgentLike): NativeStream | undefined {
+  const stream = (agent as { stream?: NativeStream }).stream;
+  return typeof stream === "function" ? stream.bind(agent) : undefined;
+}
+
+async function* streamNativeAgent(
+  wrapped: WrappedAgent<MastraAgentLike>,
+  stream: NativeStream,
+  input: AgentRunInput,
+  generatePayload: { message?: string; input?: unknown },
+): AsyncIterable<AgentChunk> {
+  const ctx = wrapped.startRun();
+  if (input.prompt !== undefined) ctx.recordUserMessage(input.prompt);
+  try {
+    for await (const raw of stream(generatePayload.input ?? generatePayload.message)) {
+      yield normalizeChunk(raw);
+    }
+    ctx.finish({ ok: true });
+  } catch (err) {
+    ctx.finish({ ok: false, error: (err as Error).message ?? String(err) });
+    throw err;
+  }
+}
+
+async function* streamGeneratedResult(
+  wrapped: WrappedAgent<MastraAgentLike>,
+  generatePayload: { message?: string; input?: unknown },
+): AsyncIterable<AgentChunk> {
+  const { result } = await wrapped.run(generatePayload);
+  if (typeof result === "string") yield { type: "text-delta", text: result };
+  yield { type: "finish", result };
 }

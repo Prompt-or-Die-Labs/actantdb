@@ -203,18 +203,16 @@ export async function doCall<R>(
   const cached = findStepResult(state, key);
   if (cached !== undefined) return cached as CallResult<R>;
 
+  const inputHeaders = args.headers;
   const init: RequestInit = {
     method: args.method ?? "GET",
-    ...(args.headers ? { headers: args.headers } : {}),
+    ...(inputHeaders ? { headers: inputHeaders } : {}),
   };
   if (args.body !== undefined) {
     init.body =
       typeof args.body === "string" ? args.body : JSON.stringify(args.body);
-    if (!args.headers || !("content-type" in lowercaseHeaders(args.headers))) {
-      init.headers = {
-        "content-type": "application/json",
-        ...(args.headers ?? {}),
-      };
+    if (!inputHeaders || !("content-type" in lowercaseHeaders(inputHeaders))) {
+      init.headers = jsonHeaders(inputHeaders);
     }
   }
   const res = await state.fetch(args.url, init);
@@ -236,6 +234,11 @@ export async function doCall<R>(
   };
   appendStepResult(state, key, result);
   return result;
+}
+
+function jsonHeaders(headers: Record<string, string> | undefined): Record<string, string> {
+  if (headers === undefined) return { "content-type": "application/json" };
+  return { "content-type": "application/json", ...headers };
 }
 
 function lowercaseHeaders(h: Record<string, string>): Record<string, string> {

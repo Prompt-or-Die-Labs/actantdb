@@ -128,29 +128,34 @@ function deepEq(a: JSONValue, b: JSONValue): boolean {
   if (a === b) return true;
   if (a === null || b === null) return false;
   if (typeof a !== typeof b) return false;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      const av = a[i];
-      const bv = b[i];
-      if (av === undefined || bv === undefined) return false;
-      if (!deepEq(av, bv)) return false;
-    }
-    return true;
-  }
-  if (typeof a === "object" && typeof b === "object") {
-    const ak = Object.keys(a as object);
-    const bk = Object.keys(b as object);
-    if (ak.length !== bk.length) return false;
-    for (const k of ak) {
-      const av = (a as { [k: string]: JSONValue })[k];
-      const bv = (b as { [k: string]: JSONValue })[k];
-      if (av === undefined || bv === undefined) return false;
-      if (!deepEq(av, bv)) return false;
-    }
-    return true;
-  }
+  if (Array.isArray(a) || Array.isArray(b)) return arraysDeepEq(a, b);
+  if (jsonRecord(a) || jsonRecord(b)) return recordsDeepEq(a, b);
   return false;
+}
+
+function arraysDeepEq(a: JSONValue, b: JSONValue): boolean {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => {
+    const other = b[index];
+    return other !== undefined && deepEq(value, other);
+  });
+}
+
+function jsonRecord(value: JSONValue): value is { [k: string]: JSONValue } {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function recordsDeepEq(a: JSONValue, b: JSONValue): boolean {
+  if (!jsonRecord(a) || !jsonRecord(b)) return false;
+  const ak = Object.keys(a);
+  const bk = Object.keys(b);
+  if (ak.length !== bk.length) return false;
+  return ak.every((k) => {
+    const av = a[k];
+    const bv = b[k];
+    return av !== undefined && bv !== undefined && deepEq(av, bv);
+  });
 }
 
 function isObject(x: unknown): x is Record<string, unknown> {

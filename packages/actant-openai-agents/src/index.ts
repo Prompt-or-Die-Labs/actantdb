@@ -103,119 +103,165 @@ export function withActantAgent<A extends OpenAIAgentLike>(
   agent: A,
   opts: WithActantAgentOptions,
 ): WrappedOpenAIAgent<A> {
-  const handle: ActantHandle =
+  const handle = actantHandleFor(opts);
+  const ownsHandle = opts.handle === undefined;
+  const policy: Policy = opts.policy ?? { tools: [], deny: [] };
+  const active: ActiveRun = { current: undefined };
+
+  wrapOpenAITools(agent, policy, gateOptions(opts), active);
+
+  function startRun(o?: { runId?: string; meta?: unknown }): RunContext {
+    const ctx = handle.startRun(o);
+    active.current = ctx;
+    return ctx;
+  }
+
+  return {
+    agent,
+    actant: handle,
+    run: (input, runOpts) => runOpenAIAgent(agent, startRun, active, input, runOpts),
+    startRun,
+    close: () => {
+      if (ownsHandle) handle.close();
+    },
+  };
+}
+
+type GateOptions = Parameters<typeof runGatedTool>[0]["opts"];
+type ToolRunner = (args: unknown, ctx?: unknown) => Promise<unknown>;
+
+interface ActiveRun {
+  current: RunContext | undefined;
+}
+
+function actantHandleFor(opts: WithActantAgentOptions): ActantHandle {
+  return (
     opts.handle ??
     createActant({
       project: opts.project,
       ...(opts.storeDir !== undefined ? { storeDir: opts.storeDir } : {}),
       ...(opts.policy !== undefined ? { policy: opts.policy } : {}),
-    });
-  const ownsHandle = opts.handle === undefined;
-  const policy: Policy = opts.policy ?? { tools: [], deny: [] };
+    })
+  );
+}
 
-  let active: RunContext | undefined;
-
-  const gateOpts: Parameters<typeof runGatedTool>[0]["opts"] = {
+function gateOptions(opts: WithActantAgentOptions): GateOptions {
+  return {
     project: opts.project,
     ...(opts.autoApprove !== undefined ? { autoApprove: opts.autoApprove } : {}),
     ...(opts.resolveApproval !== undefined
       ? { resolveApproval: opts.resolveApproval }
       : {}),
   };
+}
 
-  // Mutate tools in place.
-  if (Array.isArray(agent.tools)) {
-    for (let i = 0; i < agent.tools.length; i++) {
-      const tool = agent.tools[i];
-      if (!tool) continue;
-      const toolName =
-        tool.name ?? (typeof (tool as { id?: unknown }).id === "string"
-          ? ((tool as { id: string }).id)
-          : `tool_${i}`);
-
-      // Preserve original; whichever method the SDK uses, we wrap it.
-      const origInvoke = tool.invoke ? tool.invoke.bind(tool) : undefined;
-      const origExecute = tool.execute ? tool.execute.bind(tool) : undefined;
-      const original = origInvoke ?? origExecute;
-      if (!original) continue;
-
-      const gated = async (args: unknown, ctx?: unknown) => {
-        const run = active;
-        if (!run) {
-          return original(args, ctx);
-        }
-        return runGatedTool({
-          run,
-          policy,
-          toolName,
-          args,
-          execute: (finalArgs) => original(finalArgs, ctx),
-          opts: gateOpts,
-        });
-      };
-
-      if (origInvoke) tool.invoke = gated;
-      if (origExecute) tool.execute = gated;
-    }
+function wrapOpenAITools<A extends OpenAIAgentLike>(
+  agent: A,
+  policy: Policy,
+  gateOpts: GateOptions,
+  active: ActiveRun,
+): void {
+  if (!Array.isArray(agent.tools)) return;
+  for (let i = 0; i < agent.tools.length; i++) {
+    wrapOpenAITool(agent.tools[i], i, policy, gateOpts, active);
   }
+}
 
-  function startRun(o?: { runId?: string; meta?: unknown }): RunContext {
-    const ctx = handle.startRun(o);
-    active = ctx;
-    return ctx;
-  }
+function wrapOpenAITool(
+  tool: OpenAIAgentToolLike | undefined,
+  index: number,
+  policy: Policy,
+  gateOpts: GateOptions,
+  active: ActiveRun,
+): void {
+  if (!tool) return;
+  const original = originalToolRunner(tool);
+  if (!original) return;
+  const gated = gatedToolRunner(toolName(tool, index), original, policy, gateOpts, active);
+  if (tool.invoke) tool.invoke = gated;
+  if (tool.execute) tool.execute = gated;
+}
 
-  async function run(
-    input: { input?: unknown; message?: string },
-    o?: { runId?: string },
-  ): Promise<{ runId: string; result: unknown }> {
-    const ctx = startRun({
-      ...(o?.runId !== undefined ? { runId: o.runId } : {}),
-      meta: { input },
+function originalToolRunner(tool: OpenAIAgentToolLike): ToolRunner | undefined {
+  const origInvoke = tool.invoke ? tool.invoke.bind(tool) : undefined;
+  const origExecute = tool.execute ? tool.execute.bind(tool) : undefined;
+  return origInvoke ?? origExecute;
+}
+
+function toolName(tool: OpenAIAgentToolLike, index: number): string {
+  const id = (tool as { id?: unknown }).id;
+  if (tool.name) return tool.name;
+  if (typeof id === "string") return id;
+  return `tool_${index}`;
+}
+
+function gatedToolRunner(
+  toolName: string,
+  original: ToolRunner,
+  policy: Policy,
+  gateOpts: GateOptions,
+  active: ActiveRun,
+): ToolRunner {
+  return async (args, ctx) => {
+    const run = active.current;
+    if (!run) return original(args, ctx);
+    return runGatedTool({
+      run,
+      policy,
+      toolName,
+      args,
+      execute: (finalArgs) => original(finalArgs, ctx),
+      opts: gateOpts,
     });
-    try {
-      if (typeof input.message === "string") ctx.recordUserMessage(input.message);
-      const summary =
-        typeof input.message === "string" && input.message.length > 0
-          ? input.message
-          : typeof input.input === "string"
-            ? input.input
-            : "openai-agents.run()";
-      const planner: ModelCall = {
-        model: modelLabel(agent.model),
-        role: "planner",
-        prompt_hash: "",
-        summary,
-      };
-      ctx.recordModelCall(planner);
-
-      let result: unknown = undefined;
-      if (typeof agent.run === "function") {
-        result = await agent.run(input.input ?? input.message ?? input);
-      } else if (typeof agent.runSync === "function") {
-        result = agent.runSync(input.input ?? input.message ?? input);
-      } else {
-        // No run method on the agent — leave result undefined; caller can
-        // still drive the agent via lower-level APIs and the wrapped
-        // tools will record properly.
-      }
-      ctx.finish({ ok: true });
-      return { runId: ctx.runId, result };
-    } catch (err) {
-      ctx.finish({ ok: false, error: (err as Error).message ?? String(err) });
-      throw err;
-    } finally {
-      active = undefined;
-    }
-  }
-
-  return {
-    agent,
-    actant: handle,
-    run,
-    startRun,
-    close: () => {
-      if (ownsHandle) handle.close();
-    },
   };
+}
+
+async function runOpenAIAgent<A extends OpenAIAgentLike>(
+  agent: A,
+  startRun: (opts?: { runId?: string; meta?: unknown }) => RunContext,
+  active: ActiveRun,
+  input: { input?: unknown; message?: string },
+  opts?: { runId?: string },
+): Promise<{ runId: string; result: unknown }> {
+  const ctx = startRun({
+    ...(opts?.runId !== undefined ? { runId: opts.runId } : {}),
+    meta: { input },
+  });
+  try {
+    if (typeof input.message === "string") ctx.recordUserMessage(input.message);
+    ctx.recordModelCall(plannerCall(agent, input));
+    const result = await runAgent(agent, input);
+    ctx.finish({ ok: true });
+    return { runId: ctx.runId, result };
+  } catch (err) {
+    ctx.finish({ ok: false, error: (err as Error).message ?? String(err) });
+    throw err;
+  } finally {
+    active.current = undefined;
+  }
+}
+
+function plannerCall(agent: OpenAIAgentLike, input: { input?: unknown; message?: string }): ModelCall {
+  return {
+    model: modelLabel(agent.model),
+    role: "planner",
+    prompt_hash: "",
+    summary: plannerSummary(input),
+  };
+}
+
+function plannerSummary(input: { input?: unknown; message?: string }): string {
+  if (typeof input.message === "string" && input.message.length > 0) return input.message;
+  if (typeof input.input === "string") return input.input;
+  return "openai-agents.run()";
+}
+
+async function runAgent(
+  agent: OpenAIAgentLike,
+  input: { input?: unknown; message?: string },
+): Promise<unknown> {
+  const payload = input.input ?? input.message ?? input;
+  if (typeof agent.run === "function") return agent.run(payload);
+  if (typeof agent.runSync === "function") return agent.runSync(payload);
+  return undefined;
 }

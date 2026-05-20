@@ -56,12 +56,13 @@ export class Client {
         "trigger requires `url` or Client({ baseUrl })",
       );
     }
-    const headers: Record<string, string> = {
+    const baseHeaders: Record<string, string> = {
       "content-type": "application/json",
       [WORKFLOW_RUN_ID_HEADER]: workflowRunId,
       ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
-      ...(args.headers ?? {}),
     };
+    const headers =
+      args.headers === undefined ? baseHeaders : { ...baseHeaders, ...args.headers };
     const body = JSON.stringify({
       workflowRunId,
       body: args.body ?? null,

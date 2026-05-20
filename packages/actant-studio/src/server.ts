@@ -60,88 +60,155 @@ async function handle(
   res: ServerResponse,
   ledger: Ledger,
 ): Promise<void> {
-  const url = new URL(req.url ?? "/", "http://localhost");
-  const route = url.pathname;
-  // Treat HEAD as GET for routing; we just won't write the body.
-  const method = req.method === "HEAD" ? "GET" : req.method;
-  const headOnly = req.method === "HEAD";
+  const request = studioRequest(req);
+  if (await handleStaticRoute(request, res)) return;
+  if (handleGetRoute(request, res, ledger)) return;
+  if (await handlePostRoute(request, req, res, ledger)) return;
 
-  if (method === "GET" && (route === "/" || route === "/index.html")) {
-    return staticFile(res, "index.html", "text/html", headOnly);
+  res.statusCode = 404;
+  return json(res, { error: "not found", route: request.route });
+}
+
+interface StudioRequest {
+  url: URL;
+  route: string;
+  method: string | undefined;
+  staticMethod: string | undefined;
+  headOnly: boolean;
+}
+
+function studioRequest(req: IncomingMessage): StudioRequest {
+  const url = new URL(req.url ?? "/", "http://localhost");
+  const headOnly = req.method === "HEAD";
+  return {
+    url,
+    route: url.pathname,
+    method: req.method,
+    staticMethod: headOnly ? "GET" : req.method,
+    headOnly,
+  };
+}
+
+async function handleStaticRoute(
+  request: StudioRequest,
+  res: ServerResponse,
+): Promise<boolean> {
+  const staticRoute = staticRouteFor(request.route);
+  if (request.staticMethod !== "GET" || !staticRoute) return false;
+  await staticFile(res, staticRoute.name, staticRoute.mime, request.headOnly);
+  return true;
+}
+
+function staticRouteFor(route: string): { name: string; mime: string } | undefined {
+  if (route === "/" || route === "/index.html") {
+    return { name: "index.html", mime: "text/html" };
   }
-  if (method === "GET" && route === "/studio.css") {
-    return staticFile(res, "studio.css", "text/css", headOnly);
-  }
-  if (method === "GET" && route === "/studio.js") {
-    return staticFile(res, "studio.js", "application/javascript", headOnly);
-  }
-  if (req.method === "GET" && route === "/api/info") {
-    return json(res, {
+  if (route === "/studio.css") return { name: "studio.css", mime: "text/css" };
+  if (route === "/studio.js") return { name: "studio.js", mime: "application/javascript" };
+  return undefined;
+}
+
+function handleGetRoute(
+  request: StudioRequest,
+  res: ServerResponse,
+  ledger: Ledger,
+): boolean {
+  if (request.method !== "GET") return false;
+  if (request.route === "/api/info") {
+    json(res, {
       project: ledger.project,
       dbPath: ledger.path(),
       runs: runsSummary(ledger),
     });
+    return true;
   }
-  if (req.method === "GET" && route === "/api/events") {
-    const runId = url.searchParams.get("run") ?? undefined;
+  if (request.route === "/api/events") {
+    const runId = request.url.searchParams.get("run") ?? undefined;
     const events = ledger.query(runId ? { runId } : {});
-    return json(res, { events });
+    json(res, { events });
+    return true;
   }
-  if (req.method === "GET" && route === "/api/approvals") {
-    const approvals = approvalsStore(ledger).all();
-    return json(res, { approvals });
+  if (request.route === "/api/approvals") {
+    json(res, { approvals: approvalsStore(ledger).all() });
+    return true;
   }
-  if (req.method === "POST" && route === "/api/approvals/decide") {
-    const body = await readBody(req);
-    const { toolCallId, decision } = JSON.parse(body) as {
-      toolCallId: string;
-      decision: ApprovalDecision;
-    };
-    const store = approvalsStore(ledger);
-    const rec = store.get(toolCallId);
-    if (!rec) {
-      res.statusCode = 404;
-      return json(res, { error: `approval not found: ${toolCallId}` });
-    }
-    const decided = store.decide(toolCallId, decision);
-    ledger.append({
-      kind: "approval_decision",
-      runId: rec.runId,
-      payload: { tool_call_id: toolCallId, ...decision },
-      sensitivity: "low",
-    });
-    return json(res, { approval: decided });
-  }
-  if (req.method === "POST" && route === "/api/replay") {
-    const body = await readBody(req);
-    const { eventId, overrides, useStrictPolicy } = JSON.parse(body) as {
-      eventId: string;
-      overrides?: ReplayOverrides;
-      useStrictPolicy?: boolean;
-    };
-    const policy = useStrictPolicy
-      ? tighten(demoPolicy, {
-          deny: [
-            {
-              tool: "shell.run",
-              pattern: "\\bdist\\b",
-              reason: "no shell.run without explicit dist guard",
-            },
-          ],
-        })
-      : undefined;
-    const replay: ReplayRun = runFromEvent({
-      ledger,
-      eventId,
-      ...(overrides !== undefined ? { overrides } : {}),
-      ...(policy !== undefined ? { policy } : {}),
-    });
-    const dif: ReplayDiff = diffReplayAgainstOriginal(ledger, replay);
-    return json(res, { replay, diff: dif });
-  }
+  return false;
+}
 
-  res.statusCode = 404;
-  return json(res, { error: "not found", route });
+async function handlePostRoute(
+  request: StudioRequest,
+  req: IncomingMessage,
+  res: ServerResponse,
+  ledger: Ledger,
+): Promise<boolean> {
+  if (request.method !== "POST") return false;
+  if (request.route === "/api/approvals/decide") {
+    await decideApproval(req, res, ledger);
+    return true;
+  }
+  if (request.route === "/api/replay") {
+    await replayFromRequest(req, res, ledger);
+    return true;
+  }
+  return false;
+}
+
+async function decideApproval(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ledger: Ledger,
+): Promise<void> {
+  const { toolCallId, decision } = JSON.parse(await readBody(req)) as {
+    toolCallId: string;
+    decision: ApprovalDecision;
+  };
+  const store = approvalsStore(ledger);
+  const rec = store.get(toolCallId);
+  if (!rec) {
+    res.statusCode = 404;
+    json(res, { error: `approval not found: ${toolCallId}` });
+    return;
+  }
+  const decided = store.decide(toolCallId, decision);
+  ledger.append({
+    kind: "approval_decision",
+    runId: rec.runId,
+    payload: { tool_call_id: toolCallId, ...decision },
+    sensitivity: "low",
+  });
+  json(res, { approval: decided });
+}
+
+async function replayFromRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ledger: Ledger,
+): Promise<void> {
+  const { eventId, overrides, useStrictPolicy } = JSON.parse(await readBody(req)) as {
+    eventId: string;
+    overrides?: ReplayOverrides;
+    useStrictPolicy?: boolean;
+  };
+  const replay: ReplayRun = runFromEvent({
+    ledger,
+    eventId,
+    ...(overrides !== undefined ? { overrides } : {}),
+    ...(useStrictPolicy ? { policy: strictReplayPolicy() } : {}),
+  });
+  const dif: ReplayDiff = diffReplayAgainstOriginal(ledger, replay);
+  json(res, { replay, diff: dif });
+}
+
+function strictReplayPolicy() {
+  return tighten(demoPolicy, {
+    deny: [
+      {
+        tool: "shell.run",
+        pattern: "\\bdist\\b",
+        reason: "no shell.run without explicit dist guard",
+      },
+    ],
+  });
 }
 
 async function staticFile(

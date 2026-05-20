@@ -27,6 +27,24 @@ def _validate_url_scheme(url: str) -> None:
         raise ValueError(f"ActantClient only supports these URL schemes: {allowed}")
 
 
+def _build_http_opener() -> urllib.request.OpenerDirector:
+    opener = urllib.request.OpenerDirector()
+    opener.add_handler(urllib.request.HTTPHandler())
+    opener.add_handler(urllib.request.HTTPSHandler())
+    opener.add_handler(urllib.request.HTTPDefaultErrorHandler())
+    opener.add_handler(urllib.request.HTTPRedirectHandler())
+    opener.add_handler(urllib.request.HTTPErrorProcessor())
+    return opener
+
+
+_HTTP_OPENER = _build_http_opener()
+
+
+def _open_http_request(req: urllib.request.Request, timeout: float):
+    _validate_url_scheme(req.full_url)
+    return _HTTP_OPENER.open(req, timeout=timeout)
+
+
 class ActantClient:
     """A thin client for /v1/* endpoints.
 
@@ -72,7 +90,7 @@ class ActantClient:
             data = json.dumps(body).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers=self._headers(), method=method)
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with _open_http_request(req, self.timeout) as resp:
                 raw = resp.read().decode("utf-8")
                 return json.loads(raw) if raw else {}
         except urllib.error.HTTPError as e:

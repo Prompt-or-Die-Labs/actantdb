@@ -14,7 +14,13 @@
  * the env var themselves before `Box.create`.
  */
 
-import { runOnce, streamOnce, findCli } from "./spawn.js";
+import {
+  envForApiKey,
+  runHarnessCommand,
+  streamHarnessCommand,
+  type HarnessCommandInput,
+} from "./command.js";
+import { findCli } from "./spawn.js";
 import type { Harness, HarnessRunInput, HarnessRunResult } from "./types.js";
 import { OpenCodeModel } from "../models.js";
 
@@ -35,37 +41,22 @@ class OpenCodeHarness implements Harness {
     return args;
   }
 
-  private buildEnv(input: HarnessRunInput): NodeJS.ProcessEnv {
-    const env: NodeJS.ProcessEnv = {};
-    if (input.apiKey) env[this.apiKeyEnv] = input.apiKey;
-    return env;
-  }
-
-  async run(input: HarnessRunInput): Promise<HarnessRunResult> {
-    const r = await runOnce({
+  private command(input: HarnessRunInput): HarnessCommandInput {
+    return {
       cli: this.cliName,
       args: this.buildArgs(input),
       cwd: input.cwd,
-      env: this.buildEnv(input),
+      env: envForApiKey(this.apiKeyEnv, input),
       ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
-    });
-    return {
-      ok: r.exitCode === 0,
-      output: r.stdout + (r.stderr ? `\n--- stderr ---\n${r.stderr}` : ""),
-      result: r.stdout.trim(),
-      computeMs: r.computeMs,
-      exitCode: r.exitCode,
     };
   }
 
+  async run(input: HarnessRunInput): Promise<HarnessRunResult> {
+    return runHarnessCommand(this.command(input));
+  }
+
   stream(input: HarnessRunInput) {
-    return streamOnce({
-      cli: this.cliName,
-      args: this.buildArgs(input),
-      cwd: input.cwd,
-      env: this.buildEnv(input),
-      ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
-    });
+    return streamHarnessCommand(this.command(input));
   }
 }
 

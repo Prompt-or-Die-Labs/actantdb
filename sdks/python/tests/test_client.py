@@ -41,7 +41,7 @@ class ClientTests(unittest.TestCase):
                 ).encode("utf-8")
             )
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             sid = c.create_session(workspace_id="ws_1", actor_id="act_1")
         self.assertEqual(sid, "sess_y")
@@ -54,7 +54,7 @@ class ClientTests(unittest.TestCase):
             captured["auth"] = req.get_header("Authorization")
             return FakeResponse(b"{}")
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555", token="tok_abc")
             c.healthz()
         self.assertEqual(captured["auth"], "Bearer tok_abc")
@@ -71,7 +71,7 @@ class ClientTests(unittest.TestCase):
                 io.BytesIO(b'{"error":"invalid_input","message":"missing field"}'),
             )
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             with self.assertRaises(ActantError) as cm:
                 c.create_session(workspace_id="ws_1", actor_id="act_1")
@@ -88,7 +88,7 @@ class ClientTests(unittest.TestCase):
             captured["url"] = req.full_url
             return FakeResponse(b'{"memories":[]}')
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             c.memories(workspace_id="ws_1", status="pending")
         self.assertIn("status=pending", captured["url"])
@@ -103,7 +103,7 @@ class ClientTests(unittest.TestCase):
             captured["body"] = json.loads(req.data.decode("utf-8"))
             return FakeResponse(b'{"id":"auth_x"}')
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             r = c.grant_permission(
                 workspace_id="ws_1",
@@ -126,7 +126,7 @@ class ClientTests(unittest.TestCase):
             captured["body"] = json.loads(req.data.decode("utf-8"))
             return FakeResponse(b'{"ok":true}')
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             c.revoke_permission(workspace_id="ws_1", authority_scope_id="auth_x")
         self.assertEqual(captured["method"], "DELETE")
@@ -139,7 +139,7 @@ class ClientTests(unittest.TestCase):
             captured["body"] = json.loads(req.data.decode("utf-8"))
             return FakeResponse(b'{"artifact_id":"art_x","event_id":"evt_y"}')
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             r = c.save_setup_report(
                 workspace_id="ws_1", actor_id="act_1", content="hello"
@@ -154,7 +154,7 @@ class ClientTests(unittest.TestCase):
             captured["url"] = req.full_url
             return FakeResponse(b'{"report":null}')
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             c.latest_setup_report(workspace_id="ws_1")
         self.assertIn("latest=true", captured["url"])
@@ -166,7 +166,7 @@ class ClientTests(unittest.TestCase):
             captured["body"] = json.loads(req.data.decode("utf-8"))
             return FakeResponse(b'{"artifact_id":"art_x","event_id":"evt_y"}')
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             c.save_scout_record(
                 workspace_id="ws_1",
@@ -187,7 +187,7 @@ class ClientTests(unittest.TestCase):
             captured["url"] = req.full_url
             return FakeResponse(b'{"records":[]}')
 
-        with patch("urllib.request.urlopen", side_effect=fake_open):
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
             c = ActantClient("http://x:4555")
             c.scout_records(workspace_id="ws_1", source="src_a")
         self.assertIn("source=src_a", captured["url"])
