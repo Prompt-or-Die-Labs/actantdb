@@ -21,7 +21,7 @@ COPY rustfmt.toml clippy.toml ./
 # Build only the server binary; cargo will pull just the crates it needs.
 RUN cargo build --release -p actant-server --bin actantdb-server
 
-FROM gcr.io/distroless/cc-debian12 AS runtime
+FROM gcr.io/distroless/cc-debian12:latest@sha256:aa0b7af67fa8211751ea6e00baa8373ba56cc1417ffc986ec9619bd0e1556b56 AS runtime
 COPY --from=builder /src/target/release/actantdb-server /usr/local/bin/actantdb-server
 COPY --from=builder /src/migrations /opt/actantdb/migrations
 
