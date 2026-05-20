@@ -34,6 +34,7 @@ const SCHEDULE_FILE = "schedules.json";
 
 interface RuntimeSchedule extends Schedule {
   timer: NodeJS.Timeout | undefined;
+  inFlight: Set<Promise<void>>;
 }
 
 export class BoxScheduleAPI {
@@ -102,6 +103,7 @@ export class BoxScheduleAPI {
     if (!s) throw new BoxError("schedule_not_found", `no schedule with id ${id}`);
     if (s.timer) clearInterval(s.timer);
     this.schedules.delete(id);
+    await Promise.allSettled(s.inFlight);
     this.persist();
   }
 
@@ -121,12 +123,15 @@ export class BoxScheduleAPI {
   }
 
   /** Stop everything (called from `box.delete`). */
-  stopAll(): void {
+  async stopAll(): Promise<void> {
+    const pending: Promise<void>[] = [];
     for (const s of this.schedules.values()) {
       if (s.timer) clearInterval(s.timer);
       s.timer = undefined;
+      pending.push(...s.inFlight);
     }
     this.schedules.clear();
+    await Promise.allSettled(pending);
   }
 
   /** Restore schedules from disk (called from Box.get). */
@@ -140,7 +145,7 @@ export class BoxScheduleAPI {
       return;
     }
     for (const s of raw) {
-      const rt: RuntimeSchedule = { ...s, timer: undefined };
+      const rt: RuntimeSchedule = { ...s, timer: undefined, inFlight: new Set() };
       this.schedules.set(rt.id, rt);
       if (rt.status === "active") this.startTimer(rt);
     }
@@ -169,6 +174,7 @@ export class BoxScheduleAPI {
       createdAt: new Date().toISOString(),
       runs: 0,
       timer: undefined,
+      inFlight: new Set(),
     };
     this.schedules.set(id, s);
     this.startTimer(s);
@@ -180,7 +186,10 @@ export class BoxScheduleAPI {
     if (s.timer) clearInterval(s.timer);
     const interval = resolveIntervalMs(s);
     s.timer = setInterval(() => {
-      void this.fire(s);
+      const run = this.fire(s).finally(() => {
+        s.inFlight.delete(run);
+      });
+      s.inFlight.add(run);
     }, interval);
     // Don't keep the event loop alive just for the schedule.
     s.timer.unref?.();
@@ -248,8 +257,9 @@ export class BoxScheduleAPI {
 }
 
 function stripTimer(s: RuntimeSchedule): Schedule {
-  const { timer: _ignored, ...rest } = s;
-  void _ignored;
+  const { timer: _ignoredTimer, inFlight: _ignoredInFlight, ...rest } = s;
+  void _ignoredTimer;
+  void _ignoredInFlight;
   return rest;
 }
 

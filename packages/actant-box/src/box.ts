@@ -205,35 +205,45 @@ export class Box {
     // file ends up at <boxRoot>/.actantdb/<project>/events.sqlite.
     const ledger = openLedger({ project, storeDir: ledgerStoreDir });
 
-    const box = new Box({ metadata, ledger, config });
+    try {
+      const box = new Box({ metadata, ledger, config });
 
-    // Record a box_created event so the timeline starts at the start.
-    ledger.append({
-      kind: "effect_observed",
-      runId: `box-${id}`,
-      payload: { kind: "box_created", box_id: id, name, workspaceDir },
-      sensitivity: "low",
-    });
+      // Record a box_created event so the timeline starts at the start.
+      ledger.append({
+        kind: "effect_observed",
+        runId: `box-${id}`,
+        payload: { kind: "box_created", box_id: id, name, workspaceDir },
+        sensitivity: "low",
+      });
 
-    if (config.initCommand) {
-      try {
-        await box.exec.command(config.initCommand);
-      } catch (err) {
-        // Init failure is recorded as an effect but does not nuke the box —
-        // the user can re-run with `box.setInitCommand(...)` then `box.exec.command(...)`.
-        ledger.append({
-          kind: "effect_observed",
-          runId: `box-${id}`,
-          payload: {
-            kind: "box_init_failed",
-            error: (err as Error).message ?? String(err),
-          },
-          sensitivity: "low",
-        });
+      if (config.initCommand) {
+        try {
+          await box.exec.command(config.initCommand);
+        } catch (err) {
+          // Init failure is recorded as an effect but does not nuke the box —
+          // the user can re-run with `box.setInitCommand(...)` then `box.exec.command(...)`.
+          ledger.append({
+            kind: "effect_observed",
+            runId: `box-${id}`,
+            payload: {
+              kind: "box_init_failed",
+              error: (err as Error).message ?? String(err),
+            },
+            sensitivity: "low",
+          });
+        }
       }
-    }
 
-    return box;
+      return box;
+    } catch (err) {
+      try {
+        ledger.close();
+      } catch {
+        /* ignore */
+      }
+      rmSync(boxRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+      throw err;
+    }
   }
 
   static async get(boxId: string, opts: { storeRoot?: string } = {}): Promise<Box> {
@@ -437,7 +447,7 @@ export class Box {
   async delete(): Promise<void> {
     if (this.mode === "cloud") cloudNotImplemented("box.delete");
     this._status = "deleted";
-    this.schedule.stopAll();
+    await this.schedule.stopAll();
     // Close the wrapper-owned ledger handle (if any) before closing ours.
     this.agent.close();
     try {
@@ -447,7 +457,7 @@ export class Box {
     }
     const boxRoot = join(this.storeRoot, this.id);
     try {
-      rmSync(boxRoot, { recursive: true, force: true });
+      rmSync(boxRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     } catch (err) {
       throw new BoxError(
         "io_error",

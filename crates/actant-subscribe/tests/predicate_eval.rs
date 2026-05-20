@@ -142,7 +142,7 @@ fn missing_field_is_false_for_all_comparators_except_ne() {
             value: json!(0),
         },
     ] {
-        assert!(!p.evaluate(&v), "{:?}", p);
+        assert!(!p.evaluate(&v), "{p:?}");
     }
 }
 
