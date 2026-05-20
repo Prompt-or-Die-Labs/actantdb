@@ -16,6 +16,6 @@ const run = await r.run(checkpoint, {
 const diff = await r.diff(originalRunId, run.id);
 ```
 
-Replay does NOT re-execute real side effects in v0.1. Tool results in replay mode are reused from the recorded `effect_result`. Experimental mode (re-invoke models / tools) is deferred until after Gate 3.
+Replay does NOT re-execute real side effects in v0.1. Tool results in replay mode are reused from the recorded `effect_result`. Experimental re-invocation stays behind an explicit mode.
 
 All public types come from [`@actantdb/types`](../actant-types) (generated from `crates/actant-contracts`).

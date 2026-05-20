@@ -20,7 +20,6 @@ phasing rationale. [GAPS.md](./GAPS.md) for what's already in the substrate.
 | 🌐 **Phase 3 — differentiated** | Ships after Phase 2 lands. Things only the hosted version can do. |
 | 💼 **business-side** | Not engineering — legal, marketing, finance, ops. Wes-scope. |
 | 📋 **compliance** | Audit-driven; SOC2, GDPR, HIPAA, etc. |
-| 👤 **human-only** | One person has to physically do this (sign a contract, take a photo). |
 
 Last updated: 2026-05-19. Substrate at `@actantdb/all@0.0.13`. Cloud at:
 *zero — not yet started.*
@@ -93,14 +92,14 @@ The non-feature work to actually keep the cloud running.
 | O1 | **CI/CD for cloud deploys** | 🛣 | Separate pipeline from the OSS `ci.yml` — cloud has prod/staging environments, blue-green, rollback. |
 | O2 | **Infrastructure-as-code** | 🛣 | Terraform or Pulumi for all hosted infra. Region kubernetes clusters, VPCs, S3 buckets, RDS, Cloudflare config. |
 | O3 | **Monitoring + alerting** | 🛣 | Prometheus + Alertmanager (or Datadog). SLOs: API p99 < 1 s, Box cold-start p99 < 1 s, uptime ≥ 99.9% Phase-2 / ≥ 99.95% Phase-3. |
-| O4 | **On-call rotation + runbooks** | 👤 | Need 2+ people minimum. Pagerduty or Opsgenie. Runbooks for: workspace stuck in "provisioning", billing webhook failure, database CPU pegged, region down. |
+| O4 | **On-call rotation + runbooks** | 💼 | PagerDuty or Opsgenie. Runbooks for: workspace stuck in "provisioning", billing webhook failure, database CPU pegged, region down. |
 | O5 | **Backup + disaster recovery** | 🚧 | `actantdb backup --mode=incremental` ships per GAPS row #21. Cloud needs the cross-region replica + the actual restore drill in CI. |
 | O6 | **Secret management** | 🛣 | Where do Stripe keys, OAuth client secrets, region Postgres passwords live? AWS Secrets Manager or Vault. Operator runbook for rotation. |
 | O7 | **Logging pipeline (cloud-side)** | 🛣 | Distinct from D7. The control-plane's own logs (not customer logs). Goes to whatever ops team uses (Datadog, Honeycomb). |
 | O8 | **Audit log of admin actions** | 🛣 | Every action a cloud operator takes (impersonate a workspace, refund a customer, override a quota) lands as a typed event. We have the substrate for this — apply it inside our own admin tool. |
-| O9 | **Incident response process** | 👤 | Status-page comms, postmortem template, customer notification flow. Doc-only until an incident happens. |
+| O9 | **Incident response process** | 💼 | Status-page comms, postmortem template, customer notification flow. |
 
-**Part C totals:** 1 🚧, 6 🛣, 2 👤.
+**Part C totals:** 1 🚧, 6 🛣, 2 💼.
 
 ---
 
@@ -155,9 +154,8 @@ deliberate process + evidence collection.
 | 🚧 partial in substrate | **5** | Harden + wrap |
 | 🛣 Phase 2 backlog | **16** | The critical path to launching paid hosting (incl. new F7 Mailpit) |
 | 🌐 Phase 3 backlog | **17** | After Phase 2; the "why pay" features (incl. new F1–F6) |
-| 💼 business-side | **12** | Wes / company concerns |
+| 💼 business-side | **14** | Company/process concerns |
 | 📋 compliance | **8** | Audit + process |
-| 👤 human-only | **2** | On-call rotation, incident response process |
 | **Total rows** | **63** | |
 
 ## Phase 2 critical path (the 15 🛣 in Part A, ordered)
@@ -236,7 +234,6 @@ replication semantics and after Phase 2 Cloud control plane lands.
 | [`GAPS.md`](./GAPS.md) | Self-host substrate gaps + BaaS-parity bar | Anything cloud-specific |
 | [`CLOUD_GAPS.md`](./CLOUD_GAPS.md) | This file | Self-host gaps (those are in GAPS) |
 | [`docs/CLOUD_ROADMAP.md`](./docs/CLOUD_ROADMAP.md) | Phase 1/2/3 narrative + component table | Detailed gap list |
-| [`docs/SCREENCAST_SCRIPT.md`](./docs/SCREENCAST_SCRIPT.md) | 90-sec marketing video script | Cloud product copy |
 | [`COMPARISON.md`](./COMPARISON.md) | Substrate-level competitive landscape | Cloud pricing comparison (lives in pricing page when it ships) |
 | [`BENCHMARKS.md`](./BENCHMARKS.md) | Substrate performance numbers | Hosted SLA targets |
 

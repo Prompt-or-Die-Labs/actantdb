@@ -1,8 +1,6 @@
 # @actantdb/convex
 
-**Conditional, not Phase 1.** Lives here as a placeholder; it ships only if a design partner is on Convex.
-
-When it ships, the shape is the same as `@actantdb/mastra`:
+Adapter for Convex-shaped handlers. The shape mirrors `@actantdb/mastra`:
 
 ```ts
 import { withActant } from "@actantdb/convex";
@@ -20,7 +18,5 @@ Convex's own durable workflows + reactive agent state stay in place; `@actantdb/
 - runtime authority gate (constrain / approve / deny)
 - replay from any workflow step
 - context manifest for every model call inside the workflow
-
-Until at least one Convex consumer adopts ActantDB (`/CHANGELOG.md`) and at least one design partner uses Convex, this package is not actively built.
 
 See [`/PIVOT.md`](../../PIVOT.md) and [`/CHANGELOG.md`](../../CHANGELOG.md).

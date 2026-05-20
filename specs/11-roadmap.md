@@ -231,8 +231,8 @@ Total: roughly 7–10 months of focused work to reach team-grade production.
 
 **Decision gate.**
 
-- Two paying design partners run ActantDB in production for one month with at least 100 daily commands per workspace each.
-- Audit exports satisfy at least one well-known compliance check list (SOC 2 evidence flow).
+- A self-hosted Phase 6 stack runs a multi-tenant smoke with at least 100 commands per workspace, per-workspace quotas, and no cross-tenant reads.
+- Audit exports satisfy the repo's SOC 2 evidence-flow checklist.
 
 **Risks.**
 

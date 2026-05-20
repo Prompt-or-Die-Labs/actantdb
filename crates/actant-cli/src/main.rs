@@ -268,11 +268,7 @@ async fn main() -> anyhow::Result<()> {
                 cfg.apply_migrations = false;
                 let s = Storage::open(cfg).await?;
                 let applied = s.applied_migrations().await.unwrap_or_default();
-                let all = [
-                    "0001_initial",
-                    "0002_extended_primitives",
-                    "0003_ai_native_and_reliability",
-                ];
+                let all = actant_storage::bundled_migration_names();
                 let pending: Vec<&str> = all
                     .iter()
                     .filter(|m| !applied.iter().any(|a| a == *m))

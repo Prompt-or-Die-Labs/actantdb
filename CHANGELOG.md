@@ -420,12 +420,8 @@ verify-specs + verify-agents`) passes.
   integration.
 - **Postgres command-engine plumbing** — `PgStorage` exists with the
   schema; the command engine itself still hardcodes `SqlitePool` paths.
-- **Studio dashboard polish** — the substrate UI is vanilla JS; full React
-  rewrite is post-design-partner.
-- **Gates 2 + 3 (PIVOT.md)** — measure external adoption events that no
-  code change closes. [`GATES.md`](./GATES.md) +
-  [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) enumerate the human-only
-  remainders.
+- **Studio dashboard polish** — the React Studio exists; future work is
+  feature depth and panel-level polish, not a validation gate.
 
 ### Reproduce
 

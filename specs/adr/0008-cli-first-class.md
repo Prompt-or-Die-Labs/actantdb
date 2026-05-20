@@ -58,7 +58,7 @@ The Phase 1 minimum is in `/planning/cli-design.md` §"CLI v0.1 minimum". Subseq
 
 ## Alternatives considered
 
-- **SDK-first.** Rejected — proven to lose to CLI-first competitors in developer adoption.
+- **SDK-first.** Rejected — proven to lose to CLI-first competitors in developer traction.
 - **CLI-as-scaffolder only.** Rejected — leaves observability and replay in the SDK, where they're invisible to developers running ad-hoc workflows.
 - **Studio-as-product.** Studio is already first-class for *operating* an ActantDB system, but most developers never open Studio during their first hour. The CLI complements Studio; it does not replace it.
 

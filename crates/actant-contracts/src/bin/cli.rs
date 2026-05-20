@@ -2,10 +2,11 @@
 //!
 //! Subcommands:
 //!   diff             — print the current schema JSON to stdout
-//!   check-compat     — fail if a change is backward-incompatible (v0.1: stub)
+//!   check-compat     — fail if the current schema breaks the generated baseline
 //!   codegen-ts       — write TS types into packages/actant-types/src/generated/
 
-use std::path::PathBuf;
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
 
 use actant_contracts::schema::schemas;
 use serde_json::Value;
@@ -15,7 +16,7 @@ fn main() {
     let cmd = args.next().unwrap_or_default();
     let result = match cmd.as_str() {
         "diff" | "schema" => cmd_schema(),
-        "check-compat" => cmd_check_compat(),
+        "check-compat" => cmd_check_compat(args.collect()),
         "codegen-ts" => cmd_codegen_ts(args.collect()),
         "help" | "--help" | "-h" | "" => {
             usage();
@@ -38,7 +39,7 @@ fn usage() {
          \n\
          SUBCOMMANDS:\n\
          \x20 diff              print the full JSON-Schema set to stdout\n\
-         \x20 check-compat      verify backward-compatibility (v0.1: stub OK)\n\
+         \x20 check-compat [baseline] verify current schemas against a baseline JSON bundle\n\
          \x20 codegen-ts [out]  emit TS into packages/actant-types/src/generated\n\
         "
     );
@@ -53,18 +54,192 @@ fn cmd_schema() -> Result<(), String> {
     Ok(())
 }
 
-fn cmd_check_compat() -> Result<(), String> {
-    // v0.1: lint-only stub. Real impl will diff against the last published
-    // schema set. For now: ensure schemas() emits non-empty JSON.
-    let s = schemas();
-    let Value::Object(map) = s else {
+fn cmd_check_compat(extra: Vec<String>) -> Result<(), String> {
+    let current = schemas();
+    let Value::Object(current_map) = current else {
         return Err("schemas() must emit a JSON object".into());
     };
-    if map.is_empty() {
+    if current_map.is_empty() {
         return Err("no schemas defined".into());
     }
-    eprintln!("check-compat: ok ({} types)", map.len());
+
+    let baseline_path = extra
+        .first()
+        .map(PathBuf::from)
+        .unwrap_or_else(default_schema_baseline);
+    let baseline = read_schema_baseline(&baseline_path)?;
+    let violations = compatibility_violations(&baseline, &Value::Object(current_map.clone()));
+    if !violations.is_empty() {
+        return Err(format!(
+            "schema compatibility check failed against {}:\n{}",
+            baseline_path.display(),
+            violations.join("\n")
+        ));
+    }
+    eprintln!(
+        "check-compat: ok ({} types checked against {})",
+        current_map.len(),
+        baseline_path.display()
+    );
     Ok(())
+}
+
+fn default_schema_baseline() -> PathBuf {
+    repo_root()
+        .join("packages")
+        .join("actant-types")
+        .join("src")
+        .join("generated")
+        .join("schemas.json")
+}
+
+fn read_schema_baseline(path: &Path) -> Result<Value, String> {
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| format!("read schema baseline {}: {e}", path.display()))?;
+    serde_json::from_str(&raw).map_err(|e| format!("parse schema baseline {}: {e}", path.display()))
+}
+
+fn compatibility_violations(baseline: &Value, current: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    compare_schema_value("$", baseline, current, &mut out);
+    out
+}
+
+fn compare_schema_value(path: &str, baseline: &Value, current: &Value, out: &mut Vec<String>) {
+    let Some(base_obj) = baseline.as_object() else {
+        return;
+    };
+    let Some(cur_obj) = current.as_object() else {
+        out.push(format!("{path}: schema changed from object to non-object"));
+        return;
+    };
+
+    if path == "$" {
+        for (key, base_schema) in base_obj {
+            match cur_obj.get(key) {
+                Some(cur_schema) => {
+                    compare_schema_value(&format!("{path}.{key}"), base_schema, cur_schema, out);
+                }
+                None => out.push(format!("{path}.{key}: type removed")),
+            }
+        }
+        return;
+    }
+
+    compare_scalar_field(path, base_obj, cur_obj, "type", out);
+    compare_scalar_field(path, base_obj, cur_obj, "$ref", out);
+    compare_enum(path, baseline, current, "enum", out);
+    compare_string_one_of(path, baseline, current, out);
+
+    if let Some(base_props) = baseline.get("properties").and_then(Value::as_object) {
+        let Some(cur_props) = current.get("properties").and_then(Value::as_object) else {
+            out.push(format!("{path}.properties: object properties removed"));
+            return;
+        };
+        for (name, base_prop) in base_props {
+            let prop_path = format!("{path}.properties.{name}");
+            match cur_props.get(name) {
+                Some(cur_prop) => compare_schema_value(&prop_path, base_prop, cur_prop, out),
+                None => out.push(format!("{prop_path}: property removed")),
+            }
+        }
+        compare_required(path, baseline, current, out);
+    }
+
+    for key in ["definitions", "$defs"] {
+        let Some(base_defs) = baseline.get(key).and_then(Value::as_object) else {
+            continue;
+        };
+        let Some(cur_defs) = current.get(key).and_then(Value::as_object) else {
+            out.push(format!("{path}.{key}: definitions removed"));
+            continue;
+        };
+        for (name, base_def) in base_defs {
+            let def_path = format!("{path}.{key}.{name}");
+            match cur_defs.get(name) {
+                Some(cur_def) => compare_schema_value(&def_path, base_def, cur_def, out),
+                None => out.push(format!("{def_path}: definition removed")),
+            }
+        }
+    }
+}
+
+fn compare_scalar_field(
+    path: &str,
+    baseline: &serde_json::Map<String, Value>,
+    current: &serde_json::Map<String, Value>,
+    field: &str,
+    out: &mut Vec<String>,
+) {
+    let Some(base_value) = baseline.get(field) else {
+        return;
+    };
+    match current.get(field) {
+        Some(cur_value) if cur_value == base_value => {}
+        Some(cur_value) => out.push(format!(
+            "{path}.{field}: changed from {base_value} to {cur_value}"
+        )),
+        None => out.push(format!("{path}.{field}: removed")),
+    }
+}
+
+fn compare_enum(path: &str, baseline: &Value, current: &Value, field: &str, out: &mut Vec<String>) {
+    let Some(base_values) = baseline.get(field).and_then(Value::as_array) else {
+        return;
+    };
+    let Some(cur_values) = current.get(field).and_then(Value::as_array) else {
+        out.push(format!("{path}.{field}: enum removed"));
+        return;
+    };
+    let cur_set: BTreeSet<String> = cur_values.iter().map(Value::to_string).collect();
+    for value in base_values {
+        if !cur_set.contains(&value.to_string()) {
+            out.push(format!("{path}.{field}: enum value {value} removed"));
+        }
+    }
+}
+
+fn compare_string_one_of(path: &str, baseline: &Value, current: &Value, out: &mut Vec<String>) {
+    let Some(base_values) = string_one_of_values(baseline) else {
+        return;
+    };
+    let Some(cur_values) = string_one_of_values(current) else {
+        out.push(format!("{path}.oneOf: string enum union removed"));
+        return;
+    };
+    for value in base_values {
+        if !cur_values.contains(&value) {
+            out.push(format!("{path}.oneOf: variant {value:?} removed"));
+        }
+    }
+}
+
+fn string_one_of_values(schema: &Value) -> Option<BTreeSet<String>> {
+    let variants = schema.get("oneOf")?.as_array()?;
+    collect_string_enum(variants).map(|values| values.into_iter().collect::<BTreeSet<String>>())
+}
+
+fn compare_required(path: &str, baseline: &Value, current: &Value, out: &mut Vec<String>) {
+    let base_required = string_array_set(baseline.get("required"));
+    let cur_required = string_array_set(current.get("required"));
+    for field in base_required.difference(&cur_required) {
+        out.push(format!(
+            "{path}.required: field {field:?} no longer required"
+        ));
+    }
+    for field in cur_required.difference(&base_required) {
+        out.push(format!("{path}.required: new required field {field:?}"));
+    }
+}
+
+fn string_array_set(value: Option<&Value>) -> BTreeSet<String> {
+    value
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(String::from)
+        .collect()
 }
 
 fn cmd_codegen_ts(extra: Vec<String>) -> Result<(), String> {
@@ -381,4 +556,87 @@ fn collect_string_enum(variants: &[Value]) -> Option<Vec<String>> {
         out.push(s.to_string());
     }
     Some(out)
+}
+
+#[cfg(test)]
+mod compat_tests {
+    use serde_json::json;
+
+    use super::compatibility_violations;
+
+    #[test]
+    fn compatibility_allows_added_optional_fields_and_types() {
+        let baseline = json!({
+            "Thing": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": { "type": "string" }
+                }
+            }
+        });
+        let current = json!({
+            "Thing": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": { "type": "string" },
+                    "label": { "type": "string" }
+                }
+            },
+            "NewThing": { "type": "object" }
+        });
+
+        assert!(compatibility_violations(&baseline, &current).is_empty());
+    }
+
+    #[test]
+    fn compatibility_rejects_removed_properties_and_new_required_fields() {
+        let baseline = json!({
+            "Thing": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": { "type": "string" },
+                    "name": { "type": "string" }
+                }
+            }
+        });
+        let current = json!({
+            "Thing": {
+                "type": "object",
+                "required": ["id", "kind"],
+                "properties": {
+                    "id": { "type": "string" },
+                    "kind": { "type": "string" }
+                }
+            }
+        });
+
+        let violations = compatibility_violations(&baseline, &current);
+        assert!(violations.iter().any(|v| v.contains("name")));
+        assert!(violations.iter().any(|v| v.contains("new required field")));
+    }
+
+    #[test]
+    fn compatibility_rejects_removed_enum_variants() {
+        let baseline = json!({
+            "Verdict": {
+                "oneOf": [
+                    { "type": "string", "enum": ["allow"] },
+                    { "type": "string", "enum": ["block"] }
+                ]
+            }
+        });
+        let current = json!({
+            "Verdict": {
+                "oneOf": [
+                    { "type": "string", "enum": ["allow"] }
+                ]
+            }
+        });
+
+        let violations = compatibility_violations(&baseline, &current);
+        assert!(violations.iter().any(|v| v.contains("block")));
+    }
 }

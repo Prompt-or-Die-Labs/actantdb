@@ -71,6 +71,11 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ),
 ];
 
+/// Exposes the migration registry so CLI dry-runs cannot drift from apply order.
+pub fn bundled_migration_names() -> Vec<&'static str> {
+    MIGRATIONS.iter().map(|(name, _)| *name).collect()
+}
+
 /// Storage configuration.
 #[derive(Debug, Clone)]
 pub struct StorageConfig {

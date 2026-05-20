@@ -16,11 +16,11 @@ Concrete state of the repo at the most recent build. Not aspirational.
 
 | Layer                | What ships                                                                                  | Evidence                                       |
 | -------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **npm packages**      | 19 package manifests: 18 `@actantdb/*` packages plus `create-actantdb`. Local workspace version is `0.0.15`; latest npm verified for `@actantdb/all` and `@actantdb/mastra` is `0.0.12`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-npm.yml` |
+| **npm packages**      | 19 package manifests: 18 `@actantdb/*` packages plus `create-actantdb`. Local workspace version is `0.0.15`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-npm.yml` |
 | **Demos**            | 3 runnable demos with recorded SQLite event ledgers (Mastra, LangGraph, pure CLI).            | `examples/test-cleanup/`, `examples/langgraph-router/`, `examples/cli-only/` |
 | **Rust workspace**   | 37 crates under `crates/`, 39 Cargo workspace members including the Rust SDK and bench package. Rust 1.88. Full Phase 1–6 implementation. | `crates/`, `cargo metadata`                    |
 | **HTTP server**      | Axum HTTP + WebSocket. TLS (rustls). `actantdb serve --tls-cert/--tls-key`.                   | `crates/actant-server`, `tests/tls.rs`         |
-| **Storage**          | SQLite + Postgres backends. Migration runner. Hash-chained events. Idempotency records.       | `crates/actant-storage`, 3 migrations          |
+| **Storage**          | SQLite + Postgres backends. Migration runner. Hash-chained events. Idempotency records.       | `crates/actant-storage`, `migrations/`         |
 | **Auth**             | JWT HS256 + OIDC discovery/JWKS with 1-hour cache.                                            | `crates/actant-auth`                           |
 | **Multi-tenant**     | `actant-tenant` with cross-tenant guards. Role checks.                                        | `crates/actant-tenant`                         |
 | **Workers**          | Shell, file, model (mock + OpenAI-compat), MCP (stdio JSON-RPC), browser (emulator + driver trait), email, slack, manager. | `crates/actant-worker-*`                       |
@@ -39,7 +39,7 @@ Concrete state of the repo at the most recent build. Not aspirational.
 | **Spec verification**| Every active spec has `tests/spec_NN_verification.rs`. The harness caught **8 real drifts** before they shipped (event-name drift, missing diff kinds, FK ordering, etc.). | `SPECS_STATUS.md`                              |
 | **CI bundle**        | `fmt-check + clippy -D warnings + test + verify-specs + verify-agents`. Green.                  | `.github/workflows/ci.yml`, `justfile`         |
 
-Gate 1 (MVP) is implementation-complete. Gates 2 + 3 are blocked on publishing the current `0.0.15` packages and external adoption. See [`GATES.md`](./GATES.md) for the punch list and [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) for the path to close them.
+The repo-verifiable quality gates are green. See [`GATES.md`](./GATES.md) for the artifact gates and [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) for release operations.
 
 ---
 
@@ -296,11 +296,11 @@ Three places ActantDB is genuinely uncontested in 2026:
 
 ## Status
 
-- **Gate 1 — MVP** (target 2026-06-30): implementation-complete. Three runnable demos. Human leftovers: 90-second screencast, hero PNG, three-platform install verification.
-- **Gate 2 — external adoption** (target 2026-07-31): blocked on publishing the current `0.0.15` workspace packages + outreach. The latest npm version verified for `@actantdb/all` and `@actantdb/mastra` is `0.0.12`.
-- **Gate 3 — shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
+- **Gate 1 — agent substrate:** green. Wrapping, capture, approval, Studio, and replay are implemented and tested.
+- **Gate 2 — self-host backend:** green. Embedded, server, storage, auth, tenants, workers, workflows, replay, deployment, and CLI diagnostics are in tree.
+- **Gate 3 — compatibility and release discipline:** green. Contracts, generated SDKs, spec verification, agent docs verification, and CI are reproducible from the repo.
 
-[`GATES.md`](./GATES.md) is the punch list. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the sequence to close Gates 2 + 3. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current substrate shape.
+[`GATES.md`](./GATES.md) is the artifact gate ledger. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) covers release operations. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current substrate shape.
 
 ---
 
@@ -312,12 +312,12 @@ Three places ActantDB is genuinely uncontested in 2026:
 ├── PIVOT.md                        — current state (post freeze-lift)
 ├── CHANGELOG.md                    — what landed this session
 ├── SPECS_STATUS.md                 — per-spec verification (216 tests)
-├── GATES.md                        — Gate 1/2/3 punch list
-├── RELEASE_CHECKLIST.md            — 5 steps to close Gates 2 + 3
+├── GATES.md                        — artifact quality gates
+├── RELEASE_CHECKLIST.md            — package and binary release checklist
 ├── CLAUDE.md                       — guidance for Claude Code sessions
 ├── packages/                       — 19 package manifests (TypeScript first)
 ├── crates/                         — Cargo workspace, 37 crates, Rust 1.88
-├── migrations/                     — 3 SQL migrations, ~80 tables
+├── migrations/                     — SQLite + Postgres migrations
 ├── specs/                          — 20 specs + 18 ADRs
 ├── agents/                         — per-crate implementation briefs
 ├── planning/                       — phase plans, perf budgets, deployment playbook, Studio/SDK design

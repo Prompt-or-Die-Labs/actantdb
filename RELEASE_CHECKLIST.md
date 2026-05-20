@@ -1,152 +1,82 @@
-# RELEASE_CHECKLIST.md — the precise sequence to close Gates 2 + 3
+# RELEASE_CHECKLIST.md — artifact release checklist
 
-This is the artifact that converts "ready" to "shipped". Every step below
-is one the **user** runs (not the agent). The repo is staged such that each
-step is a single command or a single short outreach.
+This checklist contains only release work that can be verified from the repo,
+CI, package registries, or release assets. Market-facing outcomes are
+intentionally out of scope.
 
-Pre-conditions verified by the agent on the current local pass:
+## Pre-release gates
 
-- [x] `pnpm -r test` → green across the workspace
-- [x] `pnpm -r build` → green
-- [x] `pnpm smoke` → green
-- [x] `cargo check --workspace --all-targets` → green
-- [x] Focused local Rust tests: `actant-storage`, `actant-sync`, `actant-replay`, `actantdb-client`, `actant-server --lib`, `actant-subscribe --lib`
-- [x] Three public examples exist: [`examples/test-cleanup/`](./examples/test-cleanup), [`examples/langgraph-router/`](./examples/langgraph-router), [`examples/cli-only/`](./examples/cli-only)
-- [ ] Current workspace packages are published to npm at `0.0.15` (`@actantdb/all` and `@actantdb/mastra` latest verified at `0.0.12`)
-- [x] CI publish workflow: [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) — `workflow_dispatch`, builds + tests + smoke + dry-run-publish + publish + tag-mirror
-- [x] CI binary-release workflow: [`.github/workflows/release-binaries.yml`](./.github/workflows/release-binaries.yml) — tag-driven and manual; produces `actantdb` + `actantdb-server` for macOS-arm64, macOS-x64, linux-x64
+- [x] `pnpm -r build`
+- [x] `pnpm -r test`
+- [x] `pnpm smoke`
+- [x] `just verify-specs`
+- [x] `just verify-agents`
+- [x] `cargo run -p actant-contracts -- check-compat`
+- [x] CI workflow exists for format, lint, tests, spec verification, and agent verification
+- [x] Three runnable examples exist: [`examples/test-cleanup/`](./examples/test-cleanup), [`examples/langgraph-router/`](./examples/langgraph-router), [`examples/cli-only/`](./examples/cli-only)
+- [x] CI publish workflow exists: [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml)
+- [x] CI binary-release workflow exists: [`.github/workflows/release-binaries.yml`](./.github/workflows/release-binaries.yml)
 
----
+## npm package release
 
-## Step 1 — npm publish current workspace (PENDING)
-
-The local workspace version is `0.0.15`. The latest npm version verified for
-`@actantdb/all` and `@actantdb/mastra` is `0.0.12`, so the current workspace
-still needs a publish before Gate 2 outreach uses the latest code.
+The workspace packages are versioned at `0.0.15`.
 
 ```bash
-# Go to Actions → "publish-npm" → Run workflow.
+# GitHub Actions -> publish-npm -> Run workflow
 # Defaults: tag=latest, also_tag_shadow=true, dry_run=false.
-# Workflow installs, builds, tests, smokes, dry-runs the publish,
-# then publishes and mirrors to shadow.
 ```
 
-To verify externally:
+Verify after the workflow completes:
 
 ```bash
+npm view @actantdb/all version
+npm view @actantdb/mastra version
+npm view @actantdb/studio version
+
 mkdir /tmp/actantdb-check && cd /tmp/actantdb-check && npm init -y > /dev/null
 npm install @actantdb/mastra
 node -e "import('@actantdb/mastra').then(m => console.log(typeof m.withActant))"
-# Expect: "function"
 ```
 
-## Step 2 — Cold-README test outreach (Gate 2 §1)
+Expected: all versions match the release version and the final command prints
+`function`.
 
-Per [`README.md` §1](./README.md), send the
-[root README](./README.md) — and only the README — to 15 working agent
-developers. No call. No explanation.
+## Binary release
 
-Suggested target list (pick 15 across these pools; the agent cannot make
-the picks):
-
-- 5 from Mastra's Discord (look for users posting about production deployments).
-- 5 from LangGraph's GitHub issues (people debugging tool-call flows).
-- 5 from a personal network — anyone shipping an agent in 2025–2026.
-
-Threshold to pass (PIVOT gate language):
-
-- [ ] ≥ 5 ask for install instructions
-- [ ] ≥ 3 say they would add it to an existing agent **this week**
-- [ ] ≥ 2 name a current pain it would solve
-
-Track replies in a spreadsheet (suggest: a Numbers / Google Sheet at
-`gates/cold-readme-results.csv`, ungitted).
-
-## Step 3 — 10-minute install test (Gate 2 §2)
-
-Per `README.md` §2, give 10 developers a 10-minute install script. Re-run it
-after publishing `0.0.15`:
+For a tagged binary release:
 
 ```bash
-npm install @actantdb/mastra
-# Then wrap one of their agents:
-import { withActant } from "@actantdb/mastra";
-const wrapped = withActant(theirAgent, { project: "their-project", autoApprove: false });
-# Then open Studio:
-npx actantdb studio --project their-project
+git tag v0.0.15
+git push origin v0.0.15
 ```
 
-Threshold:
+Or use GitHub Actions -> `release-binaries` -> Run workflow.
 
-- [ ] 7/10 install in <10 minutes without help from you
-- [ ] 5/10 capture a real agent run end-to-end
-- [ ] 3/10 produce a replay or approval trace they can show someone
-
-Every failure produces exactly one ticket against this repo — no silent
-failures (`README.md` §2 "Iteration rule").
-
-## Step 4 — Design partner conversion (Gate 2 §"adoption", Gate 3 §"named")
-
-From the developers who passed §3, ask the switch-test question after one
-week:
-
-> "What would make you remove this after one week?"
-
-If their answer is in the "addressable" cluster (bugs, missing
-integration, performance), they're a viable design partner candidate.
-Convert 2 of them into weekly-feedback design partners by Jul 31, 2026
-(Gate 2 threshold).
-
-By Aug 17, 2026 (Gate 3 threshold):
-
-- [ ] 5 non-Wes devs have shipped or staged Actant in production / serious staging
-- [ ] 1 named (publicly attributable) design partner
-
-These two cannot be manufactured. They are the only remaining work after
-the artifacts above ship.
-
-## Step 5 — Public examples + screen recording (Gate 1 leftovers)
-
-The agent built three demos under `examples/test-cleanup*`. To close Gate 1 leftovers
-([GATES.md](./GATES.md)):
+Verify after the workflow completes:
 
 ```bash
-# Run each so a screen recorder can capture it.
-pnpm --filter actant-demo-test-cleanup demo
-pnpm --filter actant-demo-langgraph-router demo
-pnpm --filter actant-demo-cli demo
-
-# Then in a second terminal for each:
-npx actantdb studio --project demo-test-cleanup --store-dir examples/test-cleanup/.actantdb
+gh release view v0.0.15
+gh release download v0.0.15 --pattern '*actantdb*' --dir /tmp/actantdb-release-check
 ```
 
-Record a 90-second screencast with QuickTime / OBS / asciinema (the agent
-authored an asciinema cast at [`examples/test-cleanup/killer-demo.cast`](./examples/test-cleanup/killer-demo.cast) — playable
-with `asciinema play`). Upload the cast or the video to YouTube /
-asciinema.org / GitHub Releases.
+Expected: release assets include `actantdb` and `actantdb-server` binaries for
+the configured platforms.
 
-## What is impossible without you
+## Compatibility release gate
 
-The agent cannot:
+Before publishing any release that changes `crates/actant-contracts`, run:
 
-- Send emails, Discord messages, or GitHub mentions to developers.
-- Land a named design partner (requires a human relationship).
-- Verify on 10+ external machines that the install works (requires those
-  machines to exist outside this sandbox).
+```bash
+cargo run -p actant-contracts -- check-compat
+cargo run -p actant-contracts -- codegen-ts
+git diff --exit-code packages/actant-types/src/generated
+```
 
-Note: `npm publish` itself is confirmation-required. The
-`publish-npm.yml` workflow uses the repo's `NPM_TOKEN` automation token and
-runs from a manual trigger.
+Expected: `check-compat` passes, generated files are already current, or the
+generated diff is committed with the contract change.
 
-## Status at the time of this checklist
+## Rollback rule
 
-- **Gate 1** — implementation-complete; the four leftovers (screencast,
-  hero PNG, three-platform-developer verification, public examples) are
-  one human action each, with public examples already done.
-- **Gate 2** — every prerequisite that lives in code is green except
-  publishing the current `0.0.15` workspace. The threshold itself requires
-  Steps 2–4 above.
-- **Gate 3** — three runnable demos exist; threshold itself requires
-  Steps 4–5.
-
-Run Steps 1 → 2 → 3 → 4 → 5 in order, and the gates close.
+If a publish or binary release fails after artifacts become visible, do not
+rewrite history. Publish a follow-up patch version and document the failed
+artifact in the release notes.

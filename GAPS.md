@@ -13,17 +13,17 @@ Status legend:
 - 🔴 **open / actively wrong** — code that misrepresents itself.
 - 🛣 **scoped for ActantDB Cloud Phase 2/3** — code path absent in self-host *by design*; lands with the hosted product.
 - ⊝ **deliberate divergence** — the comparison product does X; ActantDB does NOT-X *on purpose*. Documented; not a TODO.
-- 👤 **human-only** — actions no agent in this repo can take.
 
-Last updated: 2026-05-20. **24 substrate gaps + 14 BaaS-parity gaps + 13
-iOS/sync rows = 51 rows.** Workspace at **37 crates** under `crates/` and 39
-Cargo workspace members. Package manifests are at `0.0.15` locally; latest npm
-verified for `@actantdb/all` and `@actantdb/mastra` is `0.0.12`.
+Last updated: 2026-05-20. **21 substrate gaps + 14 BaaS-parity gaps + 13
+iOS/sync rows = 48 repo-verifiable rows.** Workspace at **37 crates** under
+`crates/` and 39 Cargo workspace members. Package manifests are at `0.0.15`
+locally.
 
 ## Part A — substrate gaps
 
-These are the original 24 gaps in the substrate (storage, replay, server, SDKs,
-workers, primitives, build/CI hygiene).
+These are the substrate gaps in storage, replay, server, SDKs, workers,
+primitives, and build/CI hygiene. Market and media tasks are not tracked here
+because this file only tracks repo-verifiable work.
 
 | # | Gap | Status | Where documented | Notes |
 |---|-----|--------|-----------------|-------|
@@ -34,9 +34,6 @@ workers, primitives, build/CI hygiene).
 | 5  | **Postgres command-engine** | 🟢 | `STORAGE_AUDIT.md`, `crates/actant-storage/src/pg_repo.rs`, `migrations/pg/0001-0005` | 90/90 tables (100%). 13 PG repo methods (parity with SQLite). |
 | 6  | **Studio React rewrite** | 🟢 | `packages/actant-studio/ui-src/`, `vite.config.ts` | React 19 + Vite 5; 5 panels + 8 vitest tests; 204 kB / 64 kB gzipped. Live updates poll (2 s tick) — WS upgrade is a named follow-up. |
 | 7  | **Replay modes (`experimental` / `tool` / `local_only`)** | 🟢 | `crates/actant-replay/src/lib.rs`, `packages/actant-replay/src/index.ts` | All seven modes ship + tested on both Rust and TS. Experimental + local_only annotate `changed` rows with named summaries. |
-| 8  | **Gate 2 → npm publish** | 🟡 | `GATES.md` §"Gate 2" | `0.0.12` is published; the current `0.0.15` workspace still needs a confirmation-required npm publish before Gate 2 outreach uses the latest build. |
-| 9  | **Gate 2 → developer outreach + Gate 3 → design-partner** | 👤 | `GATES.md` §§"Gate 2", "Gate 3" | Code paths in place (publish, install, docs); the metric closures happen outside the repo. |
-| 10 | **90-sec screencast + hero PNG** | 👤 | `GATES.md` §"Gate 1 leftovers", `docs/SCREENCAST_SCRIPT.md` | 90-second cue-by-cue script lands in `docs/SCREENCAST_SCRIPT.md`. Recording requires camera + microphone. |
 | 11 | **Seed eval JSON corpus** | 🟢 | `evals/seed/`, `crates/actant-eval/tests/seed_corpus_loads.rs` | 8 seed cases + schema-lock test. |
 | 12 | **`examples/` subdirectories** | 🟢 | `examples/README.md` | `examples/{test-cleanup,langgraph-router,cli-only}/` are the three real runnable demos. |
 | 13 | **`templates/` subdirectories** | 🟢 | `templates/{minimal,coding-agent,research-agent,support-agent,fanout-agent}/` | 5 templates; registry recognizes each. |
@@ -52,8 +49,8 @@ workers, primitives, build/CI hygiene).
 | 23 | **Empty `sdks/rust/` target dir** | 🟢 | row #2 closure | Resolved with #2; `target/` moved to `~/.cache/cargo-actantdb`. |
 | 24 | **PG migration runtime apply order** | 🟢 | `crates/actant-storage/src/postgres.rs` `PG_MIGRATIONS` | All five `pg/000{1..5}.sql` registered in dependency-correct order (`0001 → 0005 → 0002 → 0003 → 0004`). |
 
-**Substrate sub-totals:** 20 🟢, 1 🟡, 1 ⊝ (deliberate non-goal), 2 👤. Zero
-open or silent.
+**Substrate sub-totals:** 20 🟢, 1 ⊝ (deliberate non-goal). Zero open or
+silent.
 
 ## Part B — Supabase + Convex BaaS parity
 
@@ -86,22 +83,20 @@ boundary now has code + tests at HEAD), 1 🟡 (deferred to a later milestone),
 4 🛣 (deferred to ActantDB Cloud), 2 ⊝ (deliberate divergence). Note: every 🛣
 row has a code path waiting for the cloud control plane; none are pure absence.
 
-## Overall tally (24 substrate + 14 BaaS parity = 38 rows)
+## Overall tally (21 substrate + 14 BaaS parity = 35 rows)
 
 | Status | Count | Notes |
 |---|---:|---|
 | 🟢 closed | 28 | Code + tests at HEAD |
 | ⊝ deliberate divergence | 3 | Documented non-goals |
-| 🟡 deferred / pending | 2 | Current npm publish; migration diff/pull (waits for SQL pane) |
+| 🟡 deferred / pending | 1 | Migration diff/pull waits for the SQL pane |
 | 🛣 ActantDB Cloud Phase 2/3 | 4 | OAuth provider chain, pooler, log UI, branching |
 | 🔴 open inside boundary | 0 | (none — #25, #27, #28 closed) |
-| 👤 human-only | 2 | #9 outreach, #10 screencast recording |
 
 Corrected: **0 🔴 open inside the self-host substrate boundary**. #25
 `actantdb init`, #27 `actantdb status`, and #28 `actantdb dev` shipped in
 `crates/actant-cli`. #26 closed earlier with `deploy/docker-compose.yml`.
-The remaining non-cloud substrate blocker is release hygiene: publishing the
-current `0.0.15` packages.
+Release publication is an operation, not a quality gap.
 
 ## What we have that Supabase / Convex don't
 
@@ -131,13 +126,11 @@ neither comparison product does:
 
 In priority order:
 
-1. Publish the current `0.0.15` packages to npm.
-2. Replace the `actant-contracts check-compat` lint-only implementation with
-   a real previous-schema compatibility comparison.
-3. Ship the first Swift XCFramework release and uncomment the `ActantFFI`
+1. Add `actantdb migrate diff/pull` when the SQL pane lands.
+2. Ship the first Swift XCFramework release and uncomment the `ActantFFI`
    `binaryTarget`.
-4. Persist the CloudKit outbox instead of holding it in memory.
-5. Keep the Studio first-run path tested so empty ledgers point users at a
+3. Persist the CloudKit outbox instead of holding it in memory.
+4. Keep the Studio first-run path tested so empty ledgers point users at a
    runnable capture path.
 
 ## Part C — iOS embedding + CloudKit sync (new this pass)

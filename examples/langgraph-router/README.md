@@ -21,6 +21,8 @@ Open http://127.0.0.1:4555. You'll see:
 
 The Mastra demo proves the wedge captures + replays one specific framework. This demo proves the **wrapper is framework-agnostic**: it works on any agent that exposes `tools: Record<string, { execute }>`. That's the F2-prevention property — Mastra users today, LangGraph / OpenAI Agents SDK / hand-rolled tomorrow.
 
-## Anti-scope
+## Package boundary
 
-This is NOT a `@actantdb/langgraph` package. The wrapper *is* `@actantdb/mastra` — we'd ship that as a separate package only after a LangGraph design partner requests it (anti-scope rule #5).
+This demo intentionally uses the same duck-typed wrapper as the Mastra demo.
+A dedicated `@actantdb/langgraph` package is a compatibility wrapper, not a
+separate validation gate.

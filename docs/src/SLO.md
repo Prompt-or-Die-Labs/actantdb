@@ -59,7 +59,7 @@ team-grade workloads. Targets are derived from the criterion benchmarks in
 
 ## Out-of-scope for v1
 
-These belong to v1.5+ (post-design-partner):
+These belong to a later hosted-operations milestone:
 
 - Multi-region replication
 - Cross-tenant audit aggregation

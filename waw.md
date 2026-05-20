@@ -82,13 +82,13 @@ These survived the freeze lift because they were the right call regardless:
 
 ## Gates and the road from here
 
-[`GATES.md`](./GATES.md) tracks the three validation gates from the original operational plan. Status as of the most recent build:
+[`GATES.md`](./GATES.md) tracks artifact gates only. Status as of the most recent build:
 
-- **Gate 1 — MVP green** (target 2026-06-30): implementation-complete. The artifact prerequisites are all met; the human leftovers are a 90-second screencast, a hero PNG, and three-platform install verification.
-- **Gate 2 — External adoption** (target 2026-07-31): all 8 `@actantdb/*` packages published to npm under `latest` + `shadow` tags as of 0.0.2 (currently 0.0.6). Outreach to design partners pending.
-- **Gate 3 — Shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
+- **Gate 1 — agent substrate:** green. Wrapping, capture, approval, Studio, and replay are implemented and tested.
+- **Gate 2 — self-host backend:** green. Embedded, server, storage, auth, tenants, workers, workflows, replay, deployment, and CLI diagnostics are in tree.
+- **Gate 3 — compatibility and release discipline:** green. Contracts, generated SDKs, spec verification, agent docs verification, and CI are reproducible from the repo.
 
-[`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the precise 5-step sequence to close Gates 2 + 3.
+[`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) covers package and binary release operations.
 
 ## Explicit named gaps (not bugs)
 
@@ -100,7 +100,7 @@ From [`CHANGELOG.md`](./CHANGELOG.md) "Deferred":
 - **Real browser driver** — `actant-worker-browser`'s `EmulatorDriver` is deterministic; a WebDriver/CDP impl is a one-file swap.
 - **OIDC RSA signature verification** — discovery + JWKS fetch are real; signature verification delegates to a future `jsonwebtoken` integration.
 - **Postgres command-engine plumbing** — `PgStorage` exists with schema; the command engine still hardcodes `SqlitePool` paths.
-- **Studio dashboard polish** — vanilla JS today; React rewrite is post-design-partner.
+- **Studio dashboard polish** — React Studio exists; future work is feature depth and panel-level polish.
 
 These are tracked, not silent.
 
@@ -109,8 +109,8 @@ These are tracked, not silent.
 1. [`README.md`](./README.md) — the install pitch.
 2. [`CHANGELOG.md`](./CHANGELOG.md) — what landed this session (Phases 1–6 + production-readiness round + the v0.1 baseline).
 3. [`SPECS_STATUS.md`](./SPECS_STATUS.md) — per-spec verification (every active spec has a `tests/spec_NN_verification.rs`).
-4. [`GATES.md`](./GATES.md) — punch list against the three validation gates.
-5. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) — the 5-step path to close Gates 2 + 3.
+4. [`GATES.md`](./GATES.md) — artifact quality gates.
+5. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) — package and binary release checklist.
 6. [`examples/`](./examples) — three runnable end-to-end demos.
 7. [`/specs`](./specs), [`/specs/adr`](./specs/adr) — design documents (the substrate that the code implements).
 8. [`/agents`](./agents) — the per-crate implementation briefs (still useful as orienting documents).
@@ -120,10 +120,10 @@ The premortem files (`premortem-report-20260517-133422.html`, `premortem-transcr
 
 ## What the premortem still teaches
 
-The premortem named real adoption + execution risks. Even with the substrate built, those risks are real once we're past `cargo test`:
+The premortem named real distribution and execution risks. Even with the substrate built, those risks matter once the artifacts are released:
 
 - Mastra still owns the TypeScript volume audience.
 - Convex still has the closest direct-competitor architecture.
-- 5 external developers shipping on Actant beats 250 unit tests for the goal of "wide developer adoption."
+- Real usage will still reveal problems tests miss, but it is not a repo quality gate.
 
 The substrate ships as both the demo flow and the full backend. Same API, additional capabilities behind it.

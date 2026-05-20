@@ -7,7 +7,7 @@ specifically for **AI-agent devs who already have a stack** and need to drop
 us in without rewriting their app.
 
 This file is the audit. Same status taxonomy as `CLOUD_GAPS.md`:
-🟢 ships / 🚧 partial / 🔴 missing / ⊝ deliberate non-goal / 👤 human-only.
+🟢 ships / 🚧 partial / 🔴 missing / ⊝ deliberate non-goal.
 
 Cross-reference: [GAPS.md](./GAPS.md), [CLOUD_GAPS.md](./CLOUD_GAPS.md),
 [COMPARISON.md](./COMPARISON.md), [TESTING.md](./TESTING.md).
@@ -33,8 +33,7 @@ Astro, Convex, and Supabase.
 | X7 | **First-run telemetry opt-in (truthful)** | 🔴 | One prompt on first `actantdb` invocation: "share anonymous usage so we can fix what breaks?" with a clear opt-out path. Convex + Vercel do this. Don't be sneaky; the prompt itself is the trust-builder. |
 
 **Part A: 4 🟢 / 1 🚧 / 2 🔴.** X1, X2, X3, and X6 now cover the first-create,
-first-open, doctor, and shell-completion path. X5 and X7 remain the adoption
-polish items.
+first-open, doctor, and shell-completion path. X5 and X7 remain DX polish.
 
 ---
 
@@ -104,7 +103,7 @@ Things the developer reaches for that aren't the browser dashboard.
 | X36 | **`actantdb sql`** | 🟢 | `crates/actant-cli/src/cmd/sql.rs` — opens via `SqliteConnectOptions::read_only(true)` AND refuses any first token other than `SELECT`/`WITH` AND refuses semicolons outside string literals. Pretty-prints via `comfy-table`. 4 unit tests. |
 | X37 | **`actantdb export`** | 🟢 | `crates/actant-cli/src/cmd/export_import.rs::run_export` — JSON / NDJSON / CSV. Parquet deferred (would require pulling in `arrow` + `parquet`; noted as follow-up). Sensitivity ceiling: rows with `sensitivity == "secret"` have `payload_inline` replaced with `"<redacted: secret>"`. |
 | X38 | **`actantdb import`** | 🟢 | `crates/actant-cli/src/cmd/export_import.rs::run_import` — reads NDJSON (the canonical export format) and inserts via `INSERT OR IGNORE`. Idempotency: refuses if any imported `session_id`/`workflow_run_id` already has events in the target DB. |
-| X39 | **VSCode extension** | 🔴 | Inline event count next to function declarations. Click a function → see the events it produced. Hover a `withActant`-wrapped call → see the recent verdicts. Big leverage for adoption. |
+| X39 | **VSCode extension** | 🔴 | Inline event count next to function declarations. Click a function → see the events it produced. Hover a `withActant`-wrapped call → see the recent verdicts. Big leverage for usage. |
 | X40 | **Cursor / Windsurf / Copilot rules** | 🟢 | `.cursorrules`, `.windsurfrules`, and `.github/copilot-instructions.md` ship the same workspace shape + binding-rules brief so each AI coding assistant has the right priors. |
 | X41 | **Browser DevTools extension** | 🔴 | For inspecting `@actantdb/sdk` WebSocket subscriptions in dev. Network panel already shows them; this would parse + decode. Niche. |
 
@@ -129,7 +128,7 @@ products typically ship 6–10 languages.
 | X47 | **Java / Kotlin** | 🔴 | Missing. Enterprise JVM shops + Android. |
 | X48 | **.NET / C#** | 🔴 | Missing. Microsoft AI customers. |
 | X49 | **Ruby** | 🔴 | Missing. Rails community is loud and present. |
-| X50 | **PHP** | 🔴 | Missing. Laravel ecosystem has growing AI adoption. |
+| X50 | **PHP** | 🔴 | Missing. Laravel ecosystem has growing AI usage. |
 | X51 | **Elixir** | 🔴 | Missing. Small but enthusiastic; supabase-realtime is Elixir, so there's overlap. |
 
 **Part E: 3 🟢, 1 🚧, 6 🔴.** Priority order by ROI: Go (X46) > async
@@ -176,7 +175,7 @@ absent.
 | X65 | **One-click "Add to Claude Desktop"** | 🟢 | Root `README.md` "Integrations" section ships the `claude_desktop_config.json` snippet. Future enhancement: hosted button on the website (Phase 2 cloud). |
 
 **Part G: 3 🟢 / 0 🔴.** X63 is the breakthrough item. Cursor + Claude
-Desktop adoption of ActantDB depends on this existing.
+Desktop usage of ActantDB depends on this existing.
 
 ---
 
@@ -188,13 +187,12 @@ Where someone goes to learn a pattern.
 |---|---|--------|-------|
 | X66 | **API reference (typedoc / rustdoc)** | 🟢 | `rustdoc` autogens on the Rust side. `typedoc.json` at the repo root + `pnpm typedoc` script render every `packages/actant-*/src/index.ts` into `docs/api-typescript/`. |
 | X67 | **`docs/recipes/`** | 🟢 | `docs/recipes/` ships an index README + 10 recipes: 01 approval, 02 replay-failed-run, 03 Next.js wiring, 04 Ollama-only, 05 snapshot testing, 06 BigQuery export, 07 share-a-replay-session, 08 audit-export-to-S3, 09 add-to-existing-mastra-app, 10 first-MCP-tool-on-top-of-ActantDB. |
-| X68 | **Video tutorials** | 👤 | Tied to GAPS row #10 (screencast). Pattern library would be a 5–10 min video series. |
 | X69 | **"Awesome ActantDB"** list | 🔴 | Curated list of community examples once we have any. Empty for now; can seed with our 3 demos + 5 templates. |
 | X70 | **Migration guides FROM other tools** | 🔴 | "Migrating from Langfuse to ActantDB" / "Adding ActantDB on top of your Inngest workflows" / "Replacing in-house logging with the ActantDB ledger". Inbound-marketing gold. |
 | X71 | **Interactive playground** (Stackblitz / CodeSandbox) | 🔴 | Embed in the README. Visitor can click "Run" without installing anything. |
 | X72 | **Architecture diagrams** | 🚧 | `specs/` has ASCII diagrams. None of them render well on GitHub or docs sites. Need: SVG diagrams committed alongside, or Mermaid blocks. |
 
-**Part H: 2 🚧, 5 🔴, 1 👤.**
+**Part H: 2 🟢, 1 🚧, 3 🔴.**
 
 ---
 
@@ -241,8 +239,7 @@ Things our users need to test *their* agent code that integrates with us.
 | 🚧 partial | **10** | Things that exist but need wrapper hardening, runtime validation, or product polish |
 | 🔴 missing | **45** | DX backlog after this pass: language SDKs (Go/Kotlin/.NET/Ruby/PHP/Elixir), edge runtimes (CF Workers/Deno/Vercel Edge), VSCode extension, package managers (Homebrew/Scoop/APT/Nix), trace-UI integrations, big-ticket UI, Studio i18n/mobile/dark-mode toggle, Python framework adapters, durable workflow middleware, gateway metadata capture, and fixture generators. |
 | ⊝ deliberate non-goal | **1** | Browser runtime remains a non-goal for the current embedded Node package; a separate WASM package is tracked as X92. |
-| 👤 human-only | **1** | Video tutorials |
-| **Total rows** | **95** | |
+| **Total rows** | **94** | |
 
 That's a lot of red. **It's not all equal weight.** The high-leverage subset:
 
@@ -258,7 +255,7 @@ a specific named user persona.
 2. **X10 `@actantdb/ai-sdk`** (Vercel AI SDK adapter) — the largest TS
    agent surface; every Next.js AI app uses this.
 3. **X11 `@actantdb/openai-agents`** — OpenAI Agents SDK is brand-new
-   (2026) and pulling adoption fast.
+   (2026) and pulling usage fast.
 4. **X1 `npm create actantdb`** — table-stakes onboarding; bullet point
    on the homepage.
 5. **X3 `actantdb doctor`** — kills 80% of "didn't work" support load.

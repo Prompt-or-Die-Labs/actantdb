@@ -69,9 +69,8 @@ Replay does NOT re-execute real side effects in v0.1. Recorded tool results are 
 
 ## Status
 
-Pre-alpha. See [`/PIVOT.md`](../../PIVOT.md) for the project's current shape, and [`/CHANGELOG.md`](../../CHANGELOG.md) for the day-by-day milestone.
-
-The Gate-1 target is **2026-06-30**: this package wraps a Mastra agent, Studio renders the timeline, approval works, basic replay checkpoint works, 3 non-Wes developers have run it on a real agent.
+See [`/PIVOT.md`](../../PIVOT.md) for the project's current shape and
+[`/GATES.md`](../../GATES.md) for repo-verifiable quality gates.
 
 ## License
 

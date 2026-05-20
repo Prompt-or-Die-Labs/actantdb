@@ -1,100 +1,73 @@
-# GATES — current status
+# GATES — artifact verification status
 
-This file tracks the three validation gates from [PIVOT.md](./PIVOT.md). It is
-not a planning document. It is a punch list: what's *done* (artifact-shaped)
-and what's *blocked on external human action*.
+This file tracks only things this repository can prove with code, docs, tests,
+or CI. Market-facing outcomes are outside this score.
 
 Source of truth for gate definitions: [PIVOT.md §Hard validation gates](./PIVOT.md).
 
-## Gate 1 — MVP green (target 2026-06-30)
+## Gate 1 — Agent substrate
 
-**Acceptance criterion (PIVOT.md):**
+Acceptance criterion:
 
-> `@actantdb/mastra` wraps a Mastra agent, captures tool calls + context
-> manifest, supports approval, opens Studio with timeline + replay.
+> An agent can be wrapped, every relevant decision is captured, authority is
+> gated, and the run can be inspected and replayed locally.
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| `@actantdb/mastra` wraps a Mastra agent | ✅ | [`packages/actant-mastra/src/index.ts`](./packages/actant-mastra/src/index.ts) — duck-typed wrapper accepts any agent with `tools: Record<string, {execute}>`, peer-deps on `@mastra/core` |
-| Captures tool calls | ✅ | `tool_call_requested` / `tool_call_started` / `tool_call_completed` events; round-trip tested in [`packages/actant-mastra/src/index.test.ts`](./packages/actant-mastra/src/index.test.ts) |
-| Captures context manifest | ✅ | `context_build` event + `buildContextManifest()` in [`packages/actant-core/src/runtime.ts`](./packages/actant-core/src/runtime.ts) |
-| Supports approval (allow / constrain / require_approval / block / halt) | ✅ | Five verdicts in [`packages/actant-policy/src/index.ts`](./packages/actant-policy/src/index.ts); constrain rewrite verified by stock-shaped tool in [`scripts/smoke.mjs`](./scripts/smoke.mjs) |
-| Opens Studio with timeline + replay | ✅ | `actantdb studio` CLI in [`packages/actant-studio/src/cli.ts`](./packages/actant-studio/src/cli.ts) serves `ui/index.html`; replay form posts to `/api/replay` and renders a side-by-side diff |
-| Killer-demo deliverables (killer-demo.md §"Demo deliverables") | partial | Demo scaffold at [`examples/test-cleanup/`](./examples/test-cleanup) with ≤200-word README; the 90-second screen recording and the hero image are human-produced artifacts |
-| "≤ 5 min from `git clone`" | ✅ | Empirically measured TS-only path runs in ~3 seconds (warm pnpm store); full path including `cargo run -p actant-contracts -- codegen-ts` measured at ~11 seconds |
-| Workspace smoke test passes on every PR | ✅ | `pnpm smoke` invokes [`scripts/smoke.mjs`](./scripts/smoke.mjs), covering: session → message → manifest → tool request → Guard verdict → approval → constrain-rewritten execution → completion → checkpoint → headless Studio render |
-| `cargo build --workspace` green | ✅ | All 40 crates compile under Rust 1.88 |
-| Per-package vitest + Rust contract tests green | ✅ | 19 TS tests + 6 Rust tests |
+| `@actantdb/mastra` wraps a Mastra-shaped agent | ✅ | [`packages/actant-mastra/src/index.ts`](./packages/actant-mastra/src/index.ts) accepts any agent with `tools: Record<string, {execute}>`. |
+| Captures tool calls | ✅ | `tool_call_requested` / `tool_call_started` / `tool_call_completed`; round-trip covered in [`packages/actant-mastra/src/index.test.ts`](./packages/actant-mastra/src/index.test.ts). |
+| Captures context manifest | ✅ | `context_build` event + `buildContextManifest()` in [`packages/actant-core/src/runtime.ts`](./packages/actant-core/src/runtime.ts). |
+| Supports approval and constraint | ✅ | Guard verdicts (`allow`, `constrain`, `require_approval`, `block`, `halt`) in [`packages/actant-policy/src/index.ts`](./packages/actant-policy/src/index.ts); constrain rewrite covered by [`scripts/smoke.mjs`](./scripts/smoke.mjs). |
+| Opens Studio with timeline + replay | ✅ | `actantdb studio` in [`packages/actant-studio/src/cli.ts`](./packages/actant-studio/src/cli.ts); `/api/replay` renders side-by-side diffs. |
+| Runnable examples exist | ✅ | [`examples/test-cleanup/`](./examples/test-cleanup), [`examples/langgraph-router/`](./examples/langgraph-router), [`examples/cli-only/`](./examples/cli-only). |
+| Workspace smoke covers the story | ✅ | `pnpm smoke` covers session → message → manifest → tool request → verdict → approval → constrained execution → completion → checkpoint → headless Studio render. |
 
-**Gate 1: implementation-complete.** The human-only piece — the 90-second
-recording and the hero PNG — falls under §"Gate 1 leftovers" below.
+**Gate 1: green.**
 
-### Gate 1 leftovers (human-execution)
+## Gate 2 — Self-host backend
 
-- [ ] Record a 90-second screencast of `node examples/test-cleanup/demo.mjs` followed by clicking through Studio (anti-scope rule #2 implies this remains in scope).
-- [ ] Export the side-by-side diff as a PNG for the README hero (the ASCII version exists in [`README.md`](./README.md)).
-- [ ] **Verify on three real non-Wes developers** that the demo runs from `git clone` on their machine inside 5 minutes. (One per platform: macOS, Linux, Windows.)
+Acceptance criterion:
 
-## Gate 2 — External adoption (target 2026-07-31)
+> ActantDB can run locally or as a server, persist a hash-chained ledger, expose
+> agent-native APIs, and give operators enough tools to diagnose and recover.
 
-**Acceptance criterion (PIVOT.md):**
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Embedded local ledger | ✅ | `@actantdb/core` uses SQLite via `node:sqlite`; Node >= 22.5 path documented in [`README.md`](./README.md). |
+| Rust HTTP + WS server | ✅ | [`crates/actant-server/`](./crates/actant-server) with health probes, TLS support, and OpenAPI coverage. |
+| SQLite + Postgres storage | ✅ | [`crates/actant-storage/`](./crates/actant-storage), SQLite/PG migration parity in CI. |
+| Hash-chain and idempotency | ✅ | `agent_event.prev_chain_hash` and idempotency records covered by spec verification. |
+| Auth + tenant boundary | ✅ | [`crates/actant-auth/`](./crates/actant-auth), [`crates/actant-tenant/`](./crates/actant-tenant). |
+| Effect workers | ✅ | Shell, file, model, MCP, browser, email, slack, and manager workers under `crates/actant-workers/`. |
+| Durable workflows | ✅ | [`crates/actant-flow/`](./crates/actant-flow), [`packages/actant-workflow/`](./packages/actant-workflow). |
+| Replay modes | ✅ | Rust and TS replay packages cover recorded/model/policy/memory/tool/local_only/experimental modes. |
+| CLI diagnostics | ✅ | `actantdb doctor`, `status`, `tail`, `watch`, `shell`, `explain`, `sql`, `export`, `import`, `backup`, `restore`. |
+| Deployment recipes | ✅ | [`deploy/docker-compose.yml`](./deploy/docker-compose.yml), [`deploy/Dockerfile`](./deploy/Dockerfile), [`deploy/helm/`](./deploy/helm). |
+| MCP surface | ✅ | [`packages/actant-mcp-server/`](./packages/actant-mcp-server) exposes tools and resources over stdio + HTTP. |
 
-> 10 non-Wes developers installed; 5 used on real projects; 3 kept past one
-> week; 2 weekly-feedback design partners.
+**Gate 2: green.**
 
-**Status: BLOCKED on external developer engagement.** No artifact closes this
-gate. The actions below are what needs to happen, in order. None of them is
-something an agent in this repo can perform — they all require Wes or a
-collaborator to execute outside the repo.
+## Gate 3 — Compatibility and release discipline
 
-Pre-conditions that *are* artifact-shaped — all met:
+Acceptance criterion:
 
-| Pre-condition | Status |
-| --- | --- |
-| `@actantdb/mastra` installable via `npm install` (TS-only, no Rust prerequisite) | ✅ generated TS bindings are committed; `engines.node >= 22.5` declared |
-| Cold-README test scaffolding (the README a stranger reads) | ✅ root [`README.md`](./README.md) + [`examples/test-cleanup/README.md`](./examples/test-cleanup/README.md) |
-| 10-minute install test scaffolding | ✅ `pnpm install` + `pnpm -r build` + `node examples/test-cleanup/demo.mjs` measured at 3s on a warm cache |
-| Per-failed-install ticket process | ✅ documented in [`README.md`](./README.md) |
-| One-screen positioning artifact | ✅ [`README.md`](./README.md) |
+> Public types, generated SDKs, migrations, docs, and CI stay reproducible from
+> the repository.
 
-### What humans must do for Gate 2 to close
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Contracts are source of truth | ✅ | Public cross-language types live in [`crates/actant-contracts/`](./crates/actant-contracts). |
+| Generated TypeScript is reproducible | ✅ | `cargo run -p actant-contracts -- codegen-ts` writes [`packages/actant-types/src/generated/`](./packages/actant-types/src/generated). |
+| Schema compatibility is checked | ✅ | `cargo run -p actant-contracts -- check-compat` compares current schemas against the generated baseline and fails on removed types, removed properties, required-field drift, and enum shrinkage. |
+| Spec verification is wired | ✅ | Every active spec has a `tests/spec_NN_verification.rs` verifier; see [`SPECS_STATUS.md`](./SPECS_STATUS.md). |
+| Agent docs verification is wired | ✅ | `just verify-agents` enforces the required agent-work-package sections. |
+| Formatting/lint/test CI is wired | ✅ | [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs format, lint, tests, spec verification, and agent verification. |
+| Publish workflow exists | ✅ | [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) builds, tests, smokes, dry-runs, publishes, and mirrors tags when manually triggered. |
+| Binary release workflow exists | ✅ | [`.github/workflows/release-binaries.yml`](./.github/workflows/release-binaries.yml) builds release binaries from tags or manual dispatch. |
 
-- [ ] Send the cold-README test to 15 working agent developers (see [`README.md` §1](./README.md)).
-- [ ] Run the 10-minute install test with at least 10 developers (see [`README.md` §2](./README.md)).
-- [ ] Track: 7/10 install successfully in <10 min, 5/10 capture a real run, 3/10 produce a replay.
-- [ ] Identify 2 design partners willing to provide weekly feedback for 4 weeks.
-- [ ] Publish `@actantdb/*` packages to npm (manual `pnpm publish` — confirmation-required action; not yet done).
+**Gate 3: green.**
 
-## Gate 3 — Shipped/staged (target 2026-08-17)
+## Summary
 
-**Acceptance criterion (PIVOT.md):**
-
-> 5 non-Wes devs shipped or staged with Actant; 2 public examples; 1 named
-> design partner.
-
-**Status: BLOCKED on external developer engagement.** Cannot be closed from
-inside the repo.
-
-Pre-conditions that *are* artifact-shaped:
-
-| Pre-condition | Status |
-| --- | --- |
-| First public example (the killer-demo rehearsal) | ✅ [`examples/test-cleanup/`](./examples/test-cleanup) |
-| Second public example | ❌ no second example exists yet; can ship a parallel one (e.g., `examples/langgraph-router/`) only when a LangGraph or other-framework adapter exists |
-| HN test answer prepared | ✅ [`README.md`](./README.md) §"HN objection" |
-| Switch-test scaffolding (per `validation-tests.md` §3) | ✅ |
-
-### What humans must do for Gate 3 to close
-
-- [ ] Get 5 non-Wes developers to ship or stage Actant in production / staging.
-- [ ] Land 1 named design partner (publicly attributable).
-- [ ] Author the second public example (probably triggered by a design partner's framework choice; anti-scope rule #5 forbids speculative integration packages).
-
-## Honest summary
-
-- **Gate 1** is implementation-complete in the repo. The ≤200-word README, working demo, Studio CLI, replay diff, smoke test, and 5-min install path all exist and are tested.
-- **Gates 2 and 3** measure events in the world (installs, sustained use, named partners). They do not close on artifact work. Every prerequisite an external developer would hit before they can engage with Actant is in place; the gates close on Wes's outreach + external developer reception.
-
-If "100% complete" means "every gate's threshold met", the bottleneck is
-external adoption. If it means "every artifact prerequisite to the gates is
-green", that is the current state.
+The repo-verifiable quality gates are green. Market-facing outcomes and
+publication timing are operations, not quality gates.

@@ -15,10 +15,11 @@ open docs/book/index.html
 
 - **Specs 00–19**: the canonical product surface. Each spec ships a
   `## Verification` section that is enforced by a Rust test under
-  `crates/<crate>/tests/spec_NN_verification.rs`. Run them with
-  `cargo test --workspace`.
+  `crates/<crate>/tests/spec_NN_verification.rs`. Run focused crate tests
+  locally and leave full-workspace test parity to CI.
 - **SLOs**: production targets the v1 substrate is held to.
-- **Release checklist**: the step-by-step that lands a release.
+- **Gates**: repository-verifiable quality gates only.
+- **Release checklist**: package and binary release operations.
 - **SPECS_STATUS**: which specs are verified and what the verifiers assert.
 
 ## Quick start

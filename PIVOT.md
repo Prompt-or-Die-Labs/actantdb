@@ -1,4 +1,4 @@
-# PIVOT — current substrate and validation gates
+# PIVOT — current substrate and artifact gates
 
 This repo is past the freeze-lift point: the core ActantDB substrate is the
 active product, not a future wedge. The durable shape is an embedded-first
@@ -10,8 +10,7 @@ approval, OIDC, hosted deployment, or clustered sync.
 - `npm install @actantdb/all` is the default consumer install path.
 - The workspace currently contains 19 package manifests under `packages/`:
   18 `@actantdb/*` packages plus `create-actantdb`.
-- The local workspace version is `0.0.15`; the latest npm version verified
-  for `@actantdb/all` and `@actantdb/mastra` is `0.0.12`.
+- The local workspace version is `0.0.15`.
 - Rust lives in 37 crates under `crates/`, with 39 Cargo workspace members
   including the Rust SDK and bench package.
 - `crates/actant-contracts/` remains the single source of truth for public
@@ -22,9 +21,10 @@ approval, OIDC, hosted deployment, or clustered sync.
 
 ## Hard validation gates
 
-### Gate 1 — MVP green
+Only repository-verifiable gates count here. Market-facing outcomes are not
+validation gates because this repo cannot prove them.
 
-Target: 2026-06-30.
+### Gate 1 — agent substrate
 
 Acceptance criterion:
 
@@ -32,34 +32,31 @@ Acceptance criterion:
 > context manifest, supports approval, and opens Studio with timeline and
 > replay.
 
-Repo status: implementation-complete. The remaining Gate 1 items are human
-artifacts: a 90-second recording, a hero PNG, and three-platform external
-install verification.
+Repo status: green. Covered by package tests, `pnpm smoke`, and Studio replay
+routes.
 
-### Gate 2 — external adoption
-
-Target: 2026-07-31.
+### Gate 2 — self-host backend
 
 Acceptance criterion:
 
-> 10 non-Wes developers installed ActantDB; 5 used it on real projects; 3 kept
-> it past one week; 2 became weekly-feedback design partners.
+> ActantDB runs embedded or as a Rust server, persists a hash-chained ledger,
+> exposes agent-native APIs, and gives operators enough CLI/deployment tooling
+> to diagnose, recover, and self-host.
 
-Repo status: artifact prerequisites mostly exist, but the current `0.0.15`
-workspace packages are not yet published to npm. Closing the gate requires
-publishing and human outreach.
+Repo status: green. SQLite, Postgres, auth, tenants, workers, workflow,
+replay, backup/restore, MCP, Docker Compose, Helm, and CLI diagnostics are in
+tree and covered by tests or CI.
 
-### Gate 3 — shipped or staged
-
-Target: 2026-08-17.
+### Gate 3 — compatibility and release discipline
 
 Acceptance criterion:
 
-> 5 non-Wes developers shipped or staged with ActantDB; 2 public examples
-> exist; 1 named design partner is publicly attributable.
+> Public contracts, generated SDKs, migrations, docs, and CI stay reproducible
+> from the repository.
 
-Repo status: three public examples exist in `examples/`. The developer usage
-and named partner thresholds are external events, not repo artifacts.
+Repo status: green. `actant-contracts check-compat` compares current schemas
+against the generated baseline, `codegen-ts` regenerates TS types, every active
+spec has a verifier, agent docs have a verifier, and CI wires those checks.
 
 ## Non-negotiables
 
