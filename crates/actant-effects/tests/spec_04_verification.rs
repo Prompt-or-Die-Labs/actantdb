@@ -26,20 +26,20 @@ fn read_repo(path: &str) -> String {
 fn every_documented_effect_type_has_a_reference_worker() {
     // Spec 04 names these effect types:
     let documented = [
-        ("shell.run", "crates/actant-worker-shell"),
-        ("file.read", "crates/actant-worker-file"),
-        ("file.write", "crates/actant-worker-file"),
-        ("model.call", "crates/actant-worker-model"),
-        ("mcp.call", "crates/actant-worker-mcp"),
-        ("browser.navigate", "crates/actant-worker-browser"),
-        ("email.send", "crates/actant-worker-email"),
-        ("slack.post", "crates/actant-worker-slack"),
+        ("shell.run", "crates/actant-workers/src/shell.rs"),
+        ("file.read", "crates/actant-workers/src/file.rs"),
+        ("file.write", "crates/actant-workers/src/file.rs"),
+        ("model.call", "crates/actant-workers/src/model.rs"),
+        ("mcp.call", "crates/actant-workers/src/mcp.rs"),
+        ("browser.navigate", "crates/actant-workers/src/browser.rs"),
+        ("email.send", "crates/actant-workers/src/email.rs"),
+        ("slack.post", "crates/actant-workers/src/slack.rs"),
     ];
-    for (effect_type, worker_crate) in documented {
-        let lib = read_repo(&format!("{worker_crate}/src/lib.rs"));
+    for (effect_type, worker_source) in documented {
+        let lib = read_repo(worker_source);
         assert!(
             lib.contains(&format!("\"{effect_type}\"")),
-            "{worker_crate} doesn't declare effect_type {effect_type}"
+            "{worker_source} doesn't declare effect_type {effect_type}"
         );
     }
 }
