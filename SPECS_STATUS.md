@@ -3,8 +3,9 @@
 Snapshot at end of the most recent build round. Every active spec now has
 a Rust verification test file under `crates/<crate>/tests/spec_NN_verification.rs`
 that asserts each clause of the spec's `## Verification` section against
-the actual code, schema, and migration files. **Run them all with
-`cargo test --workspace`.**
+the actual code, schema, and migration files. CI runs the full workspace
+matrix; locally, use `just verify-specs` or focused `cargo test -p <crate>`
+commands for the verifier you are changing.
 
 Source of truth for spec content remains [/specs/](./specs/) and
 [/specs/adr/](./specs/adr/).
@@ -19,8 +20,9 @@ Legend:
   remain deferred with named follow-ups.
 - **deferred** — explicit phase-gated work (per `/specs/11-roadmap.md`).
 
-Test counts at this point: **170 Rust + 25 TS + 4 Python + 1 workspace
-smoke = 200 tests, 0 failed.**
+The current CI bundle runs Rust format, clippy, workspace tests, spec
+verification, agent-doc verification, TypeScript builds/tests, Python tests,
+and smoke coverage. See `.github/workflows/ci.yml` for the live command list.
 
 ---
 
@@ -95,8 +97,8 @@ The harness has caught **8 real bugs/drifts** that would have shipped silently:
 ## Reproduce
 
 ```bash
-cargo test --workspace                    # 170 passing, 0 failed
-pnpm -r test                              # 25 passing
+just verify-specs                         # spec verifier bundle
+pnpm -r test
 pnpm smoke                                # workspace E2E
 (cd sdks/python && python3 -m unittest discover -s tests)
 ```

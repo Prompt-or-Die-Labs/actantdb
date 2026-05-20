@@ -97,6 +97,6 @@ await agent.tools["shell.run"].execute({ command: "rm -rf build dist" });
 ctx.finish({ ok: true });
 wrapped.actant.close();
 
-console.error(`OK — recorded a constrained run for project=${PROJECT}`);
-console.error(`Tool actually executed with: ${JSON.stringify(calls[0]?.args)}`);
-console.error(`Studio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}`);
+process.stdout.write(`OK - recorded a constrained run for project=${PROJECT}\n`);
+process.stdout.write(`Tool actually executed with: ${JSON.stringify(calls[0]?.args)}\n`);
+process.stdout.write(`Studio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}\n`);

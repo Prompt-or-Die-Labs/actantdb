@@ -18,7 +18,7 @@ runnable code that compiles against the published `@actantdb/*` packages.
 
 ## Conventions
 
-- Every recipe targets `@actantdb/*@0.0.13` or later.
+- Every recipe targets `@actantdb/*@0.0.15` or later.
 - Snippets default to ESM (`.mjs` or `.ts`). Node ≥22.5 required.
 - Where a snippet wraps an agent, the wrapper is framework-agnostic — Mastra,
   LangGraph, OpenAI Agents SDK, hand-rolled. Pick what you have.

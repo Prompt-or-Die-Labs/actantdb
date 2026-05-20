@@ -33,5 +33,5 @@ ctx.recordUserMessage("Hello from the minimal template.");
 ctx.finish({ ok: true });
 wrapped.actant.close();
 
-console.error(`OK — recorded a no-op run for project=${PROJECT}`);
-console.error(`Studio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}`);
+process.stdout.write(`OK - recorded a no-op run for project=${PROJECT}\n`);
+process.stdout.write(`Studio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}\n`);

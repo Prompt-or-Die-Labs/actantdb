@@ -51,5 +51,5 @@ const r = await wrapped.run({
   message: "research the meaning of agent-shaped systems",
   input: { topic: "agent-shaped systems" },
 });
-console.log("result:", JSON.stringify(r.result, null, 2));
-console.log(`\nStudio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}`);
+process.stdout.write(`result: ${JSON.stringify(r.result, null, 2)}\n`);
+process.stdout.write(`Studio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}\n`);

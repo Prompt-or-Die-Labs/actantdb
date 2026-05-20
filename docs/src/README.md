@@ -1,6 +1,6 @@
 # ActantDB
 
-The autonomous-action backend.
+The local-first accountability backend for agents.
 
 This documentation is generated from the canonical specs under [`/specs`](https://github.com/Prompt-or-Die-Labs/actantdb/tree/main/specs) and the operational docs at the repo root (CHANGELOG, GATES, RELEASE_CHECKLIST, SPECS_STATUS).
 
@@ -10,6 +10,13 @@ Build locally with:
 mdbook build docs
 open docs/book/index.html
 ```
+
+## Start here
+
+- [Golden quickstart](./golden-quickstart.md): scaffold, run, open Studio,
+  and check the embedded ledger.
+- [Interactive playground](./playground.md): browser-only walkthrough of a
+  captured run, authority decision, and replay diff.
 
 ## What's in here
 
@@ -25,12 +32,13 @@ open docs/book/index.html
 ## Quick start
 
 ```bash
-cargo run -p actant-server --bin actantdb-server -- --bind 127.0.0.1:4555
+npm create actantdb@latest my-agent -- --template minimal --framework hand-rolled --language js --yes
+cd my-agent
+npm install
+npm start
+npm run studio
+npm run doctor
 ```
 
-```bash
-curl http://127.0.0.1:4555/v1/healthz/ready
-curl -X POST http://127.0.0.1:4555/v1/command \
-  -H 'content-type: application/json' \
-  -d '{"workspace_id":"ws_default","actor_id":"act_system","command_type":"create_session","input":{}}'
-```
+This path uses the embedded SQLite ledger. No server, Docker, hosted service, or
+model API key is required.

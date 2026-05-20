@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ActantDB Playground</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="intro" aria-labelledby="title">
+        <div>
+          <p class="eyebrow">Local playground</p>
+          <h1 id="title">Replay the moment an agent asks for authority.</h1>
+          <p class="lede">
+            Step through the ledger ActantDB records: model context, guard
+            verdict, approval scope, tool result, and replay diff.
+          </p>
+        </div>
+        <div class="command-panel" aria-label="Golden quickstart command">
+          <span>Golden quickstart</span>
+          <code id="quickstart">npm create actantdb@latest my-agent -- --template minimal --framework hand-rolled --language js --yes</code>
+          <button type="button" id="copy-command">Copy</button>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Playground steps">
+        <button type="button" class="step is-active" data-step="0">
+          <span>1</span>
+          Capture run
+        </button>
+        <button type="button" class="step" data-step="1">
+          <span>2</span>
+          Review authority
+        </button>
+        <button type="button" class="step" data-step="2">
+          <span>3</span>
+          Replay safely
+        </button>
+      </section>
+
+      <section class="grid" aria-live="polite">
+        <div class="pane primary">
+          <div class="pane-head">
+            <div>
+              <p class="label">Event ledger</p>
+              <h2 id="step-title">Capture run</h2>
+            </div>
+            <span id="run-status" class="status">recording</span>
+          </div>
+          <ol id="event-list" class="event-list"></ol>
+        </div>
+
+        <aside class="pane detail">
+          <div class="tabs" role="tablist" aria-label="Ledger details">
+            <button type="button" role="tab" aria-selected="true" data-tab="context">Context</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="guard">Guard</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="replay">Replay</button>
+          </div>
+          <div id="detail-body" class="detail-body"></div>
+        </aside>
+      </section>
+
+      <section class="actions" aria-label="Actions">
+        <button type="button" id="advance">Review authority</button>
+        <button type="button" id="reset">Reset</button>
+      </section>
+    </main>
+
+    <script src="./playground.js"></script>
+  </body>
+</html>

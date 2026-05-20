@@ -20,8 +20,9 @@ plumbing so you can verify your install, open Studio, and start replacing the st
 
 ```bash
 pnpm install
-node ./index.mjs                  # records one run into ./.actantdb
-pnpm studio                       # opens Studio on http://127.0.0.1:{{studio_port}}
+pnpm start                         # records one run into ./.actantdb
+pnpm studio                        # opens Studio on http://127.0.0.1:{{studio_port}}
+pnpm doctor                        # checks the local ledger
 ```
 
 The default substrate port is `{{port}}` (for the optional `actantdb-server`); the

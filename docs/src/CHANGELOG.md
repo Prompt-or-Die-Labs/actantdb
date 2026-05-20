@@ -4,6 +4,18 @@ This file accumulates the visible changes shipped through this work session.
 Cross-reference: [SPECS_STATUS.md](./SPECS_STATUS.md), [GATES.md](./GATES.md),
 [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md).
 
+## Unreleased — 2026-05-20
+
+- **First five minutes tightened**: root README now leads with the local
+  embedded quickstart instead of the broad product inventory, and mdbook has
+  `golden-quickstart.md` plus an embedded interactive playground for capture,
+  authority review, and replay.
+- **`create-actantdb` public errors cleaned up**: unknown flags, missing flag
+  values, invalid project names, unknown templates, frameworks, and languages
+  now print actionable `error/detail/fix` output.
+- **Scaffolds include `npm run doctor`** so the golden path ends with a ledger
+  and schema check.
+
 ## 0.0.8 — 2026-05-18
 
 - **`CommandEngine::dispatch()`** auto-creates the caller's actor row if

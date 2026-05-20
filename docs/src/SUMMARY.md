@@ -2,6 +2,11 @@
 
 [Introduction](./README.md)
 
+# Start Here
+
+- [Golden quickstart](./golden-quickstart.md)
+- [Interactive playground](./playground.md)
+
 # Operations
 
 - [SLOs](./SLO.md)

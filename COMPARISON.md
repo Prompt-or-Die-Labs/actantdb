@@ -1,6 +1,6 @@
 # ActantDB vs the 2026 agent-tooling market
 
-**Status:** Honest competitive snapshot for ActantDB **0.0.7**.
+**Status:** Honest competitive snapshot for ActantDB **0.0.15**.
 **Date:** 2026-05-18.
 **Authoring rule:** Every competitor claim in this document was checked against
 the vendor's own 2026 docs (links at the bottom). Where the docs were silent or
@@ -112,7 +112,7 @@ If you want a **best-in-class pure memory layer**, Mem0 is more mature than `act
 
 Cells use precise text where possible. ✅ = first-class, native. ◑ = partial / via plugin. ✗ = not in product. Where a competitor has a *different but comparable* feature, the cell describes it instead of using a symbol.
 
-| Capability | **ActantDB 0.0.7** | Temporal | Inngest | LangGraph | Mastra | Langfuse | Zep |
+| Capability | **ActantDB 0.0.15** | Temporal | Inngest | LangGraph | Mastra | Langfuse | Zep |
 |---|---|---|---|---|---|---|---|
 | **Durable workflow execution** | ✅ runner + cron + approval-pause | ✅ category leader | ✅ step functions | ✅ checkpointed graph | ◑ workflows, less mature | ✗ (trace UI) | ✗ (memory) |
 | **Replay semantics** | 4 typed modes (recorded / model / policy / memory), 3 deferred (`tool`, `experimental`, `local_only`) | Deterministic replay-from-start of event history | Step retry; no decision-point fork | **Fork from any checkpoint via `get_state_history` + `update_state`** | Workflow snapshots | Trace re-render only | ✗ |

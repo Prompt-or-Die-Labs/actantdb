@@ -27,13 +27,13 @@ Astro, Convex, and Supabase.
 | X1 | **`npm create actantdb` / `npx @actantdb/create-app`** | 🟢 | `packages/create-actantdb/`. Interactive (`prompts`+`kleur`) and headless (`--template <name> --framework <name> --no-interactive`) modes. 9 vitest tests. Verified end-to-end: `node packages/create-actantdb/dist/index.js test-scaffold --template minimal --framework mastra --no-interactive` produces a valid scaffold. |
 | X2 | **First-launch Studio "welcome" screen** | 🟢 | `packages/actant-studio/ui-src/panels/RunsPanel.tsx` now renders a first-run empty state with a copy-pasteable `@actantdb/mastra` snippet that captures one tool call. Covered by Studio UI tests. |
 | X3 | **`actantdb doctor`** | 🟢 | Shipped in `crates/actant-cli/src/cmd/doctor.rs`. Checks rustc ≥ 1.88, node ≥ 22.5, disk space (5 GB threshold) on the db dir's filesystem, ports 4555 + 54323 (prints PID via `lsof`), optional `claude`/`codex`/`opencode` on PATH, `ACTANTDB_DATABASE_URL` shape, and Studio `dist/ui/` presence. Each check prints `[ok]/[warn]/[fail]` + a one-line fix where applicable. |
-| X4 | **Pretty errors with one-line fixes** | 🚧 | We have `BoxError` with typed codes (see `@actantdb/box`). Many SDK / CLI errors are still raw `Error.message`. Need an `ActantError` base with `code`, `hint`, `fix_command?` shape applied to every public throw. |
-| X5 | **Interactive 5-minute tutorial** | 🔴 | Convex's quickstart is a clickable 5-step tutorial. Ours is a static markdown demo. Could be a Stackblitz / Replit / CodeSandbox link from the README that opens with `@actantdb/all` preinstalled. |
+| X4 | **Pretty errors with one-line fixes** | 🚧 | `create-actantdb` now reports unknown flags, missing flag values, invalid project names, templates, frameworks, and languages with `error/detail/fix` output. Many SDK / CLI errors are still raw `Error.message`. Need an `ActantError` base with `code`, `hint`, `fix_command?` shape applied to every public throw. |
+| X5 | **Interactive 5-minute tutorial** | 🟢 | `docs/src/playground.md` embeds a dependency-free browser playground for capture -> authority review -> replay, and `docs/src/golden-quickstart.md` carries the one golden local quickstart. |
 | X6 | **CLI shell completion** | 🟢 | Hidden `actantdb completions <shell>` subcommand wired through `clap_complete::generate` in `crates/actant-cli/src/main.rs`. Supports bash/zsh/fish/elvish/powershell. |
 | X7 | **First-run telemetry opt-in (truthful)** | 🔴 | One prompt on first `actantdb` invocation: "share anonymous usage so we can fix what breaks?" with a clear opt-out path. Convex + Vercel do this. Don't be sneaky; the prompt itself is the trust-builder. |
 
-**Part A: 4 🟢 / 1 🚧 / 2 🔴.** X1, X2, X3, and X6 now cover the first-create,
-first-open, doctor, and shell-completion path. X5 and X7 remain DX polish.
+**Part A: 5 🟢 / 1 🚧 / 1 🔴.** X1, X2, X3, X5, and X6 now cover the first-create,
+first-open, doctor, interactive playground, and shell-completion path. X7 remains DX polish.
 
 ---
 
@@ -189,10 +189,10 @@ Where someone goes to learn a pattern.
 | X67 | **`docs/recipes/`** | 🟢 | `docs/recipes/` ships an index README + 10 recipes: 01 approval, 02 replay-failed-run, 03 Next.js wiring, 04 Ollama-only, 05 snapshot testing, 06 BigQuery export, 07 share-a-replay-session, 08 audit-export-to-S3, 09 add-to-existing-mastra-app, 10 first-MCP-tool-on-top-of-ActantDB. |
 | X69 | **"Awesome ActantDB"** list | 🔴 | Curated list of community examples once we have any. Empty for now; can seed with our 3 demos + 5 templates. |
 | X70 | **Migration guides FROM other tools** | 🔴 | "Migrating from Langfuse to ActantDB" / "Adding ActantDB on top of your Inngest workflows" / "Replacing in-house logging with the ActantDB ledger". Inbound-marketing gold. |
-| X71 | **Interactive playground** (Stackblitz / CodeSandbox) | 🔴 | Embed in the README. Visitor can click "Run" without installing anything. |
+| X71 | **Interactive playground** | 🟢 | `docs/src/playground.md` embeds the local browser playground. It does not depend on Stackblitz, CodeSandbox, or hosted execution. |
 | X72 | **Architecture diagrams** | 🚧 | `specs/` has ASCII diagrams. None of them render well on GitHub or docs sites. Need: SVG diagrams committed alongside, or Mermaid blocks. |
 
-**Part H: 2 🟢, 1 🚧, 3 🔴.**
+**Part H: 3 🟢, 1 🚧, 2 🔴.**
 
 ---
 
@@ -235,9 +235,9 @@ Things our users need to test *their* agent code that integrates with us.
 
 | Status | Count | Notes |
 |---|---:|---|
-| 🟢 ships | **38** | First-touch, high-volume TS adapters, CLI tooling, MCP, recipes, testing helpers, docs/API references, and the shipped Part K server features. |
+| 🟢 ships | **40** | First-touch, high-volume TS adapters, CLI tooling, MCP, recipes, testing helpers, docs/API references, and the shipped Part K server features. |
 | 🚧 partial | **10** | Things that exist but need wrapper hardening, runtime validation, or product polish |
-| 🔴 missing | **45** | DX backlog after this pass: language SDKs (Go/Kotlin/.NET/Ruby/PHP/Elixir), edge runtimes (CF Workers/Deno/Vercel Edge), VSCode extension, package managers (Homebrew/Scoop/APT/Nix), trace-UI integrations, big-ticket UI, Studio i18n/mobile/dark-mode toggle, Python framework adapters, durable workflow middleware, gateway metadata capture, and fixture generators. |
+| 🔴 missing | **43** | DX backlog after this pass: language SDKs (Go/Kotlin/.NET/Ruby/PHP/Elixir), edge runtimes (CF Workers/Deno/Vercel Edge), VSCode extension, package managers (Homebrew/Scoop/APT/Nix), trace-UI integrations, big-ticket UI, Studio i18n/mobile/dark-mode toggle, Python framework adapters, durable workflow middleware, gateway metadata capture, and fixture generators. |
 | ⊝ deliberate non-goal | **1** | Browser runtime remains a non-goal for the current embedded Node package; a separate WASM package is tracked as X92. |
 | **Total rows** | **94** | |
 

@@ -7,7 +7,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "start": "node ./index.mjs",
-    "studio": "actantdb studio --project {{project_name}} --store-dir ./.actantdb --port {{studio_port}}"
+    "studio": "actantdb studio --project {{project_name}} --store-dir ./.actantdb --port {{studio_port}}",
+    "doctor": "actantdb --db ./.actantdb/actant.db doctor"
   },
   "dependencies": {
     "@actantdb/core": "workspace:*",

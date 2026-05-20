@@ -26,7 +26,7 @@ import {
 export { TEMPLATES, FRAMEWORKS, getTemplate } from "./templates.js";
 export { renderTemplate, writeRendered } from "./render.js";
 
-const PACKAGE_VERSION = "0.0.13";
+const PACKAGE_VERSION = "0.0.15";
 const DEFAULT_STUDIO_PORT = 4173;
 
 interface Args {
@@ -40,6 +40,18 @@ interface Args {
   force: boolean;
   help: boolean;
   version: boolean;
+}
+
+class UserFacingError extends Error {
+  readonly fix?: string;
+  readonly detail?: string;
+
+  constructor(message: string, opts: { fix?: string; detail?: string } = {}) {
+    super(message);
+    this.name = "UserFacingError";
+    this.fix = opts.fix;
+    this.detail = opts.detail;
+  }
 }
 
 const HELP = `create-actantdb — scaffold a new ActantDB project.
@@ -123,7 +135,13 @@ function applyArg(argv: string[], index: number, out: Args): number {
 
   const valueArg = VALUE_ARGS[arg];
   if (valueArg) {
-    valueArg(out, argv[index + 1]);
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("-")) {
+      throw new UserFacingError(`${arg} requires a value`, {
+        fix: `Run \`npm create actantdb@latest my-agent -- ${arg} <value>\`.`,
+      });
+    }
+    valueArg(out, value);
     return index + 1;
   }
 
@@ -132,6 +150,10 @@ function applyArg(argv: string[], index: number, out: Args): number {
     assigned.parser(out, assigned.value);
   } else if (!arg.startsWith("-")) {
     out.positional.push(arg);
+  } else {
+    throw new UserFacingError(`unknown option: ${arg}`, {
+      fix: "Run `npm create actantdb@latest -- --help` to see supported options.",
+    });
   }
   return index;
 }
@@ -210,7 +232,7 @@ async function interactiveFlow(args: Args): Promise<ScaffoldChoices> {
         validate: (s: string) => (validProjectName(s) ? true : "use lowercase letters, digits, -"),
       })
     ).name;
-  if (!name) throw new Error("project name is required");
+  validateProjectName(name);
 
   const tplChoice =
     args.template ??
@@ -228,7 +250,7 @@ async function interactiveFlow(args: Args): Promise<ScaffoldChoices> {
     ).template;
 
   const template = getTemplate(tplChoice);
-  if (!template) throw new Error(`unknown template: ${tplChoice}`);
+  if (!template) throw unknownTemplate(tplChoice);
 
   const framework =
     args.framework ??
@@ -257,40 +279,106 @@ async function interactiveFlow(args: Args): Promise<ScaffoldChoices> {
       })
     ).language;
 
+  const normalizedFramework = normalizeFramework(framework);
+  const normalizedLanguage = normalizeLanguage(language ?? "ts");
+  const studioPort = normalizePort(args.studioPort ?? DEFAULT_STUDIO_PORT);
+
   return {
     projectName: name,
     template: template.id,
-    framework: framework as FrameworkChoice,
-    language: (language as LanguageChoice) ?? "ts",
-    studioPort: args.studioPort ?? DEFAULT_STUDIO_PORT,
+    framework: normalizedFramework,
+    language: normalizedLanguage,
+    studioPort,
   };
 }
 
 function nonInteractiveFlow(args: Args): ScaffoldChoices {
   const name = args.positional[0];
-  if (!name) throw new Error("project name is required in --no-interactive mode");
-  if (!validProjectName(name)) {
-    throw new Error(`invalid project name: "${name}" (use lowercase letters, digits, -)`);
-  }
+  validateProjectName(name);
   const template = args.template ?? "minimal";
-  if (!getTemplate(template)) throw new Error(`unknown template: ${template}`);
-  const framework = args.framework ?? getTemplate(template)!.defaultFramework;
-  const language: LanguageChoice = args.language ?? "ts";
+  const templateDef = getTemplate(template);
+  if (!templateDef) throw unknownTemplate(template);
+  const framework = normalizeFramework(args.framework ?? templateDef.defaultFramework);
+  const language = normalizeLanguage(args.language ?? "ts");
+  const studioPort = normalizePort(args.studioPort ?? DEFAULT_STUDIO_PORT);
   return {
     projectName: name,
     template,
     framework,
     language,
-    studioPort: args.studioPort ?? DEFAULT_STUDIO_PORT,
+    studioPort,
   };
+}
+
+function validateProjectName(name: string | undefined): asserts name is string {
+  if (!name) {
+    throw new UserFacingError("project name is required", {
+      fix: "Run `npm create actantdb@latest my-agent -- --yes`.",
+    });
+  }
+  if (!validProjectName(name)) {
+    throw new UserFacingError(`invalid project name: "${name}"`, {
+      detail: "Project names must start with a lowercase letter or digit and use only lowercase letters, digits, and dashes.",
+      fix: "Try a name like `support-agent` or `my-agent`.",
+    });
+  }
 }
 
 function validProjectName(name: string): boolean {
   return /^[a-z0-9][a-z0-9-]*$/.test(name);
 }
 
+function unknownTemplate(template: string | undefined): UserFacingError {
+  return new UserFacingError(`unknown template: ${template ?? ""}`, {
+    detail: `Available templates: ${TEMPLATES.map((t) => t.id).join(", ")}.`,
+    fix: "Run `npm create actantdb@latest my-agent -- --template minimal --yes`.",
+  });
+}
+
+function normalizeFramework(framework: string | undefined): FrameworkChoice {
+  if (FRAMEWORKS.some((f) => f.id === framework)) return framework as FrameworkChoice;
+  throw new UserFacingError(`unknown framework: ${framework ?? ""}`, {
+    detail: `Available frameworks: ${FRAMEWORKS.map((f) => f.id).join(", ")}.`,
+    fix: "Use `--framework hand-rolled` for the smallest first run.",
+  });
+}
+
+function normalizeLanguage(language: string | undefined): LanguageChoice {
+  if (language === "ts" || language === "js") return language;
+  throw new UserFacingError(`unknown language: ${language ?? ""}`, {
+    detail: "Available languages: ts, js.",
+    fix: "Use `--language js` for the fewest moving parts.",
+  });
+}
+
+function normalizePort(port: number): number {
+  if (Number.isInteger(port) && port > 0 && port < 65536) return port;
+  throw new UserFacingError(`invalid port: ${String(port)}`, {
+    detail: "Studio ports must be whole numbers between 1 and 65535.",
+    fix: "Use `--port 4173` or omit the flag.",
+  });
+}
+
+function formatError(err: unknown): string {
+  const e = err instanceof Error ? err : new Error(String(err));
+  const lines = [kleur.red(`error: ${e.message}`)];
+  if (e instanceof UserFacingError) {
+    if (e.detail) lines.push(kleur.gray(e.detail));
+    if (e.fix) lines.push(kleur.cyan(`fix: ${e.fix}`));
+  } else {
+    lines.push(kleur.cyan("fix: Run `npm create actantdb@latest -- --help`, then retry with `--yes` for the golden path."));
+  }
+  return `${lines.join("\n")}\n`;
+}
+
 export async function main(argv: string[] = process.argv.slice(2)): Promise<number> {
-  const args = parseArgs(argv);
+  let args: Args;
+  try {
+    args = parseArgs(argv);
+  } catch (err) {
+    process.stderr.write(formatError(err));
+    return 1;
+  }
   if (args.help) {
     process.stdout.write(HELP);
     return 0;
@@ -304,7 +392,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   try {
     choices = args.interactive ? await interactiveFlow(args) : nonInteractiveFlow(args);
   } catch (err) {
-    process.stderr.write(kleur.red(`error: ${(err as Error).message}\n`));
+    process.stderr.write(formatError(err));
     return 1;
   }
 
@@ -321,6 +409,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
         `  npm install`,
         `  npm start`,
         `  npm run studio`,
+        `  npm run doctor`,
         "",
         kleur.gray("Files written:"),
         ...result.filesWritten.map((f) => `  ${f}`),
@@ -329,7 +418,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     );
     return 0;
   } catch (err) {
-    process.stderr.write(kleur.red(`error: ${(err as Error).message}\n`));
+    process.stderr.write(formatError(err));
     return 1;
   }
 }
@@ -345,8 +434,7 @@ if (invokedAsBin || process.env["CREATE_ACTANTDB_FORCE_RUN"] === "1") {
   main().then(
     (code) => process.exit(code),
     (err) => {
-      // eslint-disable-next-line no-console
-      console.error(err);
+      process.stderr.write(formatError(err));
       process.exit(1);
     },
   );

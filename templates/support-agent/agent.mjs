@@ -57,6 +57,6 @@ const wrapped = withActant(agent, {
 
 for (const order_id of ["ord_small", "ord_big", "test_oops"]) {
   const r = await wrapped.run({ message: `refund ${order_id}`, input: { order_id } });
-  console.log(order_id, "→", JSON.stringify(r.result));
+  process.stdout.write(`${order_id} => ${JSON.stringify(r.result)}\n`);
 }
-console.log(`\nStudio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}`);
+process.stdout.write(`Studio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}\n`);

@@ -21,7 +21,7 @@ phasing rationale. [GAPS.md](./GAPS.md) for what's already in the substrate.
 | 💼 **business-side** | Not engineering — legal, marketing, finance, ops. Wes-scope. |
 | 📋 **compliance** | Audit-driven; SOC2, GDPR, HIPAA, etc. |
 
-Last updated: 2026-05-19. Substrate at `@actantdb/all@0.0.13`. Cloud at:
+Last updated: 2026-05-20. Substrate at `@actantdb/all@0.0.15`. Cloud at:
 *zero — not yet started.*
 
 ---

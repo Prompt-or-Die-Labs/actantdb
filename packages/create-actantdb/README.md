@@ -8,12 +8,15 @@ Scaffold a new ActantDB project. One command, no boilerplate hunting.
 # Interactive — pick template, framework, language:
 npm create actantdb@latest my-app
 
-# Non-interactive — all flags on argv:
+# Golden local path — embedded ledger, JavaScript, no server:
+npm create actantdb@latest my-app -- --template minimal --framework hand-rolled --language js --yes
+
+# Non-interactive TypeScript path:
 npx create-actantdb my-app \
   --template coding-agent \
   --framework mastra \
   --language ts \
-  --no-interactive
+  --yes
 ```
 
 After scaffolding:
@@ -23,6 +26,7 @@ cd my-app
 npm install
 npm start          # runs the agent stub, records a sample run
 npm run studio     # opens the Studio timeline
+npm run doctor     # checks the embedded ledger
 ```
 
 ## Templates

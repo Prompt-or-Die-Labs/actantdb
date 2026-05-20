@@ -89,6 +89,7 @@ function packageJson(ctx: RenderContext): string {
       start: entry,
       build: buildScript,
       studio: `actantdb studio --project ${ctx.projectName} --store-dir ./.actantdb --port ${ctx.studioPort}`,
+      doctor: "actantdb --db ./.actantdb/actant.db doctor",
     },
     dependencies: deps,
     devDependencies: devDeps,
@@ -166,8 +167,8 @@ ctx.recordUserMessage("Hello from the ${ctx.template} template.");
 ctx.finish({ ok: true });
 wrapped.actant.close();
 
-console.error(\`OK — recorded a no-op run for project=\${PROJECT}\`);
-console.error(\`Studio: npx actantdb studio --project \${PROJECT} --store-dir \${STORE_DIR} --port ${ctx.studioPort}\`);
+process.stdout.write(\`OK - recorded a no-op run for project=\${PROJECT}\\n\`);
+process.stdout.write(\`Studio: npx actantdb studio --project \${PROJECT} --store-dir \${STORE_DIR} --port ${ctx.studioPort}\\n\`);
 `
     );
   }
@@ -216,8 +217,8 @@ await agent.tools["shell.run"].execute({ command: "rm -rf build dist" });
 run.finish({ ok: true });
 wrapped.actant.close();
 
-console.error(\`OK — recorded a sample run for project=\${PROJECT}\`);
-console.error(\`Studio: npx actantdb studio --project \${PROJECT} --store-dir \${STORE_DIR} --port ${ctx.studioPort}\`);
+process.stdout.write(\`OK - recorded a sample run for project=\${PROJECT}\\n\`);
+process.stdout.write(\`Studio: npx actantdb studio --project \${PROJECT} --store-dir \${STORE_DIR} --port ${ctx.studioPort}\\n\`);
 `
   );
 }
@@ -234,6 +235,7 @@ Scaffolded with \`create-actantdb\` — template **${ctx.template}**, framework 
 npm install
 npm start            # runs ${entry}
 npm run studio       # opens the timeline at http://localhost:${ctx.studioPort}
+npm run doctor       # checks the embedded ledger
 \`\`\`
 
 ## What's here

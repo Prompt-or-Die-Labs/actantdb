@@ -1,16 +1,75 @@
 # ActantDB
 
-**The event-sourced backend for autonomous agents.** Built-in replay, runtime authority gating, durable workflows, governed memory, hybrid retrieval, OpenTelemetry-compatible traces, and multi-tenant deployment — installable as an npm package, deployable as a Rust server.
+**The local-first black-box recorder and authority layer for agents.**
 
-It is also, in five words:
+ActantDB answers the first operational questions every useful agent creates:
+what did the model see, why was this tool allowed, who approved it, what changed,
+and can we replay the run from the decision point?
 
 > **Your agent just called a tool. Do you know why?**
 
-ActantDB records what the model saw, what action it requested, who approved it, what happened, and lets you replay the run from any decision point — without replacing Mastra, Convex, or LangGraph.
+The golden path is a local embedded SQLite ledger via npm. No cloud account, no
+daemon, no Docker, and no model API key are required for the first run.
 
 ---
 
-## What's here today
+## Golden quickstart
+
+Requires **Node ≥22.5**. Node 24 is recommended because `node:sqlite` is
+unflagged there.
+
+```bash
+npm create actantdb@latest my-agent -- --template minimal --framework hand-rolled --language js --yes
+cd my-agent
+npm install
+npm start
+npm run studio
+npm run doctor
+```
+
+What that proves:
+
+- `npm start` records one hash-chained run under `./.actantdb`.
+- `npm run studio` opens the local timeline for that run.
+- `npm run doctor` checks the ledger and schema.
+
+Try the browser-only walkthrough first: [`docs/src/playground.md`](./docs/src/playground.md).
+The full quickstart is [`docs/src/golden-quickstart.md`](./docs/src/golden-quickstart.md).
+
+---
+
+## Why this matters
+
+Agents now make decisions that touch files, tickets, email, money, and memory.
+A trace tells you what happened. ActantDB stores the authority record that lets
+you prove why it happened and replay the run with one variable changed.
+
+That distinction matters because production agents fail in ways tracing alone
+cannot answer:
+
+- A model saw a stale memory and proposed a destructive command. ActantDB shows
+  the memory that caused it and lets you replay the planner without that memory.
+- A workflow stopped mid-run. ActantDB replays from a checkpoint with a stricter
+  policy or a different model route.
+- An approver accepted a long tool call. ActantDB stores the exact policy
+  snapshot, requested action, constrained action, and approval scope.
+- A local-first agent must prove private context never entered a forbidden route.
+  ActantDB stores the context manifest, blocked items, and guard verdict.
+
+---
+
+## Where it fits
+
+- Wrap an existing Mastra, LangGraph, OpenAI Agents SDK, or hand-rolled agent.
+- Record model calls, tool calls, approvals, memory decisions, and replay diffs.
+- Keep the default path embedded and local.
+- Add the Rust server only when you need shared approvals, HTTP/WebSocket access,
+  Postgres, tenancy, or deployment.
+- Export traces and audit rows when a downstream system needs them.
+
+---
+
+## What ships when you go deeper
 
 Concrete state of the repo at the most recent build. Not aspirational.
 
@@ -35,7 +94,7 @@ Concrete state of the repo at the most recent build. Not aspirational.
 | **Python SDK**       | pip-installable, mirrors the TS SDK surface. Integration test passes against a real server.    | `sdks/python/`                                 |
 | **Swift SDK**        | Two-tier (Swift 6.3, macOS 26 / iOS 26). `ActantDB` is a 1:1 HTTP+WS client; `ActantAgent` is the opinionated facade (Session / MemoryStore / Auditor / ApprovalCenter / ReplayClient / RelationshipStore / ActantDBSupervisor) that lets a consumer like Swoosh add ActantDB by one-line conformance extensions. | `sdks/swift/` |
 | **Benchmarks**       | HTTP single-session: p50 **464 µs**, p95 **1.00 ms**, p99 **2.12 ms** (1.8k req/s). 10-concurrent: **3.9k req/s** aggregate. Replay 200-event run end-to-end: **3.4 ms**. RSS only +1.4 MB per 10k events. Full table in [`BENCHMARKS.md`](./BENCHMARKS.md). | `bench/`, [`BENCHMARKS.md`](./BENCHMARKS.md) |
-| **Tests**            | Current local pass: `pnpm smoke`, `pnpm -r test`, `pnpm -r build`, `cargo check --workspace --all-targets`, plus focused Rust crate tests for storage, sync, replay, client, server lib, and subscribe lib. | [`TESTING.md`](./TESTING.md), `.github/workflows/ci.yml` |
+| **Tests**            | CI runs TypeScript build/test, smoke, Rust fmt/clippy/tests, spec verification, and agent-doc verification. Local docs/build checks are documented per surface. | [`TESTING.md`](./TESTING.md), `.github/workflows/ci.yml` |
 | **Spec verification**| Every active spec has `tests/spec_NN_verification.rs`. The harness caught **8 real drifts** before they shipped (event-name drift, missing diff kinds, FK ordering, etc.). | `SPECS_STATUS.md`                              |
 | **CI bundle**        | `fmt-check + clippy -D warnings + test + verify-specs + verify-agents`. Green.                  | `.github/workflows/ci.yml`, `justfile`         |
 
@@ -43,41 +102,9 @@ The repo-verifiable quality gates are green. See [`GATES.md`](./GATES.md) for th
 
 ---
 
-## Why this matters
-
-Agents in 2026 are moving out of chat boxes and into production: shipping commits, sending email, moving money, running for minutes or hours or days, calling tools that change real-world state. A trace tells you *what* happened. ActantDB tells you *why* — and lets you re-execute the run with one variable changed.
-
-That distinction matters because production agents fail in ways tracing alone cannot answer:
-
-- A model saw a stale memory and proposed a destructive command. A trace shows the command. ActantDB shows the *memory that caused it* and lets you replay the planner without that memory.
-- A workflow ran for 14 hours and stopped mid-way. A trace shows the last span. ActantDB replays from any checkpoint with a different policy or model.
-- An approver clicked "yes" on a long tool call. A trace shows the click. ActantDB shows the exact policy snapshot the approver was looking at and the constrained variant they accepted.
-- A regulated workspace needs to prove no agent leaked HIPAA-class content to a cloud model. A trace shows the call. ActantDB shows the **context manifest**: what the model saw, what was blocked, and which capsule's sensitivity ceiling fired.
-
-That gap is the product. The 2026 agent-tooling market has good frameworks (Mastra, LangGraph, OpenAI Agents SDK, CrewAI) and good backends (Convex, Temporal, Inngest). It does not have a governed accountability layer. ActantDB is that layer.
-
----
-
-## What you can build with it
-
-This isn't theoretical. Each of the things below is supported by code that compiles and tests that pass in this repo:
-
-- **Production coding agents** with reviewable approval flows, replayable failures, and memory provenance you can audit. Demo: [`examples/test-cleanup/`](./examples/test-cleanup).
-- **Multi-step research agents** that survive process restarts, pause for human approval for hours or days, retry against flaky providers, and resume cleanly. (`actant-flow` + `actant-trigger` + `actant-effects`.)
-- **Customer-support agents** with reviewable memory candidates, conflict detection between contradictory memories, and a replay-on-complaint workflow that proves what the agent told the customer and why. (`actant-memory` + `actant-replay`.)
-- **Regulated-industry agents** (healthcare, finance) with `actant-audit-export` nightly exports, `purge_by_policy` retention enforcement, AP2 mandate types with spend-limit enforcement, and a context firewall that refuses to send `Secret`-class content to cloud routes. (`actant-audit-export` + `actant-protocol` + `actant-context`.)
-- **Multi-agent task boards** with delegation, per-agent budgets (cost / tokens / tool-call counts), trust profiles that update from observed behavior, and drift detection that flags off-mandate actions. (`actant-trust` + `actant-drift` + `actant-protocol`.)
-- **Self-hosted agent backends** for teams: JWT or OIDC auth, multi-tenant boundary with cross-tenant guards, Postgres backend, Helm chart, TLS termination, three-tier health probes, graceful shutdown, per-endpoint rate limits. (`actant-auth` + `actant-tenant` + `actant-server` + `deploy/helm/`.)
-- **Local-first personal agents** (Mac, Linux, Windows) with private memory, capsule-bound sensitivity, and replay that runs entirely on-device. `npm install @actantdb/mastra` + `npx actantdb studio` and nothing leaves the machine.
-- **Agent-tool MCP servers** that get governed through ActantDB without changing the MCP server. The MCP wire protocol is implemented over stdio JSON-RPC; the worker claims `mcp.call` effects from the same queue as everything else. (`actant-worker-mcp`.)
-- **Cross-framework portability.** The same `withActant()` wrapper runs on Mastra, LangGraph, and hand-rolled agents — proven by three public examples. (`@actantdb/mastra` + `examples/langgraph-router/`.)
-- **Anything observable through OpenTelemetry + OpenInference.** Spans for model_call, tool_call, retrieval, reranker, embedding, agent, workflow, approval, replay; metrics for queue depth, model latency, token usage, retry counts, budget remaining, cache hit rate. Export to Phoenix, Arize, LangSmith, Datadog, Grafana, Honeycomb. (`actant-trace`.)
-
----
-
 ## Integrations
 
-ActantDB ships a **Model Context Protocol** server (`@actantdb/mcp-server`) that exposes the local ledger to any MCP client — Claude Desktop, Cursor, Continue, Cline. The same binary speaks stdio (for desktop clients) and Streamable HTTP (for hosted clients). Drop this block into `~/Library/Application Support/Claude/claude_desktop_config.json` and restart Claude Desktop to see `list_runs`, `query_predicate`, `replay`, `decide_approval`, and friends in the tool picker:
+ActantDB ships a **Model Context Protocol** server (`@actantdb/mcp-server`) that exposes the local ledger to any MCP client: Claude Desktop, Cursor, Continue, and Cline. The same binary speaks stdio and Streamable HTTP. Drop this block into `~/Library/Application Support/Claude/claude_desktop_config.json` and restart Claude Desktop to see `list_runs`, `query_predicate`, `replay`, `decide_approval`, and friends in the tool picker:
 
 ```json
 {
@@ -91,7 +118,7 @@ ActantDB ships a **Model Context Protocol** server (`@actantdb/mcp-server`) that
 }
 ```
 
-New project? `npm create actantdb@latest my-app` scaffolds a runnable wrapper, the right `@actantdb/*` deps, and a `npm run studio` script. Writing tests against an agent? `@actantdb/testing` gives you `createTestLedger() + expectEventEmitted() + expectGuardVerdict()` so consumer tests don't need to reach into the ledger by hand. See [`docs/recipes/`](./docs/recipes) for ten copy-pasteable how-tos.
+New project? `npm create actantdb@latest my-app` scaffolds a runnable wrapper, the right `@actantdb/*` deps, `npm run studio`, and `npm run doctor`. Writing tests against an agent? `@actantdb/testing` gives you `createTestLedger() + expectEventEmitted() + expectGuardVerdict()` so consumer tests don't need to reach into the ledger by hand. See [`docs/recipes/`](./docs/recipes) for focused local how-tos.
 
 ---
 

@@ -34,5 +34,5 @@ const runs = await Promise.all(
   ),
 );
 const elapsed = performance.now() - t0;
-console.log(`${N} concurrent runs in ${elapsed.toFixed(0)}ms (${(elapsed / N).toFixed(1)}ms/run avg)`);
-console.log(`\nStudio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}`);
+process.stdout.write(`${N} concurrent runs in ${elapsed.toFixed(0)}ms (${(elapsed / N).toFixed(1)}ms/run avg)\n`);
+process.stdout.write(`Studio: npx actantdb studio --project ${PROJECT} --store-dir ${STORE_DIR} --port {{studio_port}}\n`);
