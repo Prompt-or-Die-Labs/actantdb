@@ -48,6 +48,45 @@ interface ChatMessage {
   pendingApproval?: ApprovalRecord;
 }
 
+interface StudioModel {
+  activeRun: StudioInfo["runs"][number] | null;
+  activeRunId: string | null;
+  activeTab: TabId;
+  actorCount: number;
+  allEvents: ActantEvent[];
+  chainHealth: string;
+  chatMessages: ChatMessage[];
+  dbSearchQuery: string;
+  error: string | null;
+  eventKindRows: Array<[string, number]>;
+  events: ActantEvent[];
+  expandedMessages: Record<string, boolean>;
+  guardVerdicts: number;
+  info: StudioInfo | null;
+  pendingApprovals: ApprovalRecord[];
+  replayResult: ReplayResponse | null;
+  runs: StudioInfo["runs"];
+  selectedDbTable: DbTable;
+  selectedEvent: ActantEvent | null;
+  selectedEventId: string | null;
+  tableRows: TableRow[];
+  toolErrors: number;
+  handleDecide: (
+    toolCallId: string,
+    kind: "approve" | "approve_constrained" | "deny",
+    hintEvent?: ActantEvent,
+  ) => Promise<void>;
+  handleReplay: (result: ReplayResponse) => void;
+  handleSelectEvent: (event: ActantEvent | null) => void;
+  handleSwitchRun: (runId: string) => void;
+  openSelectedEvent: (event: ActantEvent) => void;
+  refresh: () => Promise<void>;
+  setActiveTab: (tab: TabId) => void;
+  setDbSearchQuery: (value: string) => void;
+  setSelectedDbTable: (table: DbTable) => void;
+  toggleMessage: (id: string) => void;
+}
+
 const navGroups: Array<{ label: string; items: Array<{ id: TabId; label: string }> }> = [
   {
     label: "Project",
@@ -93,6 +132,34 @@ const tableHeaders: Record<DbTable, string[]> = {
 };
 
 export function App(): React.JSX.Element {
+  const studio = useStudioModel();
+
+  return (
+    <div className="studio-shell">
+      <StudioSidebar
+        activeTab={studio.activeTab}
+        info={studio.info}
+        onSelectTab={studio.setActiveTab}
+      />
+
+      <main className="studio-main">
+        <StudioTopbar
+          activeRun={studio.activeRun}
+          activeTab={studio.activeTab}
+          error={studio.error}
+          info={studio.info}
+          onRefresh={studio.refresh}
+        />
+
+        <section className="studio-workspace">
+          <StudioWorkspace studio={studio} />
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function useStudioModel(): StudioModel {
   const [info, setInfo] = useState<StudioInfo | null>(null);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [events, setEvents] = useState<ActantEvent[]>([]);
@@ -267,192 +334,226 @@ export function App(): React.JSX.Element {
     setActiveTab("realtime");
   }, [activeRunId]);
 
+  return {
+    activeRun,
+    activeRunId,
+    activeTab,
+    actorCount,
+    allEvents,
+    chainHealth,
+    chatMessages,
+    dbSearchQuery,
+    error,
+    eventKindRows,
+    events,
+    expandedMessages,
+    guardVerdicts,
+    info,
+    pendingApprovals,
+    replayResult,
+    runs,
+    selectedDbTable,
+    selectedEvent,
+    selectedEventId,
+    tableRows,
+    toolErrors,
+    handleDecide,
+    handleReplay,
+    handleSelectEvent,
+    handleSwitchRun,
+    openSelectedEvent,
+    refresh,
+    setActiveTab,
+    setDbSearchQuery,
+    setSelectedDbTable,
+    toggleMessage,
+  };
+}
+
+function StudioSidebar(props: {
+  activeTab: TabId;
+  info: StudioInfo | null;
+  onSelectTab: (tab: TabId) => void;
+}): React.JSX.Element {
   return (
-    <div className="studio-shell">
-      <aside className="studio-sidebar">
-        <div className="studio-brand">
-          <div className="studio-mark">a</div>
-          <div>
-            <strong>actantdb</strong>
-            <span>Studio</span>
-          </div>
+    <aside className="studio-sidebar">
+      <div className="studio-brand">
+        <div className="studio-mark">a</div>
+        <div>
+          <strong>actantdb</strong>
+          <span>Studio</span>
         </div>
+      </div>
 
-        <nav className="studio-nav" aria-label="Studio views">
-          {navGroups.map((group) => (
-            <div className="studio-nav-group" key={group.label}>
-              <div className="studio-nav-heading">{group.label}</div>
-              {group.items.map((item) => (
-                <button
-                  key={item.id}
-                  className={activeTab === item.id ? "active" : ""}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </nav>
+      <nav className="studio-nav" aria-label="Studio views">
+        {navGroups.map((group) => (
+          <div className="studio-nav-group" key={group.label}>
+            <div className="studio-nav-heading">{group.label}</div>
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                className={props.activeTab === item.id ? "active" : ""}
+                type="button"
+                onClick={() => props.onSelectTab(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ))}
+      </nav>
 
-        <div className="studio-sidebar-status">
-          <div>
-            <span>Project</span>
-            <strong title={info?.project}>{info?.project ?? "loading"}</strong>
-          </div>
-          <div>
-            <span>SQLite</span>
-            <strong title={info?.dbPath}>{shortPath(info?.dbPath ?? "loading")}</strong>
-          </div>
-          <div style={{ display: "none" }} data-testid="test-meta">
-            {info?.project} · {info?.dbPath}
-          </div>
+      <div className="studio-sidebar-status">
+        <div>
+          <span>Project</span>
+          <strong title={props.info?.project}>{props.info?.project ?? "loading"}</strong>
         </div>
-      </aside>
-
-      <main className="studio-main">
-        <header className="studio-topbar">
-          <div>
-            <p>
-              actantdb / {info?.project ?? "loading"} / main
-              {activeRun && <span className="studio-topbar-meta">Run {activeRun.runId.slice(0, 12)}...</span>}
-            </p>
-            <h1>{tabTitle(activeTab)}</h1>
-          </div>
-          <div className="studio-topbar-actions">
-            <span className="branch-pill">main</span>
-            {error && <div className="studio-error">Error: {error}</div>}
-            <button className="secondary" type="button" onClick={refresh}>
-              Refresh
-            </button>
-          </div>
-        </header>
-
-        <section className="studio-workspace">
-          {activeTab === "overview" && (
-            <OverviewView
-              actorCount={actorCount}
-              chainHealth={chainHealth}
-              events={events}
-              eventKindRows={eventKindRows}
-              eventTotal={allEvents.length}
-              guardVerdicts={guardVerdicts}
-              onDecide={handleDecide}
-              onReplay={handleReplay}
-              onSelectEvent={handleSelectEvent}
-              onSwitchRun={handleSwitchRun}
-              pendingApprovals={pendingApprovals}
-              replayResult={replayResult}
-              runs={runs}
-              selectedEvent={selectedEvent}
-              selectedEventId={selectedEventId}
-              toolErrors={toolErrors}
-              activeRunId={activeRunId}
-              onNavigate={setActiveTab}
-            />
-          )}
-
-          {activeTab === "tables" && (
-            <TablesView
-              rows={tableRows}
-              searchQuery={dbSearchQuery}
-              selectedTable={selectedDbTable}
-              setSearchQuery={setDbSearchQuery}
-              setSelectedTable={setSelectedDbTable}
-            />
-          )}
-
-          {activeTab === "sql" && <SqlEditorView project={info?.project ?? "my-project"} />}
-
-          {activeTab === "database" && (
-            <DatabaseView
-              actorCount={actorCount}
-              chainHealth={chainHealth}
-              eventKindRows={eventKindRows}
-              eventTotal={allEvents.length}
-              runCount={runs.length}
-            />
-          )}
-
-          {activeTab === "api" && <ApiDocsView project={info?.project ?? "my-project"} />}
-
-          {activeTab === "auth" && (
-            <AuthView
-              guardVerdicts={guardVerdicts}
-              onDecide={handleDecide}
-              pendingApprovals={pendingApprovals}
-              toolErrors={toolErrors}
-            />
-          )}
-
-          {activeTab === "storage" && (
-            <StorageView
-              chainHealth={chainHealth}
-              dbPath={info?.dbPath ?? ""}
-              eventTotal={allEvents.length}
-              runCount={runs.length}
-            />
-          )}
-
-          {activeTab === "realtime" && (
-            <RealtimeView
-              events={events}
-              onSelectEvent={handleSelectEvent}
-              selectedEventId={selectedEventId}
-            />
-          )}
-
-          {activeTab === "functions" && (
-            <FunctionsView
-              chatMessages={chatMessages}
-              expandedMessages={expandedMessages}
-              onDecide={handleDecide}
-              onSwitchRun={handleSwitchRun}
-              onToggleMessage={toggleMessage}
-              runs={runs}
-              activeRunId={activeRunId}
-            />
-          )}
-
-          {activeTab === "logs" && (
-            <LogsView
-              events={allEvents}
-              onOpenEvent={openSelectedEvent}
-            />
-          )}
-
-          {activeTab === "reports" && (
-            <TelemetryView
-              actorCount={actorCount}
-              chainHealth={chainHealth}
-              eventKindRows={eventKindRows}
-              eventTotal={allEvents.length}
-              guardVerdicts={guardVerdicts}
-              pendingApprovalCount={pendingApprovals.length}
-              runCount={runs.length}
-              toolErrors={toolErrors}
-              project={info?.project ?? "my-project"}
-            />
-          )}
-
-          {activeTab === "backups" && (
-            <BackupsView dbPath={info?.dbPath ?? ""} eventTotal={allEvents.length} runCount={runs.length} />
-          )}
-
-          {activeTab === "branches" && <BranchesView project={info?.project ?? "my-project"} />}
-
-          {activeTab === "settings" && (
-            <SettingsView
-              dbPath={info?.dbPath ?? ""}
-              project={info?.project ?? "my-project"}
-              pollIntervalMs={POLL_INTERVAL_MS}
-            />
-          )}
-        </section>
-      </main>
-    </div>
+        <div>
+          <span>SQLite</span>
+          <strong title={props.info?.dbPath}>{shortPath(props.info?.dbPath ?? "loading")}</strong>
+        </div>
+        <div style={{ display: "none" }} data-testid="test-meta">
+          {props.info?.project} · {props.info?.dbPath}
+        </div>
+      </div>
+    </aside>
   );
+}
+
+function StudioTopbar(props: {
+  activeRun: StudioInfo["runs"][number] | null;
+  activeTab: TabId;
+  error: string | null;
+  info: StudioInfo | null;
+  onRefresh: () => Promise<void>;
+}): React.JSX.Element {
+  return (
+    <header className="studio-topbar">
+      <div>
+        <p>
+          actantdb / {props.info?.project ?? "loading"} / main
+          {props.activeRun && <span className="studio-topbar-meta">Run {props.activeRun.runId.slice(0, 12)}...</span>}
+        </p>
+        <h1>{tabTitle(props.activeTab)}</h1>
+      </div>
+      <div className="studio-topbar-actions">
+        <span className="branch-pill">main</span>
+        {props.error && <div className="studio-error">Error: {props.error}</div>}
+        <button className="secondary" type="button" onClick={props.onRefresh}>
+          Refresh
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function StudioWorkspace(props: { studio: StudioModel }): React.JSX.Element {
+  const studio = props.studio;
+  const project = studio.info?.project ?? "my-project";
+  const dbPath = studio.info?.dbPath ?? "";
+  const views: Record<TabId, React.JSX.Element> = {
+    overview: (
+      <OverviewView
+        actorCount={studio.actorCount}
+        chainHealth={studio.chainHealth}
+        events={studio.events}
+        eventKindRows={studio.eventKindRows}
+        eventTotal={studio.allEvents.length}
+        guardVerdicts={studio.guardVerdicts}
+        onDecide={studio.handleDecide}
+        onReplay={studio.handleReplay}
+        onSelectEvent={studio.handleSelectEvent}
+        onSwitchRun={studio.handleSwitchRun}
+        pendingApprovals={studio.pendingApprovals}
+        replayResult={studio.replayResult}
+        runs={studio.runs}
+        selectedEvent={studio.selectedEvent}
+        selectedEventId={studio.selectedEventId}
+        toolErrors={studio.toolErrors}
+        activeRunId={studio.activeRunId}
+        onNavigate={studio.setActiveTab}
+      />
+    ),
+    tables: (
+      <TablesView
+        rows={studio.tableRows}
+        searchQuery={studio.dbSearchQuery}
+        selectedTable={studio.selectedDbTable}
+        setSearchQuery={studio.setDbSearchQuery}
+        setSelectedTable={studio.setSelectedDbTable}
+      />
+    ),
+    sql: <SqlEditorView project={project} />,
+    database: (
+      <DatabaseView
+        actorCount={studio.actorCount}
+        chainHealth={studio.chainHealth}
+        eventKindRows={studio.eventKindRows}
+        eventTotal={studio.allEvents.length}
+        runCount={studio.runs.length}
+      />
+    ),
+    api: <ApiDocsView project={project} />,
+    auth: (
+      <AuthView
+        guardVerdicts={studio.guardVerdicts}
+        onDecide={studio.handleDecide}
+        pendingApprovals={studio.pendingApprovals}
+        toolErrors={studio.toolErrors}
+      />
+    ),
+    storage: (
+      <StorageView
+        chainHealth={studio.chainHealth}
+        dbPath={dbPath}
+        eventTotal={studio.allEvents.length}
+        runCount={studio.runs.length}
+      />
+    ),
+    realtime: (
+      <RealtimeView
+        events={studio.events}
+        onSelectEvent={studio.handleSelectEvent}
+        selectedEventId={studio.selectedEventId}
+      />
+    ),
+    functions: (
+      <FunctionsView
+        chatMessages={studio.chatMessages}
+        expandedMessages={studio.expandedMessages}
+        onDecide={studio.handleDecide}
+        onSwitchRun={studio.handleSwitchRun}
+        onToggleMessage={studio.toggleMessage}
+        runs={studio.runs}
+        activeRunId={studio.activeRunId}
+      />
+    ),
+    logs: <LogsView events={studio.allEvents} onOpenEvent={studio.openSelectedEvent} />,
+    reports: (
+      <TelemetryView
+        actorCount={studio.actorCount}
+        chainHealth={studio.chainHealth}
+        eventKindRows={studio.eventKindRows}
+        eventTotal={studio.allEvents.length}
+        guardVerdicts={studio.guardVerdicts}
+        pendingApprovalCount={studio.pendingApprovals.length}
+        runCount={studio.runs.length}
+        toolErrors={studio.toolErrors}
+        project={project}
+      />
+    ),
+    backups: <BackupsView dbPath={dbPath} eventTotal={studio.allEvents.length} runCount={studio.runs.length} />,
+    branches: <BranchesView project={project} />,
+    settings: (
+      <SettingsView
+        dbPath={dbPath}
+        project={project}
+        pollIntervalMs={POLL_INTERVAL_MS}
+      />
+    ),
+  };
+
+  return views[studio.activeTab];
 }
 
 function OverviewView(props: {
