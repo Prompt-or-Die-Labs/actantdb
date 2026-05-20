@@ -252,9 +252,7 @@ impl CdpDriver {
         let session_id = bootstrap_try!(res
             .get("sessionId")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ActantError::Internal(
-                "Target.attachToTarget: missing sessionId".into()
-            ))
+            .ok_or_else(|| ActantError::Internal("Target.attachToTarget: missing sessionId".into()))
             .map(|s| s.to_string()));
 
         // 3. Enable Page / Runtime in that session.
@@ -629,9 +627,7 @@ async fn parse_devtools_url(stderr: tokio::process::ChildStderr) -> Result<Strin
                 tracing::trace!(target: "actant_workers::browser::cdp", line = %line, "chrome-stderr");
                 if let Some(idx) = line.find("ws://") {
                     let rest = &line[idx..];
-                    let end = rest
-                        .find(|c: char| c.is_whitespace())
-                        .unwrap_or(rest.len());
+                    let end = rest.find(|c: char| c.is_whitespace()).unwrap_or(rest.len());
                     return Ok(rest[..end].to_string());
                 }
             }

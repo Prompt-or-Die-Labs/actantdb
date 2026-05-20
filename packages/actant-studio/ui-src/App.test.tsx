@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { App } from "./App.js";
@@ -142,17 +142,53 @@ describe("Actant Studio App", () => {
     });
     // Event kinds appear in the timeline
     await waitFor(() => {
-      expect(screen.getByText("model_call")).toBeInTheDocument();
-      expect(screen.getByText("approval_required")).toBeInTheDocument();
+      expect(screen.getAllByText("model_call").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("approval_required").length).toBeGreaterThan(0);
     });
+  });
+
+  it("shows a copy-pasteable first-run path when no runs exist", async () => {
+    vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, ...(init ? { init } : {}) });
+      if (url.endsWith("/api/info")) {
+        return new Response(JSON.stringify({ ...fixtureInfo(), runs: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/api/events")) {
+        return new Response(JSON.stringify({ events: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.endsWith("/api/approvals")) {
+        return new Response(JSON.stringify({ approvals: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Capture your first run").length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText(/withActant/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/demo\.echo/).length).toBeGreaterThan(0);
   });
 
   it("posts to /api/approvals/decide when user clicks Approve on a selected event", async () => {
     const user = userEvent.setup();
     render(<App />);
-    await waitFor(() => screen.getByText("approval_required"));
+    const timeline = await screen.findByRole("list", { name: "event timeline" });
     // Click the approval_required row in the timeline.
-    await user.click(screen.getByText("approval_required"));
+    const approvalRow = within(timeline).getByText("approval_required").closest('[role="listitem"]');
+    if (!(approvalRow instanceof HTMLElement)) throw new Error("approval row not found");
+    await user.click(approvalRow);
     // The detail panel surfaces an Approve button.
     const approveBtn = await screen.findByRole("button", { name: /^Approve$/ });
     await user.click(approveBtn);
@@ -168,8 +204,10 @@ describe("Actant Studio App", () => {
   it("posts to /api/replay with overrides + strict policy when Run replay is clicked", async () => {
     const user = userEvent.setup();
     render(<App />);
-    await waitFor(() => screen.getByText("model_call"));
-    await user.click(screen.getByText("model_call"));
+    const timeline = await screen.findByRole("list", { name: "event timeline" });
+    const modelRow = within(timeline).getByText("model_call").closest('[role="listitem"]');
+    if (!(modelRow instanceof HTMLElement)) throw new Error("model row not found");
+    await user.click(modelRow);
     const runBtn = await screen.findByRole("button", { name: /Run replay/ });
     await user.click(runBtn);
     await waitFor(() => {

@@ -1,0 +1,55 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .codex/hooks/actantdb-context.sh session-start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .codex/hooks/actantdb-context.sh prompt-submit",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|grep_search",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .codex/hooks/actantdb-context.sh pre-tool",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "replace_file_content|write_to_file|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .codex/hooks/actantdb-context.sh post-write",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(python3 -c \"import json,sys; d=json.load(sys.stdin); t=d.get('tool_input',{}); print(d.get('TargetFile') or d.get('file_path') or (t.get('file_path') if isinstance(t,dict) else '') or '')\" 2>/dev/null || true); if [ -n \"$FILE\" ] && printf '%s' \"$FILE\" | grep -q 'crates/actant-contracts/'; then cargo run -p actant-contracts -- check-compat; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

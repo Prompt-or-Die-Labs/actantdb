@@ -1,8 +1,28 @@
 # Testing — end-to-end coverage matrix
 
-Snapshot of every kind of test ActantDB runs through, as of `0.0.9` (2026-05-18).
+This file separates the current local verification pass from older
+release-scenario evidence. CI remains the source of truth for the full matrix.
 
-## Counts
+## Current local pass — 2026-05-20
+
+| Suite | Result | Method |
+| --- | --- | --- |
+| TypeScript workspace tests | passed | `pnpm -r test` |
+| TypeScript workspace build | passed | `pnpm -r build` |
+| Workspace smoke | passed | `pnpm smoke` |
+| Rust workspace check | passed | `cargo check --workspace --all-targets` |
+| Focused Rust crate tests | passed | `cargo test -p actant-storage`, `actant-sync`, `actant-replay`, `actantdb-client`, `actant-server --lib`, `actant-subscribe --lib` |
+
+Not completed locally in this pass: full `actant-server` and
+`actant-subscribe` integration-test binaries, because the local compile/link
+step exceeded the interactive run budget. CI owns the full cross-platform
+matrix.
+
+## Historical release-scenario counts
+
+Snapshot of every kind of test ActantDB ran through as of `0.0.9`
+(2026-05-18). Keep this section as historical release evidence, not as the
+current HEAD count.
 
 | Suite | Passing | Method |
 | --- | ---: | --- |

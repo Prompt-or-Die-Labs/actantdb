@@ -7,9 +7,16 @@ use actant_storage::{Storage, StorageConfig};
 use tempfile::tempdir;
 
 async fn open_file(path: &std::path::Path) -> Storage {
-    Storage::open(StorageConfig::file(path))
-        .await
-        .expect("open")
+    let mut config = StorageConfig::file(path);
+    config.max_connections = 1;
+    Storage::open(config).await.expect("open")
+}
+
+async fn open_file_no_migrate(path: &std::path::Path) -> Storage {
+    let mut config = StorageConfig::file(path);
+    config.apply_migrations = false;
+    config.max_connections = 1;
+    Storage::open(config).await.expect("open")
 }
 
 async fn make_workspace(s: &Storage, name: &str) -> WorkspaceId {
@@ -61,21 +68,55 @@ async fn apply_wal_frames_round_trips_writes() {
     let src_dir = tempdir().unwrap();
     let src_path = src_dir.path().join("src.sqlite");
     let src = open_file(&src_path).await;
-    let ws_id = make_workspace(&src, "rolled-forward").await;
 
-    // Capture WAL after that single insert.
-    let inc = src.wal_frames_since(0).await.unwrap();
-    assert!(!inc.bytes.is_empty(), "WAL should have bytes after writes");
+    // Checkpoint migrations to LSN 1 on src.
+    let _ = src.wal_frames_since(0).await.unwrap();
+    // Flush the backup state update (which happened after truncate) to the main database file.
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(src.pool())
+        .await
+        .unwrap();
 
-    // Build a fresh target from scratch.
+    // Copy the database file at LSN 1 to the destination, so that the
+    // destination database file has the EXACT same binary header/salts.
     let dst_dir = tempdir().unwrap();
     let dst_path = dst_dir.path().join("dst.sqlite");
+    std::fs::copy(&src_path, &dst_path).unwrap();
+
+    let ws_id = make_workspace(&src, "rolled-forward").await;
+
+    // Capture WAL after that single insert (LSN 1 -> 2).
+    let inc = src.wal_frames_since(1).await.unwrap();
+    println!("inc.bytes len: {}", inc.bytes.len());
+    assert!(!inc.bytes.is_empty(), "WAL should have bytes after writes");
+
+    // Open dst (which is a clone of src at LSN 1).
     let dst = open_file(&dst_path).await;
+    println!(
+        "dst last_lsn before apply: {}",
+        dst.last_lsn().await.unwrap()
+    );
+    assert_eq!(dst.last_lsn().await.unwrap(), 1);
     assert!(dst.get_workspace(&ws_id).await.unwrap().is_none());
 
-    // Apply.
+    // Drop and reopen dst to close all active connections/locks before applying
+    let pool = dst.pool().clone();
+    drop(dst);
+    pool.close().await;
+    let dst = open_file_no_migrate(&dst_path).await;
+
+    // Apply (LSN 1 -> 2).
     dst.apply_wal_frames(&inc).await.unwrap();
-    assert_eq!(dst.last_lsn().await.unwrap(), 1);
+    println!(
+        "dst last_lsn after apply: {}",
+        dst.last_lsn().await.unwrap()
+    );
+    assert_eq!(dst.last_lsn().await.unwrap(), 2);
+
+    // Reopen dst to verify that recovery and checkpoint persisted to the database file.
+    drop(dst);
+    let dst = open_file(&dst_path).await;
+
     let got = dst
         .get_workspace(&ws_id)
         .await

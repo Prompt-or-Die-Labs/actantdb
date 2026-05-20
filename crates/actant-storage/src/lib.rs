@@ -136,11 +136,13 @@ impl Storage {
                 .foreign_keys(true)
         };
 
-        let pool = SqlitePoolOptions::new()
-            .max_connections(config.max_connections)
-            .connect_with(opts)
-            .await
-            .map_err(|e| ActantError::Storage(e.to_string()))?;
+        let mut pool_opts = SqlitePoolOptions::new().max_connections(config.max_connections);
+
+        if config.max_connections == 1 && path != ":memory:" {
+            pool_opts = pool_opts.idle_timeout(std::time::Duration::ZERO);
+        }
+
+        let pool = pool_opts.connect_lazy_with(opts);
 
         let blob_store: Arc<dyn BlobStore> = default_blob_store(&config.db_path)
             .map_err(|e| ActantError::Storage(format!("blob store: {e}")))?;

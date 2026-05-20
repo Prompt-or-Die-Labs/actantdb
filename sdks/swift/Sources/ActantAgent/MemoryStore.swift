@@ -31,6 +31,9 @@ public struct MemoryStore: Sendable {
             sensitivity: sensitivity, confidence: confidence,
             evidence: evidence
         )
+        if let id = r.result["memory_candidate_id"]?.stringValue {
+            return id
+        }
         if let id = r.result["candidate_id"]?.stringValue {
             return id
         }

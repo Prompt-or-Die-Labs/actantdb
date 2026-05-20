@@ -121,6 +121,6 @@ fn adr_0018_hot_kernel_exists() {
 fn adr_0020_deployment_modes_have_helm_chart() {
     let chart = read_repo("deploy/helm/actantdb/Chart.yaml");
     assert!(chart.contains("name: actantdb"));
-    let docker = read_repo("deploy/docker/Dockerfile");
+    let docker = read_repo("deploy/Dockerfile");
     assert!(docker.contains("actantdb-server"));
 }

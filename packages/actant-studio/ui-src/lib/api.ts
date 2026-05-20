@@ -77,10 +77,9 @@ export const api = {
   info(): Promise<StudioInfo> {
     return getJSON<StudioInfo>("/api/info");
   },
-  events(runId: string): Promise<{ events: ActantEvent[] }> {
-    return getJSON<{ events: ActantEvent[] }>(
-      `/api/events?run=${encodeURIComponent(runId)}`,
-    );
+  events(runId?: string): Promise<{ events: ActantEvent[] }> {
+    const suffix = runId ? `?run=${encodeURIComponent(runId)}` : "";
+    return getJSON<{ events: ActantEvent[] }>(`/api/events${suffix}`);
   },
   approvals(): Promise<{ approvals: ApprovalRecord[] }> {
     return getJSON<{ approvals: ApprovalRecord[] }>("/api/approvals");

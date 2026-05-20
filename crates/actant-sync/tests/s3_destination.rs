@@ -94,11 +94,12 @@ async fn s3_destination_roundtrip_when_endpoint_is_configured() {
             .unwrap();
     }
 
-    let runner = SyncRunner::new(storage.clone(), ws.id.clone(), dest.clone())
-        .with_config(SyncRunnerConfig {
+    let runner = SyncRunner::new(storage.clone(), ws.id.clone(), dest.clone()).with_config(
+        SyncRunnerConfig {
             batch_size: 3,
             ..Default::default()
-        });
+        },
+    );
     let stats = runner.run_once().await.expect("run_once");
     assert_eq!(stats.events_pushed, 5);
     let cursor = dest.cursor(&ws.id).await.expect("cursor");

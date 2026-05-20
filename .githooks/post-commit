@@ -1,0 +1,12 @@
+#!/bin/sh
+
+[ -d graphify-out ] || exit 0
+command -v graphify >/dev/null 2>&1 || exit 0
+
+changed=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null || true)
+printf '%s\n' "$changed" | grep -Eq '\.(rs|ts|tsx|js|mjs|json|toml|md)$' || exit 0
+
+log="${HOME}/.cache/actantdb-graphify-hook.log"
+mkdir -p "$(dirname "$log")"
+echo "[actantdb] updating graphify graph in background: $log"
+nohup graphify update . > "$log" 2>&1 < /dev/null &

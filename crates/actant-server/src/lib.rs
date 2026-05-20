@@ -38,7 +38,7 @@ use std::sync::Arc;
 use actant_command::Engine;
 use actant_core::{
     canonical_json, chain_hash, now_rfc3339, sha256_hex, ActantError, Actor, ActorId, ActorKind,
-    AgentEvent, CausalityKind, EventId, Sensitivity, SessionId, WorkspaceId,
+    AgentEvent, CausalityKind, EventId, Sensitivity, SessionId, Workspace, WorkspaceId,
 };
 use actant_storage::Storage;
 use actant_subscribe::{Broker, SubscribeHub, Topic};
@@ -66,7 +66,9 @@ pub struct AppState {
     /// Per-workspace rate-limiter bucket. None = no rate limiting.
     pub rate_limiter: Option<
         std::sync::Arc<
-            tokio::sync::Mutex<std::collections::HashMap<String, actant_reliability::throttle::Bucket>>,
+            tokio::sync::Mutex<
+                std::collections::HashMap<String, actant_reliability::throttle::Bucket>,
+            >,
         >,
     >,
     /// Token-bucket policy (applied when rate_limiter is set).
@@ -1568,6 +1570,7 @@ async fn write_report_event_and_artifact(
 ) -> Result<(String, String), ActantError> {
     let ws = WorkspaceId::from_string(workspace_id.to_string());
     let actor = ActorId::from_string(actor_id.to_string());
+    ensure_workspace_actor(storage, &ws, &actor).await?;
     let (event_id, created_at) = append_chronicle_event(
         storage,
         &ws,
@@ -1603,6 +1606,36 @@ async fn write_report_event_and_artifact(
     .await
     .map_err(|e| ActantError::Storage(e.to_string()))?;
     Ok((artifact_id, event_id.as_str().to_string()))
+}
+
+async fn ensure_workspace_actor(
+    storage: &Storage,
+    workspace_id: &WorkspaceId,
+    actor_id: &ActorId,
+) -> Result<(), ActantError> {
+    if storage.get_workspace(workspace_id).await?.is_none() {
+        storage
+            .insert_workspace(&Workspace {
+                id: workspace_id.clone(),
+                name: workspace_id.as_str().to_string(),
+                created_at: now_rfc3339(),
+                archived_at: None,
+            })
+            .await?;
+    }
+    if storage.get_actor(actor_id).await?.is_none() {
+        storage
+            .insert_actor(&Actor {
+                id: actor_id.clone(),
+                workspace_id: workspace_id.clone(),
+                kind: ActorKind::Human,
+                display_name: actor_id.as_str().to_string(),
+                created_at: now_rfc3339(),
+                disabled_at: None,
+            })
+            .await?;
+    }
+    Ok(())
 }
 
 fn event_id_from_uri(uri: &str) -> Option<String> {

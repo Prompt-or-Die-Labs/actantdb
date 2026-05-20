@@ -28,7 +28,7 @@ fn ev(workspace: &WorkspaceId, actor: &ActorId, session: &SessionId, idx: usize)
         payload_inline: Some(pc),
         payload_hash: ph.clone(),
         event_hash: chain_hash(&parent_hash, &ph),
-        created_at: format!("2026-05-19T00:00:{:02}Z", idx),
+        created_at: format!("2026-05-19T00:00:{idx:02}Z"),
         model_call_id: None,
         tool_call_id: None,
         workflow_run_id: None,
@@ -124,7 +124,8 @@ async fn double_push_leaves_destination_unchanged() {
 
     let files_after_second = list_files(tmp.path());
     assert_eq!(
-        files_after_first, files_after_second,
+        files_after_first,
+        files_after_second,
         "no new files after redundant push (got {} -> {})",
         files_after_first.len(),
         files_after_second.len(),
@@ -133,10 +134,10 @@ async fn double_push_leaves_destination_unchanged() {
     let unique: HashSet<_> = files_after_second.iter().collect();
     assert_eq!(unique.len(), files_after_second.len());
     assert_eq!(
-        files_after_second.iter().filter(|p| p.extension()
-            .and_then(|s| s.to_str())
-            == Some("json"))
-        .count(),
+        files_after_second
+            .iter()
+            .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("json"))
+            .count(),
         50,
         "50 event files, no duplicates"
     );

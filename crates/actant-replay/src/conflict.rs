@@ -69,7 +69,7 @@ impl ConflictPolicy {
     pub fn is_per_field(&self, table: &str, field: &str) -> bool {
         self.per_field_lww
             .get(table)
-            .map(|fs| fs.iter().any(|f| *f == field))
+            .map(|fs| fs.contains(&field))
             .unwrap_or(false)
     }
 

@@ -202,10 +202,7 @@ async fn memory_lifecycle() {
         .await
         .unwrap();
     assert_eq!(p.command_id, "propose_memory");
-    let a = client
-        .approve_memory(None, None, "cand_1")
-        .await
-        .unwrap();
+    let a = client.approve_memory(None, None, "cand_1").await.unwrap();
     assert_eq!(a.command_id, "approve_memory");
     let r = client
         .reject_memory(None, None, "cand_2", Some("duplicate"))
@@ -275,9 +272,7 @@ async fn replay_checkpoint_and_run() {
             "workspace_id": "ws_demo",
             "event_id": "evt_abc"
         })))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(json!({"checkpoint_id": "cp_1"})),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"checkpoint_id": "cp_1"})))
         .mount(&server)
         .await;
     let cp_id = client.replay_checkpoint(None, "evt_abc").await.unwrap();
@@ -388,8 +383,7 @@ async fn openapi_returns_raw_text() {
     Mock::given(method("GET"))
         .and(path("/v1/openapi.yaml"))
         .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw("openapi: 3.1.0\n", "application/yaml"),
+            ResponseTemplate::new(200).set_body_raw("openapi: 3.1.0\n", "application/yaml"),
         )
         .mount(&server)
         .await;

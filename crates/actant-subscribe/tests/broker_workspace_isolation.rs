@@ -38,17 +38,11 @@ async fn workspace_isolation() {
     assert!(r.is_err(), "ws_a saw a message published in ws_b");
 
     // Backfill from cursor 0 in ws_b returns only the ws_b row.
-    let backfill_b = broker
-        .replay_since(&ws_b.id, "notify", "")
-        .await
-        .unwrap();
+    let backfill_b = broker.replay_since(&ws_b.id, "notify", "").await.unwrap();
     assert_eq!(backfill_b.len(), 1);
     assert_eq!(backfill_b[0].payload["from"], "b");
 
     // Backfill from cursor 0 in ws_a returns nothing.
-    let backfill_a = broker
-        .replay_since(&ws_a.id, "notify", "")
-        .await
-        .unwrap();
+    let backfill_a = broker.replay_since(&ws_a.id, "notify", "").await.unwrap();
     assert!(backfill_a.is_empty(), "ws_a backfill leaked ws_b rows");
 }

@@ -127,9 +127,11 @@ public struct ActantClient: Sendable {
     public func createSession(
         workspaceID: String,
         actorID: String,
+        sessionID: String? = nil,
         title: String? = nil
     ) async throws -> String {
         var input: [String: JSONValue] = [:]
+        if let sessionID { input["session_id"] = .string(sessionID) }
         if let title { input["title"] = .string(title) }
         let r = try await dispatch(
             workspaceID: workspaceID, actorID: actorID,
@@ -246,7 +248,7 @@ public struct ActantClient: Sendable {
         try await dispatch(
             workspaceID: workspaceID, actorID: actorID,
             command: .approveMemory,
-            input: ["candidate_id": .string(candidateID)]
+            input: ["memory_candidate_id": .string(candidateID)]
         )
     }
 
@@ -255,7 +257,7 @@ public struct ActantClient: Sendable {
         workspaceID: String, actorID: String,
         candidateID: String, reason: String? = nil
     ) async throws -> CommandResponse {
-        var input: [String: JSONValue] = ["candidate_id": .string(candidateID)]
+        var input: [String: JSONValue] = ["memory_candidate_id": .string(candidateID)]
         if let reason { input["reason"] = .string(reason) }
         return try await dispatch(
             workspaceID: workspaceID, actorID: actorID,

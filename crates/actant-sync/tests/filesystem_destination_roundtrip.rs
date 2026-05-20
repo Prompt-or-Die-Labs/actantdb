@@ -118,11 +118,12 @@ async fn filesystem_destination_roundtrips_100_events() {
     // Sanity: cursor empty before any push.
     assert!(dest.cursor(&workspace).await.unwrap().is_none());
 
-    let runner = SyncRunner::new(storage.clone(), workspace.clone(), dest.clone())
-        .with_config(SyncRunnerConfig {
+    let runner = SyncRunner::new(storage.clone(), workspace.clone(), dest.clone()).with_config(
+        SyncRunnerConfig {
             batch_size: 25,
             ..Default::default()
-        });
+        },
+    );
     let stats = runner.run_once().await.unwrap();
     assert_eq!(stats.events_pushed, 100);
     assert_eq!(stats.batches, 4, "100 events / batch_size=25 -> 4 batches");

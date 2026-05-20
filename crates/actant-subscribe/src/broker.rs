@@ -253,13 +253,7 @@ impl Broker {
         let guard = self.inner.channels.read().await;
         guard
             .iter()
-            .map(|(k, tx)| {
-                (
-                    k.workspace_id.clone(),
-                    k.topic.clone(),
-                    tx.receiver_count(),
-                )
-            })
+            .map(|(k, tx)| (k.workspace_id.clone(), k.topic.clone(), tx.receiver_count()))
             .collect()
     }
 }

@@ -1,7 +1,7 @@
 # DEVX_GAPS — local-deployment developer experience
 
-The substrate is solid (see [GAPS.md](./GAPS.md) — 25/38 🟢) and the cloud
-roadmap is mapped ([CLOUD_GAPS.md](./CLOUD_GAPS.md)). What's *not* yet
+The substrate is solid (see [GAPS.md](./GAPS.md)) and the cloud roadmap is
+mapped ([CLOUD_GAPS.md](./CLOUD_GAPS.md)). What's *not* yet
 explicitly tracked: the **developer experience** of using ActantDB locally,
 specifically for **AI-agent devs who already have a stack** and need to drop
 us in without rewriting their app.
@@ -12,7 +12,7 @@ This file is the audit. Same status taxonomy as `CLOUD_GAPS.md`:
 Cross-reference: [GAPS.md](./GAPS.md), [CLOUD_GAPS.md](./CLOUD_GAPS.md),
 [COMPARISON.md](./COMPARISON.md), [TESTING.md](./TESTING.md).
 
-Last updated: 2026-05-19.
+Last updated: 2026-05-20.
 
 ---
 
@@ -25,16 +25,16 @@ Astro, Convex, and Supabase.
 | # | Gap | Status | Notes |
 |---|-----|--------|-------|
 | X1 | **`npm create actantdb` / `npx @actantdb/create-app`** | 🟢 | `packages/create-actantdb/`. Interactive (`prompts`+`kleur`) and headless (`--template <name> --framework <name> --no-interactive`) modes. 9 vitest tests. Verified end-to-end: `node packages/create-actantdb/dist/index.js test-scaffold --template minimal --framework mastra --no-interactive` produces a valid scaffold. |
-| X2 | **First-launch Studio "welcome" screen** | 🔴 | Today Studio opens with an empty timeline if no events exist. Convex / Supabase Studio both show "you have 0 records — here's how to write your first". Need: empty-state in `packages/actant-studio/ui-src/panels/RunsPanel.tsx` with a copy-pasteable snippet that captures one tool call. |
+| X2 | **First-launch Studio "welcome" screen** | 🟢 | `packages/actant-studio/ui-src/panels/RunsPanel.tsx` now renders a first-run empty state with a copy-pasteable `@actantdb/mastra` snippet that captures one tool call. Covered by Studio UI tests. |
 | X3 | **`actantdb doctor`** | 🟢 | Shipped in `crates/actant-cli/src/cmd/doctor.rs`. Checks rustc ≥ 1.88, node ≥ 22.5, disk space (5 GB threshold) on the db dir's filesystem, ports 4555 + 54323 (prints PID via `lsof`), optional `claude`/`codex`/`opencode` on PATH, `ACTANTDB_DATABASE_URL` shape, and Studio `dist/ui/` presence. Each check prints `[ok]/[warn]/[fail]` + a one-line fix where applicable. |
 | X4 | **Pretty errors with one-line fixes** | 🚧 | We have `BoxError` with typed codes (see `@actantdb/box`). Many SDK / CLI errors are still raw `Error.message`. Need an `ActantError` base with `code`, `hint`, `fix_command?` shape applied to every public throw. |
 | X5 | **Interactive 5-minute tutorial** | 🔴 | Convex's quickstart is a clickable 5-step tutorial. Ours is a static markdown demo. Could be a Stackblitz / Replit / CodeSandbox link from the README that opens with `@actantdb/all` preinstalled. |
 | X6 | **CLI shell completion** | 🟢 | Hidden `actantdb completions <shell>` subcommand wired through `clap_complete::generate` in `crates/actant-cli/src/main.rs`. Supports bash/zsh/fish/elvish/powershell. |
 | X7 | **First-run telemetry opt-in (truthful)** | 🔴 | One prompt on first `actantdb` invocation: "share anonymous usage so we can fix what breaks?" with a clear opt-out path. Convex + Vercel do this. Don't be sneaky; the prompt itself is the trust-builder. |
 
-**Part A: 2 🟢 / 1 🚧 / 5 🔴.** X3 (`actantdb doctor`) and X6 (CLI shell
-completion) shipped in `crates/actant-cli`. Remainder small in isolation; the
-cumulative effect is "ActantDB feels modern" vs "I have to figure it all out".
+**Part A: 4 🟢 / 1 🚧 / 2 🔴.** X1, X2, X3, and X6 now cover the first-create,
+first-open, doctor, and shell-completion path. X5 and X7 remain the adoption
+polish items.
 
 ---
 
@@ -47,25 +47,25 @@ Here's the map.
 |---|---|--------|-------|
 | X8  | **Mastra** | 🟢 | `@actantdb/mastra` ships `withActant()`. The canonical adapter. |
 | X9  | **LangGraph** | 🚧 | Demo at `examples/langgraph-router/` works, but there's no `@actantdb/langgraph` dedicated package. Most LangGraph users will look for one by name. Need: `packages/actant-langgraph/` re-exporting `withActant` with LangGraph-idiomatic naming + a `LangGraphNode` wrapper. |
-| X10 | **AI SDK by Vercel** | 🔴 | Vercel's `ai` package is the largest TS agent surface today (>1M weekly downloads). Need: `packages/actant-ai-sdk/` that wraps `streamText` / `generateText` / `generateObject` and records every call as a `model_call` event. Tool calls captured automatically because `ai`'s `tools` shape is structured. |
-| X11 | **OpenAI Agents SDK** (`@openai/agents`) | 🔴 | OpenAI's new Agents SDK launched 2026; large adoption coming. Need: `packages/actant-openai-agents/` mirror of @actantdb/mastra. |
-| X12 | **Anthropic SDK direct** (`@anthropic-ai/sdk`) | 🔴 | Many devs skip the framework layer and call Anthropic directly. Need: `@actantdb/anthropic` intercept proxy — `import Anthropic from "@actantdb/anthropic"` instead of `from "@anthropic-ai/sdk"` and every message gets logged as a `model_call`. Same shape as a regular Anthropic client; zero learning curve. |
-| X13 | **OpenAI SDK direct** | 🔴 | Same as X12 for `openai` package. |
+| X10 | **AI SDK by Vercel** | 🟢 | `packages/actant-ai-sdk/` ships as `@actantdb/ai-sdk` with workspace tests. |
+| X11 | **OpenAI Agents SDK** (`@openai/agents`) | 🟢 | `packages/actant-openai-agents/` ships as `@actantdb/openai-agents` with workspace tests. |
+| X12 | **Anthropic SDK direct** (`@anthropic-ai/sdk`) | 🟢 | `packages/actant-anthropic/` ships as `@actantdb/anthropic` with workspace tests. |
+| X13 | **OpenAI SDK direct** | 🟢 | `packages/actant-openai/` ships as `@actantdb/openai` with workspace tests. |
 | X14 | **CrewAI** (Python) | 🔴 | Python — our SDK exists. Need a `crewai-actantdb` package on PyPI with a `with_actant_logging(crew)` decorator. |
 | X15 | **AutoGen** (Microsoft, Python) | 🔴 | Same shape; Python. |
-| X16 | **LangChain JS** | 🔴 | LangChain is still huge; `@actantdb/langchain` with `withCallbackHandler` plug-in. |
+| X16 | **LangChain JS** | 🟢 | `packages/actant-langchain/` ships as `@actantdb/langchain` with workspace tests. |
 | X17 | **LangChain Python** | 🔴 | Same; Python pip package. |
 | X18 | **Inngest** | 🔴 | Inngest is the canonical durable-workflow alt to QStash. `@actantdb/inngest` middleware that logs every step as a ledger event. |
 | X19 | **Trigger.dev** | 🔴 | Same shape as Inngest. |
 | X20 | **Vercel AI Gateway** | 🔴 | If a user proxies through Vercel AI Gateway, we should record `model_call` events with gateway routing metadata intact. |
 | X21 | **Ollama / local models** | 🚧 | `actant-runtime::models` registry knows about Ollama. The `withActant` wrapper sees the model name. Need explicit guidance in docs + a `examples/ollama-only/` demo. |
-| X22 | **Convex** | 🚧 | `@actantdb/convex` exists. Untested; needs a smoke demo showing "wrap a Convex action so its result lands in the ActantDB ledger". |
+| X22 | **Convex** | 🟢 | `@actantdb/convex` exists and its package tests passed in the current workspace run. A public smoke demo is still useful, but the package is no longer untested. |
 | X23 | **Supabase** | 🔴 | The opposite direction — adapter for *running ActantDB inside a Supabase Edge Function* so a Supabase consumer can add ActantDB without standing up a separate server. Worth shipping once GAPS row #26 (docker-compose) ships. |
 
-**Part B: 1 🟢, 3 🚧, 12 🔴, 0 ⊝.** Every 🔴 is a one-package implementation
-mirroring `@actantdb/mastra`'s 200-line pattern. Highest priority by
-download volume: X10 (Vercel AI SDK), X11 (OpenAI Agents), X12+X13 (direct
-SDKs), X16 (LangChain JS).
+**Part B: 7 🟢, 2 🚧, 7 🔴, 0 ⊝.** The highest-volume TypeScript adapters now
+exist. Remaining red rows are mostly Python framework adapters, durable
+workflow middleware, gateway-specific metadata capture, and a Supabase edge
+adapter.
 
 ---
 
@@ -175,7 +175,7 @@ absent.
 | X64 | **MCP resource discovery** | 🟢 | `packages/actant-mcp-server/src/resources.ts` exposes `actant://workspace/{ws}/session/{sid}` + `actant://workspace/{ws}/runs` URI templates via the MCP resources protocol. |
 | X65 | **One-click "Add to Claude Desktop"** | 🟢 | Root `README.md` "Integrations" section ships the `claude_desktop_config.json` snippet. Future enhancement: hosted button on the website (Phase 2 cloud). |
 
-**Part G: 0 🟢 / 3 🔴.** X63 is the breakthrough item. Cursor + Claude
+**Part G: 3 🟢 / 0 🔴.** X63 is the breakthrough item. Cursor + Claude
 Desktop adoption of ActantDB depends on this existing.
 
 ---
@@ -209,7 +209,7 @@ Things our users need to test *their* agent code that integrates with us.
 | X75 | **Fixture generators** | 🔴 | Still missing — no explicit "generate N realistic event rows" helper. `@actantdb/testing` covers the assertion side; the generator side is a one-file follow-up (~120 LOC). |
 | X76 | **CI helpers** | 🔴 | Reusable GitHub Action: `Prompt-or-Die-Labs/actantdb-action` that boots a fresh ActantDB server for tests + tears it down. Used as `uses: actantdb/actantdb-action@v1`. |
 
-**Part I: 1 🚧, 3 🔴.**
+**Part I: 2 🟢, 2 🔴.**
 
 ---
 
@@ -220,7 +220,7 @@ Things our users need to test *their* agent code that integrates with us.
 | X77 | **Dark mode on Studio** | 🚧 | CSS uses `prefers-color-scheme`; manual toggle missing. |
 | X78 | **Studio i18n** | 🔴 | English only. Defer until first international ask. |
 | X79 | **Studio mobile / responsive layout** | 🔴 | Designed for laptop screens. Tablets / phones probably broken. |
-| X80 | **Auto-update notifier** | 🔴 | `actantdb` CLI checks for a newer version on `latest` and prints a one-line "you're on 0.0.13, latest is 0.0.14" once per day. |
+| X80 | **Auto-update notifier** | 🔴 | `actantdb` CLI checks for a newer version on `latest` and prints a one-line "your local CLI is behind latest" once per day. |
 | X81 | **`actantdb upgrade`** | 🟢 | `crates/actant-cli/src/cmd/upgrade.rs` — `--check` consults `npm view @actantdb/all version` (falls back to the npmjs registry HTTP API) and compares to the running binary's `CARGO_PKG_VERSION`; bare form prints the `npm install -g @actantdb/studio@latest` instruction (the Studio package bundles the actantdb binary entrypoint). |
 | X82 | **Homebrew formula** | 🔴 | `brew install actantdb` works for Mac users. ~30 lines of Ruby + tap setup. |
 | X83 | **Scoop / Chocolatey** | 🔴 | Same for Windows users. |
@@ -237,10 +237,10 @@ Things our users need to test *their* agent code that integrates with us.
 
 | Status | Count | Notes |
 |---|---:|---|
-| 🟢 ships | **24** | substantial pass: Agent 1 closed CLI items (X3/X6/X32–X38/X81 + GAPS #25/#27/#28), Agent 2 framework adapters (X10/X11/X12/X13/X16), Agent 3 MCP server + scaffolder + testing + recipes (X1/X63/X64/X65/X67/X73/X74), Agent 4 small wins (X40/X53/X66/X87/X94 + GAPS #26), Agent 5 Part K (X88/X89/X93) |
-| 🚧 partial | **11** | Things that exist but need a wrapper / hardening |
-| 🔴 missing | **52** | DX backlog after this pass: language SDKs (Go/Kotlin/.NET/Ruby/PHP/Elixir), edge runtimes (CF Workers/Deno/Vercel Edge), VSCode extension, package managers (Homebrew/Scoop/APT/Nix), trace-UI integrations (Sentry/Datadog/Honeycomb/Langfuse), big-ticket UI (X91 workflow canvas / X92 browser-WASM / X95 no-code builder), Studio polish (i18n/mobile/dark-mode toggle), individual framework adapters for CrewAI / AutoGen / LangChain-Python / Inngest / Trigger.dev / Vercel-AI-Gateway / Convex polish / Supabase adapter, plus X75 fixture generator. |
-| ⊝ deliberate non-goal | **0** | Nothing — Part K reclassified the previous ⊝s as real planned work |
+| 🟢 ships | **38** | First-touch, high-volume TS adapters, CLI tooling, MCP, recipes, testing helpers, docs/API references, and the shipped Part K server features. |
+| 🚧 partial | **10** | Things that exist but need wrapper hardening, runtime validation, or product polish |
+| 🔴 missing | **45** | DX backlog after this pass: language SDKs (Go/Kotlin/.NET/Ruby/PHP/Elixir), edge runtimes (CF Workers/Deno/Vercel Edge), VSCode extension, package managers (Homebrew/Scoop/APT/Nix), trace-UI integrations, big-ticket UI, Studio i18n/mobile/dark-mode toggle, Python framework adapters, durable workflow middleware, gateway metadata capture, and fixture generators. |
+| ⊝ deliberate non-goal | **1** | Browser runtime remains a non-goal for the current embedded Node package; a separate WASM package is tracked as X92. |
 | 👤 human-only | **1** | Video tutorials |
 | **Total rows** | **95** | |
 

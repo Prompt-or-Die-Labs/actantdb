@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+verify_specs() {
+  if command -v just >/dev/null 2>&1; then
+    just verify-specs
+    return
+  fi
+  for file in specs/*.md; do
+    [ "$(basename "$file")" = "STATUS.md" ] && continue
+    grep -q '^## Verification' "$file" || { echo "missing Verification in $file"; exit 1; }
+  done
+  echo "all specs OK"
+}
+
+verify_agents() {
+  if command -v just >/dev/null 2>&1; then
+    just verify-agents
+    return
+  fi
+  for file in agents/actant-*.md; do
+    for section in "## Context" "## Scope" "## Specs to read first" "## Acceptance criteria" "## Do NOT"; do
+      grep -qF "$section" "$file" || { echo "missing '$section' in $file"; exit 1; }
+    done
+  done
+  echo "all agent packages OK"
+}
+
+python3 -m json.tool .codex/hooks.json >/dev/null
+python3 -m json.tool .agent/hooks.json >/dev/null
+verify_specs
+verify_agents
+pnpm smoke

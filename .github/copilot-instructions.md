@@ -1,8 +1,12 @@
 # ActantDB — rules for AI coding assistants
 
-This file teaches Cursor about the shape of this repository. The same
-content lives at `.windsurfrules` (Windsurf) and
-`.github/copilot-instructions.md` (GitHub Copilot). Keep them in sync.
+This file teaches Cursor, Windsurf, Claude Code, GitHub Copilot, and Google Antigravity about the shape of this repository. Keep the following files in sync when making changes to rules:
+- `.cursorrules` (Cursor)
+- `.windsurfrules` (Windsurf)
+- `.github/copilot-instructions.md` (GitHub Copilot)
+- `AGENTS.md` (Cross-tool foundation / Claude Code)
+- `GEMINI.md` (Google Antigravity-specific rules)
+- `.antigravityrules` (Antigravity boundaries)
 
 ## What ActantDB is
 
@@ -27,6 +31,7 @@ and get a complete, replayable trace for free.
 - **Specs** live in `specs/`. Every active spec has a `## Verification`
   section enforced by `tests/spec_NN_verification.rs` in the relevant
   crate.
+- **Agent Guidelines** live in `agents/`. Every agent markdown file must contain all required layout sections.
 
 ## Binding rules — do not break these
 
@@ -56,17 +61,29 @@ and get a complete, replayable trace for free.
 - SQL identifiers use `snake_case`, IDs are `TEXT`, timestamps are
   ISO-8601 strings.
 
+## Graphify Rules
+- For codebase questions, first run `graphify query "<question>"` when `graphify-out/graph.json` exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts.
+- If `graphify-out/wiki/index.md` exists, use it for broad navigation instead of raw source browsing.
+- Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## Assistant tooling
+
+- Codex hooks live in `.codex/hooks.json` and delegate to `.codex/hooks/actantdb-context.sh`.
+- Project skills live in `.agent/skills/`; workflows live in `.agent/workflows/`.
+- Git hooks live in `.githooks/` and should be active through `git config core.hooksPath .githooks`.
+
 ## Common commands
 
-- **Rust check (fast):** `just check` or
-  `cargo check -p <crate> --all-targets`
+- **Rust check (fast):** `just check` or `cargo check -p <crate> --all-targets`
 - **Rust tests (per crate):** `cargo test -p <crate> <test_name>`
 - **TypeScript build:** `pnpm -r build`
-- **TypeScript tests:** `pnpm -r test` or
-  `pnpm --filter @actantdb/<pkg> test`
-- **Regenerate TS types from contracts:**
-  `cargo run -p actant-contracts -- codegen-ts`
+- **TypeScript tests:** `pnpm -r test` or `pnpm --filter @actantdb/<pkg> test`
+- **Regenerate TS types from contracts:** `cargo run -p actant-contracts -- codegen-ts`
 - **Smoke test (required green on every PR):** `pnpm smoke`
+- **Verify Specs compliance:** `just verify-specs`
+- **Verify Agent compliance:** `just verify-agents`
+- **Full CI check:** `just ci`
 
 ## Do NOT
 

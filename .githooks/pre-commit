@@ -1,0 +1,76 @@
+#!/bin/sh
+set -eu
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+has_staged() {
+  printf '%s\n' "$staged" | grep -Eq "$1"
+}
+
+verify_specs() {
+  if command -v just >/dev/null 2>&1; then
+    just verify-specs
+    return
+  fi
+  for file in specs/*.md; do
+    [ "$(basename "$file")" = "STATUS.md" ] && continue
+    grep -q '^## Verification' "$file" || { echo "missing Verification in $file"; exit 1; }
+  done
+  echo "all specs OK"
+}
+
+verify_agents() {
+  if command -v just >/dev/null 2>&1; then
+    just verify-agents
+    return
+  fi
+  for file in agents/actant-*.md; do
+    for section in "## Context" "## Scope" "## Specs to read first" "## Acceptance criteria" "## Do NOT"; do
+      grep -qF "$section" "$file" || { echo "missing '$section' in $file"; exit 1; }
+    done
+  done
+  echo "all agent packages OK"
+}
+
+json_files=$(printf '%s\n' "$staged" | grep -E '^(\.codex|\.agent)/.*\.json$' || true)
+if [ -n "$json_files" ]; then
+  printf '%s\n' "$json_files" | while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    python3 -m json.tool "$file" >/dev/null
+  done
+fi
+
+skill_files=$(printf '%s\n' "$staged" | grep -E '(^|/)SKILL\.md$' || true)
+if [ -n "$skill_files" ]; then
+  printf '%s\n' "$skill_files" | while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    first_line=$(sed -n '1p' "$file")
+    [ "$first_line" = "---" ] || { echo "$file missing frontmatter"; exit 1; }
+    grep -q '^name:' "$file" || { echo "$file missing name"; exit 1; }
+    grep -q '^description:' "$file" || { echo "$file missing description"; exit 1; }
+  done
+fi
+
+if has_staged '^packages/actant-types/src/generated/' && ! has_staged '^crates/actant-contracts/'; then
+  echo "Generated bindings changed without crates/actant-contracts. Change contracts and regenerate."
+  exit 1
+fi
+
+if has_staged '^crates/actant-contracts/'; then
+  cargo run -p actant-contracts -- check-compat
+fi
+
+if has_staged '^specs/.*\.md$'; then
+  verify_specs
+fi
+
+if has_staged '^agents/actant-.*\.md$'; then
+  verify_agents
+fi
+
+if has_staged '\.rs$'; then
+  cargo fmt --all -- --check
+fi

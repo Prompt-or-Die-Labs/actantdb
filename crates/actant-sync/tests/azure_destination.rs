@@ -8,9 +8,7 @@ use std::sync::Arc;
 
 use actant_core::*;
 use actant_storage::{Storage, StorageConfig};
-use actant_sync::{
-    AzureConfig, AzureDestination, Destination, SyncRunner, SyncRunnerConfig,
-};
+use actant_sync::{AzureConfig, AzureDestination, Destination, SyncRunner, SyncRunnerConfig};
 
 #[tokio::test]
 async fn azure_destination_roundtrip_when_configured() {
@@ -29,8 +27,7 @@ async fn azure_destination_roundtrip_when_configured() {
     cfg.allow_http = std::env::var("ACTANTDB_TEST_AZURE_ALLOW_HTTP")
         .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
         .unwrap_or(false);
-    let dest =
-        Arc::new(AzureDestination::from_config(cfg).expect("AzureDestination::from_config"));
+    let dest = Arc::new(AzureDestination::from_config(cfg).expect("AzureDestination::from_config"));
 
     let storage = Storage::open(StorageConfig::in_memory()).await.unwrap();
     let ws = Workspace {

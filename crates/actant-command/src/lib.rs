@@ -133,14 +133,20 @@ impl Engine {
         input: serde_json::Value,
         idempotency_key: Option<&str>,
     ) -> Result<CommandOutcome, ActantError> {
-        // DX fix: auto-create the calling actor if it doesn't exist. The
-        // command_record + session tables both FK actor_id REFERENCES
-        // actor(id), so without this every fresh consumer's first call
-        // returned a cryptic 500 "FOREIGN KEY constraint failed". The
-        // workspace must already exist (seeded as `ws_default` by the
-        // migration); the actor is consumer-defined and previously required
-        // an explicit setup step nobody documented.
+        // DX fix: auto-create the workspace and calling actor if they don't
+        // exist. Fresh SDK consumers provide both IDs, and the FK failures
+        // otherwise surface as an opaque 500.
         let storage = self.sqlite_storage()?;
+        if storage.get_workspace(workspace_id).await?.is_none() {
+            storage
+                .insert_workspace(&Workspace {
+                    id: workspace_id.clone(),
+                    name: workspace_id.as_str().to_string(),
+                    created_at: now_rfc3339(),
+                    archived_at: None,
+                })
+                .await?;
+        }
         if storage.get_actor(actor_id).await?.is_none() {
             storage
                 .insert_actor(&Actor {
@@ -341,8 +347,27 @@ impl Engine {
                     .await?;
             }
         }
+        let session_id = input
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .map(|s| SessionId::from_string(s.to_string()))
+            .unwrap_or_default();
+        let exists = sqlx::query("SELECT 1 FROM session WHERE id = ? AND workspace_id = ? LIMIT 1")
+            .bind(session_id.as_str())
+            .bind(ws.as_str())
+            .fetch_optional(self.backend.sqlite_pool()?)
+            .await
+            .map_err(|e| ActantError::Storage(e.to_string()))?
+            .is_some();
+        if exists {
+            return Ok(CommandOutcome {
+                command_id: cmd.id.clone(),
+                event_id: None,
+                result: serde_json::json!({"session_id": session_id.as_str()}),
+            });
+        }
         let session = Session {
-            id: SessionId::new(),
+            id: session_id,
             workspace_id: ws.clone(),
             title,
             initiator_actor_id: actor.clone(),

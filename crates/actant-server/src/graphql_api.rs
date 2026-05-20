@@ -56,7 +56,10 @@ fn build_schema(cache: &SchemaCache, state: Arc<AppState>) -> Result<Schema, Sch
         let where_type_name = format!("{}_Where", table_name);
         let mut wi = InputObject::new(&where_type_name);
         for col in &tbl.columns {
-            wi = wi.field(InputValue::new(col.name.clone(), TypeRef::named(TypeRef::STRING)));
+            wi = wi.field(InputValue::new(
+                col.name.clone(),
+                TypeRef::named(TypeRef::STRING),
+            ));
         }
         where_inputs.push(wi);
 
@@ -79,10 +82,7 @@ fn build_schema(cache: &SchemaCache, state: Arc<AppState>) -> Result<Schema, Sch
             "where",
             TypeRef::named(where_type_name.clone()),
         ))
-        .argument(InputValue::new(
-            "order_by",
-            TypeRef::named(TypeRef::STRING),
-        ))
+        .argument(InputValue::new("order_by", TypeRef::named(TypeRef::STRING)))
         .argument(InputValue::new("limit", TypeRef::named(TypeRef::INT)))
         .argument(InputValue::new("offset", TypeRef::named(TypeRef::INT)));
 
@@ -91,14 +91,10 @@ fn build_schema(cache: &SchemaCache, state: Arc<AppState>) -> Result<Schema, Sch
 
     let mut mutation = Object::new("Mutation");
     let state_for_command = state.clone();
-    let command_field = Field::new(
-        "command",
-        TypeRef::named_nn(scalar_json()),
-        move |ctx| {
-            let state = state_for_command.clone();
-            FieldFuture::new(async move { run_command(ctx, &state).await })
-        },
-    )
+    let command_field = Field::new("command", TypeRef::named_nn(scalar_json()), move |ctx| {
+        let state = state_for_command.clone();
+        FieldFuture::new(async move { run_command(ctx, &state).await })
+    })
     .argument(InputValue::new(
         "workspace_id",
         TypeRef::named_nn(TypeRef::STRING),
@@ -111,10 +107,7 @@ fn build_schema(cache: &SchemaCache, state: Arc<AppState>) -> Result<Schema, Sch
         "command_type",
         TypeRef::named_nn(TypeRef::STRING),
     ))
-    .argument(InputValue::new(
-        "input",
-        TypeRef::named_nn(scalar_json()),
-    ))
+    .argument(InputValue::new("input", TypeRef::named_nn(scalar_json())))
     .argument(InputValue::new(
         "idempotency_key",
         TypeRef::named(TypeRef::STRING),

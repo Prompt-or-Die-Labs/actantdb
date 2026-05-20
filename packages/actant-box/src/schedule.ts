@@ -187,19 +187,24 @@ export class BoxScheduleAPI {
   }
 
   private async fire(s: RuntimeSchedule): Promise<void> {
+    if (!this.schedules.has(s.id)) return;
     const { ledger } = this.ctx();
     s.runs += 1;
     s.lastFiredAt = new Date().toISOString();
-    ledger.append({
-      kind: "effect_observed",
-      runId: `sched-${s.id}`,
-      payload: {
-        kind: "schedule_fired",
-        schedule_id: s.id,
-        schedule_kind: s.kind,
-      },
-      sensitivity: "low",
-    });
+    try {
+      ledger.append({
+        kind: "effect_observed",
+        runId: `sched-${s.id}`,
+        payload: {
+          kind: "schedule_fired",
+          schedule_id: s.id,
+          schedule_kind: s.kind,
+        },
+        sensitivity: "low",
+      });
+    } catch {
+      return;
+    }
     try {
       if (s.kind === "exec" && s.command) {
         await this.execApi().command(s.command);
@@ -210,17 +215,23 @@ export class BoxScheduleAPI {
         });
       }
     } catch (err) {
-      ledger.append({
-        kind: "effect_observed",
-        runId: `sched-${s.id}`,
-        payload: {
-          kind: "schedule_failed",
-          schedule_id: s.id,
-          error: (err as Error).message ?? String(err),
-        },
-        sensitivity: "low",
-      });
+      if (!this.schedules.has(s.id)) return;
+      try {
+        ledger.append({
+          kind: "effect_observed",
+          runId: `sched-${s.id}`,
+          payload: {
+            kind: "schedule_failed",
+            schedule_id: s.id,
+            error: (err as Error).message ?? String(err),
+          },
+          sensitivity: "low",
+        });
+      } catch {
+        return;
+      }
     }
+    if (!this.schedules.has(s.id)) return;
     this.persist();
   }
 

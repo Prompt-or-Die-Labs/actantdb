@@ -31,7 +31,13 @@ async fn approval_required_is_202_typed_error() {
         .mount(&server)
         .await;
     let err = client
-        .request_tool_call(None, None, "sess_1", "shell.run", json!({"cmd": "rm -rf /"}))
+        .request_tool_call(
+            None,
+            None,
+            "sess_1",
+            "shell.run",
+            json!({"cmd": "rm -rf /"}),
+        )
         .await
         .expect_err("approval_required must surface as an error");
     match err {
@@ -111,7 +117,10 @@ async fn not_found_404() {
         })))
         .mount(&server)
         .await;
-    let err = client.events("sess_404").await.expect_err("404 -> NotFound");
+    let err = client
+        .events("sess_404")
+        .await
+        .expect_err("404 -> NotFound");
     match err {
         ActantError::NotFound { message, .. } => assert!(message.contains("sess_404")),
         other => panic!("expected NotFound, got {other:?}"),
@@ -238,11 +247,7 @@ async fn naked_5xx_without_envelope_falls_through_to_http() {
         .await;
     let err = client.healthz().await.unwrap_err();
     match err {
-        ActantError::Http {
-            status,
-            kind,
-            ..
-        } => {
+        ActantError::Http { status, kind, .. } => {
             assert_eq!(status, 502);
             assert_eq!(kind, "http_502");
         }

@@ -31,16 +31,6 @@ pub fn readme(name: &str) -> String {
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn renders_package_json() {
-        let p = package_json("hello");
-        assert!(p.contains("\"hello\""));
-    }
-}
-
 /// Write a minimal project under `root`. Closes the
 /// `actant-codegen-project` consolidation — that crate was a 30-line
 /// wrapper around `package_json` + `readme` above; collapsed into this
@@ -50,4 +40,14 @@ pub fn scaffold(root: &std::path::Path, name: &str) -> std::io::Result<()> {
     std::fs::write(root.join("package.json"), package_json(name))?;
     std::fs::write(root.join("README.md"), readme(name))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn renders_package_json() {
+        let p = package_json("hello");
+        assert!(p.contains("\"hello\""));
+    }
 }

@@ -112,11 +112,11 @@ async fn complex_predicate_and_or_not_filters_correctly() {
 
     // Sent in order; expected to be received in order, but only the
     // matching ones surface.
-    let matching = vec![
+    let matching = [
         json!({"tool": "shell", "count": 10}), // matches via AND branch
         json!({"tool": "browser"}),            // matches via NOT-exists branch
     ];
-    let dropped = vec![
+    let dropped = [
         json!({"tool": "shell", "count": 1, "suppressed": true}), // AND fails, suppressed exists
         json!({"tool": "browser", "suppressed": true}),           // AND fails, suppressed exists
     ];

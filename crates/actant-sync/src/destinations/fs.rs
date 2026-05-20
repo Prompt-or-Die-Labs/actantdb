@@ -84,7 +84,7 @@ impl Destination for FilesystemDestination {
         batch: &[AgentEvent],
     ) -> Result<Option<EventId>, SyncError> {
         if batch.is_empty() {
-            return Ok(self.cursor(workspace_id).await?);
+            return self.cursor(workspace_id).await;
         }
         // Write every event before touching the cursor so a crash mid-batch
         // leaves the cursor pointing at the prior boundary — the runner will

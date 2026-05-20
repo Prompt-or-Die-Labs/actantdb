@@ -140,24 +140,29 @@ async fn cursor_resume_loses_no_events_after_simulated_crash() {
     assert_eq!(half_a.len(), 20);
     dest_run.push(&ws_run, None, &half_a).await.unwrap();
     let after_a = dest_run.cursor(&ws_run).await.unwrap();
-    let half_b = actant_sync::events_after(&storage_run_clone, &workspace_run, after_a.as_ref(), 20)
+    let half_b =
+        actant_sync::events_after(&storage_run_clone, &workspace_run, after_a.as_ref(), 20)
+            .await
+            .unwrap();
+    assert_eq!(half_b.len(), 20);
+    dest_run
+        .push(&ws_run, after_a.as_ref(), &half_b)
         .await
         .unwrap();
-    assert_eq!(half_b.len(), 20);
-    dest_run.push(&ws_run, after_a.as_ref(), &half_b).await.unwrap();
     assert_eq!(collect_event_files(tmp_run.path()).len(), 40);
 
     // Simulate the crash: rewind the persisted cursor file to the boundary
     // between half_a and half_b. The runner will now believe it needs to
     // re-push half_b, which exercises the idempotent overwrite path.
-    let cursor_path = tmp_run
-        .path()
-        .join(ws_run.as_str())
-        .join("_cursor.txt");
+    let cursor_path = tmp_run.path().join(ws_run.as_str()).join("_cursor.txt");
     let rewind_to = half_a.last().unwrap().id.clone();
     std::fs::write(&cursor_path, rewind_to.as_str()).unwrap();
     assert_eq!(
-        dest_run.cursor(&ws_run).await.unwrap().map(|c| c.as_str().to_string()),
+        dest_run
+            .cursor(&ws_run)
+            .await
+            .unwrap()
+            .map(|c| c.as_str().to_string()),
         Some(rewind_to.as_str().to_string()),
     );
 

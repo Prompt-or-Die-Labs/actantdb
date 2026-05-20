@@ -15,11 +15,10 @@ Status legend:
 - ⊝ **deliberate divergence** — the comparison product does X; ActantDB does NOT-X *on purpose*. Documented; not a TODO.
 - 👤 **human-only** — actions no agent in this repo can take.
 
-Last updated: 2026-05-19. **24 substrate gaps + 14 BaaS-parity gaps = 38 rows.**
-Workspace at **36 crates** (post-slim refactor). Packages at `@actantdb/*@0.0.13`
-+ umbrella `@actantdb/all@0.0.13`. New: `@actantdb/box` (Upstash Box parity,
-local-first), `@actantdb/workflow` (Upstash Workflow parity), `bench/box/`
-(upstash/benchmarks methodology + GitHub Actions daily run).
+Last updated: 2026-05-20. **24 substrate gaps + 14 BaaS-parity gaps + 13
+iOS/sync rows = 51 rows.** Workspace at **37 crates** under `crates/` and 39
+Cargo workspace members. Package manifests are at `0.0.15` locally; latest npm
+verified for `@actantdb/all` and `@actantdb/mastra` is `0.0.12`.
 
 ## Part A — substrate gaps
 
@@ -35,7 +34,7 @@ workers, primitives, build/CI hygiene).
 | 5  | **Postgres command-engine** | 🟢 | `STORAGE_AUDIT.md`, `crates/actant-storage/src/pg_repo.rs`, `migrations/pg/0001-0005` | 90/90 tables (100%). 13 PG repo methods (parity with SQLite). |
 | 6  | **Studio React rewrite** | 🟢 | `packages/actant-studio/ui-src/`, `vite.config.ts` | React 19 + Vite 5; 5 panels + 8 vitest tests; 204 kB / 64 kB gzipped. Live updates poll (2 s tick) — WS upgrade is a named follow-up. |
 | 7  | **Replay modes (`experimental` / `tool` / `local_only`)** | 🟢 | `crates/actant-replay/src/lib.rs`, `packages/actant-replay/src/index.ts` | All seven modes ship + tested on both Rust and TS. Experimental + local_only annotate `changed` rows with named summaries. |
-| 8  | **Gate 2 → npm publish** | 🟢 | `GATES.md` §"Gate 2" | All 10 packages published to npm (`@actantdb/*` + `@actantdb/all`). |
+| 8  | **Gate 2 → npm publish** | 🟡 | `GATES.md` §"Gate 2" | `0.0.12` is published; the current `0.0.15` workspace still needs a confirmation-required npm publish before Gate 2 outreach uses the latest build. |
 | 9  | **Gate 2 → developer outreach + Gate 3 → design-partner** | 👤 | `GATES.md` §§"Gate 2", "Gate 3" | Code paths in place (publish, install, docs); the metric closures happen outside the repo. |
 | 10 | **90-sec screencast + hero PNG** | 👤 | `GATES.md` §"Gate 1 leftovers", `docs/SCREENCAST_SCRIPT.md` | 90-second cue-by-cue script lands in `docs/SCREENCAST_SCRIPT.md`. Recording requires camera + microphone. |
 | 11 | **Seed eval JSON corpus** | 🟢 | `evals/seed/`, `crates/actant-eval/tests/seed_corpus_loads.rs` | 8 seed cases + schema-lock test. |
@@ -53,8 +52,8 @@ workers, primitives, build/CI hygiene).
 | 23 | **Empty `sdks/rust/` target dir** | 🟢 | row #2 closure | Resolved with #2; `target/` moved to `~/.cache/cargo-actantdb`. |
 | 24 | **PG migration runtime apply order** | 🟢 | `crates/actant-storage/src/postgres.rs` `PG_MIGRATIONS` | All five `pg/000{1..5}.sql` registered in dependency-correct order (`0001 → 0005 → 0002 → 0003 → 0004`). |
 
-**Substrate sub-totals:** 21 🟢, 1 ⊝ (deliberate non-goal), 2 👤. Zero open or
-silent.
+**Substrate sub-totals:** 20 🟢, 1 🟡, 1 ⊝ (deliberate non-goal), 2 👤. Zero
+open or silent.
 
 ## Part B — Supabase + Convex BaaS parity
 
@@ -91,19 +90,18 @@ row has a code path waiting for the cloud control plane; none are pure absence.
 
 | Status | Count | Notes |
 |---|---:|---|
-| 🟢 closed | 29 | Code + tests at HEAD |
+| 🟢 closed | 28 | Code + tests at HEAD |
 | ⊝ deliberate divergence | 3 | Documented non-goals |
-| 🟡 deferred (named) | 1 | Migration diff/pull (waits for SQL pane) |
+| 🟡 deferred / pending | 2 | Current npm publish; migration diff/pull (waits for SQL pane) |
 | 🛣 ActantDB Cloud Phase 2/3 | 4 | OAuth provider chain, pooler, log UI, branching |
 | 🔴 open inside boundary | 0 | (none — #25, #27, #28 closed) |
 | 👤 human-only | 2 | #9 outreach, #10 screencast recording |
 
-Corrected: **0 🔴 open inside the boundary**. #25 `actantdb init`, #27
-`actantdb status`, and #28 `actantdb dev` shipped in `crates/actant-cli`.
-#26 closed earlier with `deploy/docker-compose.yml`. These remaining items
-(human-only outreach + screencast) are the next
-concrete code-shaped items that can be closed without waiting on the
-cloud control plane.
+Corrected: **0 🔴 open inside the self-host substrate boundary**. #25
+`actantdb init`, #27 `actantdb status`, and #28 `actantdb dev` shipped in
+`crates/actant-cli`. #26 closed earlier with `deploy/docker-compose.yml`.
+The remaining non-cloud substrate blocker is release hygiene: publishing the
+current `0.0.15` packages.
 
 ## What we have that Supabase / Convex don't
 
@@ -129,22 +127,18 @@ neither comparison product does:
 - **Local-first by default** — no cloud account needed to start, every
   hosted feature (when Cloud lands) will be opt-in not assumed.
 
-## Next 3 code-shaped items (the 🔴s)
+## Next boundary items
 
 In priority order:
 
-1. **#25** `actantdb init <template>` — closes the "first 30 seconds" UX
-   gap. The `actant-templates` registry already has 5 templates; this is
-   ~60 LOC of `clap` subcommand wiring.
-2. **#27** `actantdb status` — closes the "what's running, where" gap.
-   Aggregates `/v1/healthz/*`, migration list, active sessions. ~80 LOC.
-3. **#28** `actantdb dev` watch loop — the largest of the four. Watch
-   `commands/`, `policies/`, `templates/`, regenerate types on save,
-   restart the relevant services. ~250 LOC plus `chokidar` dev-dep.
-
-After these four, every code-shaped gap inside the self-hosting boundary
-is closed and the next move is genuinely the Cloud Phase 2 work in
-`docs/CLOUD_ROADMAP.md`.
+1. Publish the current `0.0.15` packages to npm.
+2. Replace the `actant-contracts check-compat` lint-only implementation with
+   a real previous-schema compatibility comparison.
+3. Ship the first Swift XCFramework release and uncomment the `ActantFFI`
+   `binaryTarget`.
+4. Persist the CloudKit outbox instead of holding it in memory.
+5. Keep the Studio first-run path tested so empty ledgers point users at a
+   runnable capture path.
 
 ## Part C — iOS embedding + CloudKit sync (new this pass)
 
@@ -158,7 +152,7 @@ alongside remote/spawned. Sync rides CloudKit private database. Design in
 |---|-----|--------|-------|
 | 39 | **`actant-ffi` crate — uniffi-rs bindings** | 🟢 | This pass. `crates/actant-ffi/` (uniffi 0.28, proc-macro flavour) exports `ActantHandle::{open,dispatch,events_since,ingest,close}` as `#[uniffi::export(async_runtime = "tokio")]` async methods, plus `CommandOutcome` / `EventRow` / `IngestReport` records and a flat `FfiError` mapped exhaustively from `actant_core::ActantError`. `[lib] crate-type = ["cdylib","staticlib","rlib"]` so the same crate feeds the XCFramework slices (GAPS #41) and in-tree `cargo test`. Swift bindings emit via `cargo run --bin uniffi-bindgen -p actant-ffi -- generate --language swift --library …` (documented in `crates/actant-ffi/README.md`); the build.rs is a deliberate near-noop. 3 round-trip tests in `crates/actant-ffi/tests/round_trip.rs` (open + dispatch + events_since, ingest stub contract, close-releases-pool). `events_since` HLC cursor args + `ingest` body wait on the in-flight GAPS #42 / #43 work; surface is final. |
 | 40 | **iOS-clean Rust core audit + feature gates** | 🟢 | This pass. `scripts/audit_ios.sh` greps the workspace for the 8 incompatible patterns; output captured to `docs/IOS_AUDIT.md` with a triage preamble explaining why the 9 raw `[fail]` lines are false positives (actant-cli is host-only; cdp.rs is `#[cfg(feature = "cdp")]`-gated). `ios` feature added to `crates/actant-ffi/Cargo.toml` + `crates/actant-storage/Cargo.toml` as markers; downstream sqlite-bundled + rustls-tls wiring lands when a concrete iOS consumer needs it. New `build-ios` CI job in `.github/workflows/ci.yml` runs `cargo build --target aarch64-apple-ios -p actant-ffi --features ios` on macos-latest, `continue-on-error: true` until the first run confirms green. |
-| 41 | **XCFramework build + Swift binaryTarget** | 🟢 | This pass. `.github/workflows/ios-xcframework.yml` matrix-builds the 5 iOS/macOS slices via `cargo build --release --target … -p actant-ffi --features ios`, lipos sim+mac universals, generates Swift bindings via `cargo run --bin uniffi-bindgen --features=cli`, runs `xcodebuild -create-xcframework`, zips + sha256s, uploads as release asset on tag and as `workflow_dispatch` artifact. `sdks/swift/Package.swift` carries the `.binaryTarget(url:checksum:)` stanza as a commented placeholder — one-line uncomment after the first `vX.Y.Z` tag ships the artifact. Both dependencies in place: row #40 added the `ios` feature; `actant-ffi` (row #39) exposes the `uniffi-bindgen` binary with `cli` feature. |
+| 41 | **XCFramework build + Swift binaryTarget** | 🟡 | `.github/workflows/ios-xcframework.yml` matrix-builds the 5 iOS/macOS slices via `cargo build --release --target … -p actant-ffi --features ios`, lipos sim+mac universals, generates Swift bindings via `cargo run --bin uniffi-bindgen --features=cli`, runs `xcodebuild -create-xcframework`, zips + sha256s, uploads as release asset on tag and as `workflow_dispatch` artifact. `sdks/swift/Package.swift` still carries the `.binaryTarget(url:checksum:)` stanza as a commented placeholder until the first tagged artifact exists. |
 | 42 | **HLC clock + content-derived event IDs** | 🟢 | This pass. `crates/actant-core/src/hlc.rs` ships `Hlc` + lock-free `HlcClock` (single `AtomicU64`, `(physical_ms << 16) \| logical`). `EventId::content_derived(payload, hlc, actor)` in `crates/actant-core/src/ids.rs` hashes `sha256(canonical_payload \|\| hlc.physical_ms \|\| hlc.logical \|\| actor_id)`. Legacy ULID `EventId::new()` retained for non-replicated call sites (per the boundary, untouched callers stay green). Migrations `migrations/0007_replication.sql` + `migrations/pg/0007_replication.sql` add `device_id` / `hlc_physical_ms` / `hlc_logical` columns + indexes. Registered in `crates/actant-storage/src/lib.rs::MIGRATIONS` and `crates/actant-storage/src/postgres.rs::PG_MIGRATIONS`. 6 unit tests in `actant-core::hlc::tests`. |
 | 43 | **`Storage::ingest(events)` idempotent API** | 🟢 | This pass. `Storage::ingest_events(&[IngestEvent], Option<&HlcClock>)` in `crates/actant-storage/src/repo.rs` validates each row (recomputes content-derived id, refuses unknown workspaces / empty device id), writes via `INSERT … ON CONFLICT(id) DO NOTHING`, and observes the highest valid HLC against the supplied clock so subsequent local writes don't go backwards. Returns `IngestReport { accepted, skipped, rejected: Vec<IngestReject> }`. 5 tests in `crates/actant-storage/tests/ingest_idempotent.rs` cover round-trip skip, hash-mismatch reject, empty-device reject, unknown-workspace reject, and HLC advance. |
 | 44 | **Per-projection conflict policy table** | 🟢 | This pass. `crates/actant-replay/src/conflict.rs` ships `ConflictPolicy::default_for_projections()` with per-field LWW for `memory.{approved_at, rejected_at, last_verified_at}`, `session.{title, phase}`, `actor.display_name`; everything else falls back to row-level LWW. `HasHlc` trait abstracts comparable rows; HLC-tie tiebreak is `actor_id` lex. 4 tests in `crates/actant-replay/tests/conflict_resolve.rs` + 2 in-module unit tests. |
@@ -170,11 +164,14 @@ alongside remote/spawned. Sync rides CloudKit private database. Design in
 | 50 | **`deploy/docker/` duplicate compose+Dockerfile** | 🟢 | This pass. The older 36-line `deploy/docker/docker-compose.yaml` was a stale parallel of the 90-line `deploy/docker-compose.yml`. Deleted; canonical compose path stays at `deploy/`. |
 | 51 | **`MockURLProtocol.swift` byte-duplicated across test targets** | 🟢 | This pass. Extracted to new `Tests/ActantTestSupport/` SwiftPM target; both `ActantDBTests` and `ActantAgentTests` now depend on it. 11 test files patched to `import ActantTestSupport`. |
 
-**Part C sub-totals:** 11 🟢, 2 🟡 (#46 + #47 — Swift-side embedded mode + CloudKit sync target code is in tree; runtime path activates after the first `vX.Y.Z` tag ships the XCFramework + the placeholder `.binaryTarget(url:checksum:)` in `Package.swift` is uncommented), 0 🔴.
+**Part C sub-totals:** 10 🟢, 3 🟡 (#41, #46, #47 — Swift-side embedded mode +
+CloudKit sync target code is in tree; runtime path activates after the first
+`vX.Y.Z` tag ships the XCFramework + the placeholder `.binaryTarget(url:checksum:)`
+in `Package.swift` is uncommented), 0 🔴.
 
 ## Slim refactor (kept from prior pass)
 
-- **53 → 36 crates (-32%)**.
+- **53 → 37 crates (-30%)**.
 - Umbrella crates: `crates/actantdb` (Rust) + `packages/actantdb` (npm, name `@actantdb/all`).
 - `target/` moved to `~/.cache/cargo-actantdb` via `.cargo/config.toml`.
 - `[profile.dev]` debug = `line-tables-only` (~90% smaller debug builds).

@@ -73,8 +73,7 @@ impl Storage {
         let current = self.last_lsn().await?;
         if from_lsn != current {
             return Err(ActantError::InvalidInput(format!(
-                "wal_frames_since: caller expected LSN {} but storage is at {}",
-                from_lsn, current
+                "wal_frames_since: caller expected LSN {from_lsn} but storage is at {current}"
             )));
         }
 
@@ -126,27 +125,44 @@ impl Storage {
     /// `wal_checkpoint(TRUNCATE)` so the snapshot file is self-contained
     /// after each step.
     pub async fn apply_wal_frames(&self, frames: &WalIncrement) -> Result<(), ActantError> {
-        self.ensure_backup_state().await?;
-        let current = self.last_lsn().await?;
-        if frames.previous_lsn != current {
-            return Err(ActantError::InvalidInput(format!(
-                "apply_wal_frames: increment chains from LSN {} but storage is at {}",
-                frames.previous_lsn, current
-            )));
-        }
-
+        // Write the WAL bytes first, before any connection is opened/queried.
+        // This ensures SQLite will run WAL recovery automatically on the very
+        // first query/connection to the database.
         if !frames.bytes.is_empty() {
             let Some(wal_path) = self.wal_path() else {
                 return Err(ActantError::Storage(
                     "apply_wal_frames: in-memory storage cannot accept WAL frames".into(),
                 ));
             };
+            println!("Writing WAL to: {}", wal_path.display());
             std::fs::write(&wal_path, &frames.bytes).map_err(|e| {
                 ActantError::Storage(format!("write {}: {}", wal_path.display(), e))
             })?;
+            println!(
+                "Written WAL size: {}",
+                std::fs::metadata(&wal_path).unwrap().len()
+            );
+        }
 
+        self.ensure_backup_state().await?;
+        let current = self.last_lsn().await?;
+        if frames.previous_lsn != current {
+            // Clean up the WAL file we just wrote to avoid leaving it in an invalid state.
+            if !frames.bytes.is_empty() {
+                if let Some(wal_path) = self.wal_path() {
+                    let _ = std::fs::remove_file(&wal_path);
+                }
+            }
+            let previous_lsn = frames.previous_lsn;
+            return Err(ActantError::InvalidInput(format!(
+                "apply_wal_frames: increment chains from LSN {previous_lsn} but storage is at {current}"
+            )));
+        }
+
+        if !frames.bytes.is_empty() {
             // Force SQLite to replay the WAL into the main file and then
-            // truncate it, so each step leaves a clean snapshot.
+            // truncate it. Since this is run after the first connection has
+            // performed recovery, the pages are already merged.
             sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
                 .execute(self.pool())
                 .await

@@ -4,24 +4,25 @@ This is the artifact that converts "ready" to "shipped". Every step below
 is one the **user** runs (not the agent). The repo is staged such that each
 step is a single command or a single short outreach.
 
-Pre-conditions verified by the agent (current at HEAD):
+Pre-conditions verified by the agent on the current local pass:
 
-- [x] `cargo test --workspace` → **331 passing, 0 failed**, 13 ignored
-- [x] `pnpm -r test` → **25 passing**
+- [x] `pnpm -r test` → green across the workspace
+- [x] `pnpm -r build` → green
 - [x] `pnpm smoke` → green
-- [x] `swift test --package-path sdks/swift` → **62 tests in 12 suites passing**
-- [x] `(cd sdks/python && python3 -m unittest discover -s tests)` → **10 passing**, 1 skipped (integration test needs `ACTANTDB_TEST_URL`)
+- [x] `cargo check --workspace --all-targets` → green
+- [x] Focused local Rust tests: `actant-storage`, `actant-sync`, `actant-replay`, `actantdb-client`, `actant-server --lib`, `actant-subscribe --lib`
 - [x] Three public examples exist: [`examples/test-cleanup/`](./examples/test-cleanup), [`examples/langgraph-router/`](./examples/langgraph-router), [`examples/cli-only/`](./examples/cli-only)
-- [x] All 8 `@actantdb/*` packages published to npm at `0.0.6` (`latest` + `shadow` tags)
+- [ ] Current workspace packages are published to npm at `0.0.15` (`@actantdb/all` and `@actantdb/mastra` latest verified at `0.0.12`)
 - [x] CI publish workflow: [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) — `workflow_dispatch`, builds + tests + smoke + dry-run-publish + publish + tag-mirror
 - [x] CI binary-release workflow: [`.github/workflows/release-binaries.yml`](./.github/workflows/release-binaries.yml) — tag-driven and manual; produces `actantdb` + `actantdb-server` for macOS-arm64, macOS-x64, linux-x64
 
 ---
 
-## Step 1 — npm publish (DONE)
+## Step 1 — npm publish current workspace (PENDING)
 
-Eight `@actantdb/*` packages live on npm under `latest` and `shadow`
-tags. Manual republish:
+The local workspace version is `0.0.15`. The latest npm version verified for
+`@actantdb/all` and `@actantdb/mastra` is `0.0.12`, so the current workspace
+still needs a publish before Gate 2 outreach uses the latest code.
 
 ```bash
 # Go to Actions → "publish-npm" → Run workflow.
@@ -63,8 +64,8 @@ Track replies in a spreadsheet (suggest: a Numbers / Google Sheet at
 
 ## Step 3 — 10-minute install test (Gate 2 §2)
 
-Per `README.md` §2, give 10 developers a 10-minute install
-script. The repo already contains one (verified against `0.0.6`):
+Per `README.md` §2, give 10 developers a 10-minute install script. Re-run it
+after publishing `0.0.15`:
 
 ```bash
 npm install @actantdb/mastra
@@ -133,18 +134,19 @@ The agent cannot:
 - Verify on 10+ external machines that the install works (requires those
   machines to exist outside this sandbox).
 
-Note: `npm publish` itself is no longer impossible — the
-`publish-npm.yml` workflow uses the repo's `NPM_TOKEN` automation token
-and runs from a manual trigger.
+Note: `npm publish` itself is confirmation-required. The
+`publish-npm.yml` workflow uses the repo's `NPM_TOKEN` automation token and
+runs from a manual trigger.
 
 ## Status at the time of this checklist
 
 - **Gate 1** — implementation-complete; the four leftovers (screencast,
   hero PNG, three-platform-developer verification, public examples) are
   one human action each, with public examples already done.
-- **Gate 2** — every prerequisite that lives in code is green; the
-  threshold itself requires Steps 2–4 above. Step 1 (publish) is done.
+- **Gate 2** — every prerequisite that lives in code is green except
+  publishing the current `0.0.15` workspace. The threshold itself requires
+  Steps 2–4 above.
 - **Gate 3** — three runnable demos exist; threshold itself requires
   Steps 4–5.
 
-Run Steps 2 → 3 → 4 → 5 in order, and the gates close.
+Run Steps 1 → 2 → 3 → 4 → 5 in order, and the gates close.

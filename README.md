@@ -16,9 +16,9 @@ Concrete state of the repo at the most recent build. Not aspirational.
 
 | Layer                | What ships                                                                                  | Evidence                                       |
 | -------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **npm packages**      | 8 TypeScript packages: `@actantdb/mastra`, `core`, `policy`, `replay`, `studio`, `types`, `sdk`, `convex`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-npm.yml` |
+| **npm packages**      | 19 package manifests: 18 `@actantdb/*` packages plus `create-actantdb`. Local workspace version is `0.0.15`; latest npm verified for `@actantdb/all` and `@actantdb/mastra` is `0.0.12`. ESM, Node ≥22.5. | `packages/*`, `.github/workflows/publish-npm.yml` |
 | **Demos**            | 3 runnable demos with recorded SQLite event ledgers (Mastra, LangGraph, pure CLI).            | `examples/test-cleanup/`, `examples/langgraph-router/`, `examples/cli-only/` |
-| **Rust workspace**   | 49 crates, ~15k lines, Rust 1.88. Full Phase 1–6 implementation.                            | `crates/`, `cargo metadata`                    |
+| **Rust workspace**   | 37 crates under `crates/`, 39 Cargo workspace members including the Rust SDK and bench package. Rust 1.88. Full Phase 1–6 implementation. | `crates/`, `cargo metadata`                    |
 | **HTTP server**      | Axum HTTP + WebSocket. TLS (rustls). `actantdb serve --tls-cert/--tls-key`.                   | `crates/actant-server`, `tests/tls.rs`         |
 | **Storage**          | SQLite + Postgres backends. Migration runner. Hash-chained events. Idempotency records.       | `crates/actant-storage`, 3 migrations          |
 | **Auth**             | JWT HS256 + OIDC discovery/JWKS with 1-hour cache.                                            | `crates/actant-auth`                           |
@@ -35,11 +35,11 @@ Concrete state of the repo at the most recent build. Not aspirational.
 | **Python SDK**       | pip-installable, mirrors the TS SDK surface. Integration test passes against a real server.    | `sdks/python/`                                 |
 | **Swift SDK**        | Two-tier (Swift 6.3, macOS 26 / iOS 26). `ActantDB` is a 1:1 HTTP+WS client; `ActantAgent` is the opinionated facade (Session / MemoryStore / Auditor / ApprovalCenter / ReplayClient / RelationshipStore / ActantDBSupervisor) that lets a consumer like Swoosh add ActantDB by one-line conformance extensions. | `sdks/swift/` |
 | **Benchmarks**       | HTTP single-session: p50 **464 µs**, p95 **1.00 ms**, p99 **2.12 ms** (1.8k req/s). 10-concurrent: **3.9k req/s** aggregate. Replay 200-event run end-to-end: **3.4 ms**. RSS only +1.4 MB per 10k events. Full table in [`BENCHMARKS.md`](./BENCHMARKS.md). | `bench/`, [`BENCHMARKS.md`](./BENCHMARKS.md) |
-| **Tests**            | **331 Rust + 25 TypeScript + 10 Python + 62 Swift + 1 workspace smoke = 429 passing.** 0 failed.            | `cargo test --workspace`, `pnpm -r test`, `pnpm smoke`, `swift test --package-path sdks/swift` |
+| **Tests**            | Current local pass: `pnpm smoke`, `pnpm -r test`, `pnpm -r build`, `cargo check --workspace --all-targets`, plus focused Rust crate tests for storage, sync, replay, client, server lib, and subscribe lib. | [`TESTING.md`](./TESTING.md), `.github/workflows/ci.yml` |
 | **Spec verification**| Every active spec has `tests/spec_NN_verification.rs`. The harness caught **8 real drifts** before they shipped (event-name drift, missing diff kinds, FK ordering, etc.). | `SPECS_STATUS.md`                              |
 | **CI bundle**        | `fmt-check + clippy -D warnings + test + verify-specs + verify-agents`. Green.                  | `.github/workflows/ci.yml`, `justfile`         |
 
-Gate 1 (MVP) is implementation-complete. Gates 2 + 3 are blocked on external adoption — `npm publish` + design-partner outreach. See [`GATES.md`](./GATES.md) for the punch list and [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) for the 5-step path to close them.
+Gate 1 (MVP) is implementation-complete. Gates 2 + 3 are blocked on publishing the current `0.0.15` packages and external adoption. See [`GATES.md`](./GATES.md) for the punch list and [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) for the path to close them.
 
 ---
 
@@ -245,12 +245,20 @@ Every active spec under `/specs` (20 specs + 18 ADRs) has a corresponding `tests
 ## Reproduce
 
 ```bash
-# Rust (186 tests, ~49 crates)
-cargo test --workspace
-just check           # cargo check --workspace --all-targets (fast)
+# Rust fast workspace check
+cargo check --workspace --all-targets
+just check           # same fast check when just is installed
 just ci              # fmt-check + clippy -D warnings + test + verify-specs + verify-agents
 
-# TypeScript (25 vitest tests)
+# Focused Rust tests used locally; CI owns the full matrix.
+cargo test -p actant-storage
+cargo test -p actant-sync
+cargo test -p actant-replay
+cargo test -p actantdb-client
+cargo test -p actant-server --lib
+cargo test -p actant-subscribe --lib
+
+# TypeScript
 pnpm install
 pnpm -r build
 pnpm -r test
@@ -289,10 +297,10 @@ Three places ActantDB is genuinely uncontested in 2026:
 ## Status
 
 - **Gate 1 — MVP** (target 2026-06-30): implementation-complete. Three runnable demos. Human leftovers: 90-second screencast, hero PNG, three-platform install verification.
-- **Gate 2 — external adoption** (target 2026-07-31): blocked on first `npm publish` + outreach. The repo ships a manual-trigger publish workflow at [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml) that builds, tests, and publishes every `@actantdb/*` package under the `shadow` dist-tag.
+- **Gate 2 — external adoption** (target 2026-07-31): blocked on publishing the current `0.0.15` workspace packages + outreach. The latest npm version verified for `@actantdb/all` and `@actantdb/mastra` is `0.0.12`.
 - **Gate 3 — shipped/staged** (target 2026-08-17): blocked on landing 5 non-Wes developers + 1 named design partner.
 
-[`GATES.md`](./GATES.md) is the punch list. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the 5-step sequence to close Gates 2 + 3. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current current substrate shape.
+[`GATES.md`](./GATES.md) is the punch list. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) is the sequence to close Gates 2 + 3. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current substrate shape.
 
 ---
 
@@ -307,14 +315,14 @@ Three places ActantDB is genuinely uncontested in 2026:
 ├── GATES.md                        — Gate 1/2/3 punch list
 ├── RELEASE_CHECKLIST.md            — 5 steps to close Gates 2 + 3
 ├── CLAUDE.md                       — guidance for Claude Code sessions
-├── packages/                       — 8 npm packages (TypeScript first)
-├── crates/                         — Cargo workspace, ~49 crates, Rust 1.88
+├── packages/                       — 19 package manifests (TypeScript first)
+├── crates/                         — Cargo workspace, 37 crates, Rust 1.88
 ├── migrations/                     — 3 SQL migrations, ~80 tables
 ├── specs/                          — 20 specs + 18 ADRs
 ├── agents/                         — per-crate implementation briefs
 ├── planning/                       — phase plans, perf budgets, deployment playbook, Studio/SDK design
 ├── examples/                          — 3 runnable end-to-end demos
-├── sdks/                           — sdks/python/
+├── sdks/                           — sdks/python/, sdks/rust/, sdks/swift/
 ├── bench/                          — Criterion + HTTP load benches
 ├── deploy/                         — docker/ + helm/
 ├── docs/                           — mdbook site materialized from /specs

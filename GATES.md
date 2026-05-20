@@ -23,8 +23,8 @@ Source of truth for gate definitions: [PIVOT.md §Hard validation gates](./PIVOT
 | Killer-demo deliverables (killer-demo.md §"Demo deliverables") | partial | Demo scaffold at [`examples/test-cleanup/`](./examples/test-cleanup) with ≤200-word README; the 90-second screen recording and the hero image are human-produced artifacts |
 | "≤ 5 min from `git clone`" | ✅ | Empirically measured TS-only path runs in ~3 seconds (warm pnpm store); full path including `cargo run -p actant-contracts -- codegen-ts` measured at ~11 seconds |
 | Workspace smoke test passes on every PR | ✅ | `pnpm smoke` invokes [`scripts/smoke.mjs`](./scripts/smoke.mjs), covering: session → message → manifest → tool request → Guard verdict → approval → constrain-rewritten execution → completion → checkpoint → headless Studio render |
-| `cargo build --workspace` green | ✅ | All 40 crates compile under Rust 1.88 |
-| Per-package vitest + Rust contract tests green | ✅ | 19 TS tests + 6 Rust tests |
+| `cargo check --workspace --all-targets` green | ✅ | 39 Cargo workspace members check under Rust 1.88 |
+| Per-package vitest + focused Rust tests green | ✅ | `pnpm -r test`; focused local Rust tests listed in [`TESTING.md`](./TESTING.md) |
 
 **Gate 1: implementation-complete.** The human-only piece — the 90-second
 recording and the hero PNG — falls under §"Gate 1 leftovers" below.
@@ -47,11 +47,11 @@ gate. The actions below are what needs to happen, in order. None of them is
 something an agent in this repo can perform — they all require Wes or a
 collaborator to execute outside the repo.
 
-Pre-conditions that *are* artifact-shaped — all met:
+Pre-conditions that *are* artifact-shaped:
 
 | Pre-condition | Status |
 | --- | --- |
-| `@actantdb/mastra` installable via `npm install` (TS-only, no Rust prerequisite) | ✅ generated TS bindings are committed; `engines.node >= 22.5` declared |
+| `@actantdb/mastra` installable via `npm install` (TS-only, no Rust prerequisite) | 🟡 latest npm is `0.0.12`; current workspace is `0.0.15` and still needs publish |
 | Cold-README test scaffolding (the README a stranger reads) | ✅ root [`README.md`](./README.md) + [`examples/test-cleanup/README.md`](./examples/test-cleanup/README.md) |
 | 10-minute install test scaffolding | ✅ `pnpm install` + `pnpm -r build` + `node examples/test-cleanup/demo.mjs` measured at 3s on a warm cache |
 | Per-failed-install ticket process | ✅ documented in [`README.md`](./README.md) |
@@ -63,7 +63,7 @@ Pre-conditions that *are* artifact-shaped — all met:
 - [ ] Run the 10-minute install test with at least 10 developers (see [`README.md` §2](./README.md)).
 - [ ] Track: 7/10 install successfully in <10 min, 5/10 capture a real run, 3/10 produce a replay.
 - [ ] Identify 2 design partners willing to provide weekly feedback for 4 weeks.
-- [ ] Publish `@actantdb/*` packages to npm (manual `pnpm publish` — confirmation-required action; not yet done).
+- [ ] Publish the current `0.0.15` `@actantdb/*` packages to npm (confirmation-required action; latest verified npm version is `0.0.12`).
 
 ## Gate 3 — Shipped/staged (target 2026-08-17)
 
@@ -80,7 +80,8 @@ Pre-conditions that *are* artifact-shaped:
 | Pre-condition | Status |
 | --- | --- |
 | First public example (the killer-demo rehearsal) | ✅ [`examples/test-cleanup/`](./examples/test-cleanup) |
-| Second public example | ❌ no second example exists yet; can ship a parallel one (e.g., `examples/langgraph-router/`) only when a LangGraph or other-framework adapter exists |
+| Second public example | ✅ [`examples/langgraph-router/`](./examples/langgraph-router) |
+| Third public example | ✅ [`examples/cli-only/`](./examples/cli-only) |
 | HN test answer prepared | ✅ [`README.md`](./README.md) §"HN objection" |
 | Switch-test scaffolding (per `validation-tests.md` §3) | ✅ |
 
@@ -88,13 +89,13 @@ Pre-conditions that *are* artifact-shaped:
 
 - [ ] Get 5 non-Wes developers to ship or stage Actant in production / staging.
 - [ ] Land 1 named design partner (publicly attributable).
-- [ ] Author the second public example (probably triggered by a design partner's framework choice; anti-scope rule #5 forbids speculative integration packages).
+- [ ] Convert external usage into 2 public writeups or repos if the design partners allow attribution.
 
 ## Honest summary
 
 - **Gate 1** is implementation-complete in the repo. The ≤200-word README, working demo, Studio CLI, replay diff, smoke test, and 5-min install path all exist and are tested.
-- **Gates 2 and 3** measure events in the world (installs, sustained use, named partners). They do not close on artifact work. Every prerequisite an external developer would hit before they can engage with Actant is in place; the gates close on Wes's outreach + external developer reception.
+- **Gates 2 and 3** measure events in the world (current npm publish, installs, sustained use, named partners). They do not close on repo artifact work alone.
 
 If "100% complete" means "every gate's threshold met", the bottleneck is
 external adoption. If it means "every artifact prerequisite to the gates is
-green", that is the current state.
+green", the remaining repo-side release prerequisite is publishing `0.0.15`.
