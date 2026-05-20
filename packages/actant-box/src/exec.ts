@@ -202,7 +202,7 @@ export class BoxExecAPI {
 
     let exitCode: number | null = null;
     let done = false;
-    child.on("exit", (code) => {
+    child.on("close", (code) => {
       exitCode = code;
       done = true;
       queue.push({ type: "exit", code });
@@ -311,7 +311,7 @@ function spawnAndCapture(
       if (timer) clearTimeout(timer);
       reject(err);
     });
-    child.on("exit", (code) => {
+    child.on("close", (code) => {
       if (timer) clearTimeout(timer);
       resolve({ stdout, stderr, exitCode: code });
     });
