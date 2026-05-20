@@ -8,6 +8,8 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, Iterable, Optional
 
+_ALLOWED_URL_SCHEMES = {"http", "https"}
+
 
 class ActantError(RuntimeError):
     """Raised for any non-2xx HTTP response from the server."""
@@ -16,6 +18,13 @@ class ActantError(RuntimeError):
         super().__init__(f"HTTP {status}: {body}")
         self.status = status
         self.body = body
+
+
+def _validate_url_scheme(url: str) -> None:
+    scheme = urllib.parse.urlparse(url).scheme
+    if scheme not in _ALLOWED_URL_SCHEMES:
+        allowed = ", ".join(sorted(_ALLOWED_URL_SCHEMES))
+        raise ValueError(f"ActantClient only supports these URL schemes: {allowed}")
 
 
 class ActantClient:
@@ -33,6 +42,7 @@ class ActantClient:
         timeout: float = 10.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
+        _validate_url_scheme(self.base_url)
         self.token = token
         self.timeout = timeout
 
@@ -56,6 +66,7 @@ class ActantClient:
         url = self.base_url + path
         if params:
             url += "?" + urllib.parse.urlencode(list(params))
+        _validate_url_scheme(url)
         data = None
         if body is not None:
             data = json.dumps(body).encode("utf-8")

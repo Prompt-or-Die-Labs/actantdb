@@ -153,95 +153,33 @@ export class Box {
   // ============================================================
 
   static async create(config: BoxConfig = {}): Promise<Box> {
-    const mode = config.mode ?? "local";
-    const id = ulid().toLowerCase();
-    const name = config.name ?? id;
-    const storeRoot = config.storeRoot ?? defaultBoxesRoot();
-    const boxRoot = join(storeRoot, id);
-    const workspaceDir = join(boxRoot, WORKSPACE_DIRNAME);
-    const ledgerStoreDir = join(boxRoot, LEDGER_DIRNAME);
-    const project = config.project ?? `box-${id}`;
+    const paths = createdBoxPaths(config);
+    const metadata = createdBoxMetadata(paths, config);
 
-    if (mode === "cloud") {
-      // The contract is in place but every operation throws.
-      const metadata: BoxMetadata = {
-        id,
-        name,
-        createdAt: new Date().toISOString(),
-        mode,
-        storeRoot,
-        workspaceDir,
-        cwd: config.cwd ?? "",
-        project,
-        ...(config.model !== undefined ? { model: config.model } : {}),
-        ...(config.initCommand !== undefined ? { initCommand: config.initCommand } : {}),
-        keepAlive: config.keepAlive ?? true,
-        status: "running",
-      };
-      const ledger = openLedger({ project, inMemory: true });
+    if (paths.mode === "cloud") {
+      const ledger = openLedger({ project: paths.project, inMemory: true });
       return new Box({ metadata, ledger, config });
     }
 
-    mkdirSync(workspaceDir, { recursive: true });
-    mkdirSync(ledgerStoreDir, { recursive: true });
-
-    const metadata: BoxMetadata = {
-      id,
-      name,
-      createdAt: new Date().toISOString(),
-      mode,
-      storeRoot,
-      workspaceDir,
-      cwd: config.cwd ?? "",
-      project,
-      ...(config.model !== undefined ? { model: config.model } : {}),
-      ...(config.initCommand !== undefined ? { initCommand: config.initCommand } : {}),
-      keepAlive: config.keepAlive ?? true,
-      status: "running",
-    };
-    writeMetadata(boxRoot, metadata);
+    mkdirSync(paths.workspaceDir, { recursive: true });
+    mkdirSync(paths.ledgerStoreDir, { recursive: true });
+    writeMetadata(paths.boxRoot, metadata);
 
     // Open the per-box ledger. We point storeDir at the box root so the
     // file ends up at <boxRoot>/.actantdb/<project>/events.sqlite.
-    const ledger = openLedger({ project, storeDir: ledgerStoreDir });
+    const ledger = openLedger({ project: paths.project, storeDir: paths.ledgerStoreDir });
 
     try {
       const box = new Box({ metadata, ledger, config });
 
       // Record a box_created event so the timeline starts at the start.
-      ledger.append({
-        kind: "effect_observed",
-        runId: `box-${id}`,
-        payload: { kind: "box_created", box_id: id, name, workspaceDir },
-        sensitivity: "low",
-      });
-
-      if (config.initCommand) {
-        try {
-          await box.exec.command(config.initCommand);
-        } catch (err) {
-          // Init failure is recorded as an effect but does not nuke the box —
-          // the user can re-run with `box.setInitCommand(...)` then `box.exec.command(...)`.
-          ledger.append({
-            kind: "effect_observed",
-            runId: `box-${id}`,
-            payload: {
-              kind: "box_init_failed",
-              error: (err as Error).message ?? String(err),
-            },
-            sensitivity: "low",
-          });
-        }
-      }
+      appendBoxCreated(ledger, metadata);
+      await runInitCommand(box, ledger, metadata);
 
       return box;
     } catch (err) {
-      try {
-        ledger.close();
-      } catch {
-        /* ignore */
-      }
-      rmSync(boxRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+      closeLedgerQuietly(ledger);
+      rmSync(paths.boxRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
       throw err;
     }
   }
@@ -523,6 +461,96 @@ export class Box {
       status: this._status,
     };
     writeMetadata(join(this.storeRoot, this.id), metadata);
+  }
+}
+
+interface CreatedBoxPaths {
+  mode: "local" | "cloud";
+  id: string;
+  name: string;
+  storeRoot: string;
+  boxRoot: string;
+  workspaceDir: string;
+  ledgerStoreDir: string;
+  project: string;
+}
+
+function createdBoxPaths(config: BoxConfig): CreatedBoxPaths {
+  const mode = config.mode ?? "local";
+  const id = ulid().toLowerCase();
+  const name = config.name ?? id;
+  const storeRoot = config.storeRoot ?? defaultBoxesRoot();
+  const boxRoot = join(storeRoot, id);
+  return {
+    mode,
+    id,
+    name,
+    storeRoot,
+    boxRoot,
+    workspaceDir: join(boxRoot, WORKSPACE_DIRNAME),
+    ledgerStoreDir: join(boxRoot, LEDGER_DIRNAME),
+    project: config.project ?? `box-${id}`,
+  };
+}
+
+function createdBoxMetadata(paths: CreatedBoxPaths, config: BoxConfig): BoxMetadata {
+  return {
+    id: paths.id,
+    name: paths.name,
+    createdAt: new Date().toISOString(),
+    mode: paths.mode,
+    storeRoot: paths.storeRoot,
+    workspaceDir: paths.workspaceDir,
+    cwd: config.cwd ?? "",
+    project: paths.project,
+    ...(config.model !== undefined ? { model: config.model } : {}),
+    ...(config.initCommand !== undefined ? { initCommand: config.initCommand } : {}),
+    keepAlive: config.keepAlive ?? true,
+    status: "running",
+  };
+}
+
+function appendBoxCreated(ledger: Ledger, metadata: BoxMetadata): void {
+  ledger.append({
+    kind: "effect_observed",
+    runId: `box-${metadata.id}`,
+    payload: {
+      kind: "box_created",
+      box_id: metadata.id,
+      name: metadata.name,
+      workspaceDir: metadata.workspaceDir,
+    },
+    sensitivity: "low",
+  });
+}
+
+async function runInitCommand(box: Box, ledger: Ledger, metadata: BoxMetadata): Promise<void> {
+  if (!metadata.initCommand) return;
+
+  try {
+    await box.exec.command(metadata.initCommand);
+  } catch (err) {
+    ledger.append({
+      kind: "effect_observed",
+      runId: `box-${metadata.id}`,
+      payload: {
+        kind: "box_init_failed",
+        error: errorMessage(err),
+      },
+      sensitivity: "low",
+    });
+  }
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function closeLedgerQuietly(ledger: Ledger): void {
+  try {
+    ledger.close();
+  } catch {
+    /* ignore */
   }
 }
 

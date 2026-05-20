@@ -77,6 +77,10 @@ class ClientTests(unittest.TestCase):
                 c.create_session(workspace_id="ws_1", actor_id="act_1")
         self.assertEqual(cm.exception.status, 400)
 
+    def test_rejects_non_http_base_url(self):
+        with self.assertRaises(ValueError):
+            ActantClient("file:///tmp/actantdb.sock")
+
     def test_memories_query_includes_status(self):
         captured = {}
 

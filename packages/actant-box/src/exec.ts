@@ -271,7 +271,7 @@ interface CaptureResult {
 }
 
 function spawnRaw(cmd: string, opts: ExecOptions, cwd: string): ChildProcess {
-  const env = { ...process.env, ...(opts.env ?? {}) };
+  const env = opts.env === undefined ? process.env : { ...process.env, ...opts.env };
   if (opts.args && opts.args.length) {
     return spawn(cmd, opts.args, { cwd, env });
   }

@@ -342,25 +342,27 @@ function deepEq(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (a === null || b === null) return false;
   if (typeof a !== typeof b) return false;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEq(a[i], b[i])) return false;
-    }
-    return true;
-  }
-  if (typeof a === "object" && typeof b === "object") {
-    const ak = Object.keys(a as object);
-    const bk = Object.keys(b as object);
-    if (ak.length !== bk.length) return false;
-    for (const k of ak) {
-      if (!deepEq((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) {
-        return false;
-      }
-    }
-    return true;
-  }
+  if (Array.isArray(a) || Array.isArray(b)) return arraysDeepEq(a, b);
+  if (isRecord(a) || isRecord(b)) return recordsDeepEq(a, b);
   return false;
+}
+
+function arraysDeepEq(a: unknown, b: unknown): boolean {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => deepEq(value, b[index]));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function recordsDeepEq(a: unknown, b: unknown): boolean {
+  if (!isRecord(a) || !isRecord(b)) return false;
+  const ak = Object.keys(a);
+  const bk = Object.keys(b);
+  if (ak.length !== bk.length) return false;
+  return ak.every((k) => deepEq(a[k], b[k]));
 }
 
 function summarizeKinds(events: ActantEvent[]): string {

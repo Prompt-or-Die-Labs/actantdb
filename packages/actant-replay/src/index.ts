@@ -92,198 +92,33 @@ export function runFromEvent(opts: RunFromEventOptions): ReplayRun {
   const anchor = ledger.get(eventId);
   if (!anchor) throw new Error(`event not found: ${eventId}`);
 
-  // Collect the original run's events.
   const original = ledger.query({ runId: anchor.run_id });
+  validateExperimentalReplay(opts, original, anchor.run_id);
 
-  // Validate experimental mode: the named tool call must exist in this run.
-  // (Throwing here keeps the caller honest — silent fallback to a regular
-  // replay would mask test-harness mistakes.)
-  if (mode === "experimental") {
-    const target = opts.experimentalToolCallId;
-    if (!target) {
-      throw new Error("experimental mode requires `experimentalToolCallId`");
-    }
-    const present = original.some(
-      (e) =>
-        (e.kind === "tool_call_requested" ||
-          e.kind === "tool_call_completed" ||
-          e.kind === "tool_call_started") &&
-        (e.payload as { tool_call_id?: string } | undefined)?.tool_call_id ===
-          target,
-    );
-    if (!present) {
-      throw new Error(
-        `tool_call_id "${target}" not present in run ${anchor.run_id}`,
-      );
-    }
-  }
-  // Pre-checkpoint events are kept verbatim; post-checkpoint events are
-  // recomputed under overrides.
   const before = original.filter((e) => e.id <= eventId);
   const after = original.filter((e) => e.id > eventId);
 
   const replayId = ulid();
   const events: ActantEvent[] = [];
-  // Copy pre-checkpoint events into the replay (they happened, period).
   events.push(...before);
 
-  // Reconstruct manifest minus excluded memory items.
   const excluded = new Set(overrides.without_memory ?? []);
-  const lastManifestEvent = [...before]
-    .reverse()
-    .find((e) => e.kind === "context_build");
-  let manifestAfter: ContextManifest | undefined = lastManifestEvent
-    ? (lastManifestEvent.payload as ContextManifest)
-    : undefined;
-  if (manifestAfter && excluded.size > 0) {
-    const kept: ContextItem[] = manifestAfter.included.filter((i) => !excluded.has(i.id));
-    const newlyBlocked: ContextItem[] = manifestAfter.included
-      .filter((i) => excluded.has(i.id))
-      .map((i) => ({
-        ...i,
-        flags: Array.from(new Set([...(i.flags ?? []), "replay_excluded"])),
-      }));
-    const rebuilt: ContextManifest = {
-      manifest_hash: sha256OfJSON({
-        included: kept.map((i) => ({ id: i.id, content_hash: i.content_hash })),
-      }),
-      included: kept,
-      ...(manifestAfter.blocked || newlyBlocked.length
-        ? { blocked: [...(manifestAfter.blocked ?? []), ...newlyBlocked] }
-        : {}),
-    };
-    manifestAfter = rebuilt;
-    // Replace the last manifest in the replay events with the rebuilt one.
-    const idx = events.findIndex((e) => e.id === lastManifestEvent!.id);
-    if (idx >= 0) {
-      const e = events[idx]!;
-      events[idx] = {
-        ...e,
-        payload: rebuilt,
-        payload_hash: sha256OfJSON(rebuilt),
-      };
-    }
-  }
+  rebuildReplayManifest(events, before, excluded);
 
-  // For mode=experimental, track when the re-invocation has fired so we
-  // can mark every downstream event as "fanned out from a different
-  // result" — payload_hash gets a `_replay` marker which makes the diff
-  // surface them as `changed` rather than accidentally `identical`.
   let experimentalSubstituted = false;
 
-  // Re-run each post-checkpoint event under overrides.
   for (const e of after) {
-    if (e.kind === "model_call" && opts.alternatePlannerOutput !== undefined) {
-      events.push({
-        ...e,
-        id: ulid(),
-        payload: { ...(e.payload as object), summary: opts.alternatePlannerOutput },
-      });
-      continue;
-    }
-    if (e.kind === "tool_call_requested") {
-      const req = e.payload as ToolCallRequest;
-      // If a memory exclusion implies a safer command, substitute it.
-      const adjusted = adjustToolArgsForExclusions(req, excluded);
-      events.push({
-        ...e,
-        id: ulid(),
-        payload: adjusted,
-      });
-      continue;
-    }
-    if (e.kind === "guard_verdict" && policy) {
-      // Re-evaluate against the alternate policy using the *replay's* tool request
-      // immediately preceding this verdict.
-      const reqEvent = [...events]
-        .reverse()
-        .find(
-          (x) =>
-            x.kind === "tool_call_requested" &&
-            (x.payload as ToolCallRequest).tool_call_id ===
-              (e.payload as { tool_call_id: string }).tool_call_id,
-        );
-      const req = reqEvent ? (reqEvent.payload as ToolCallRequest) : undefined;
-      if (req) {
-        const v = evaluate(policy, req);
-        events.push({
-          ...e,
-          id: ulid(),
-          payload: { tool_call_id: req.tool_call_id, ...v },
-          payload_hash: sha256OfJSON({ tool_call_id: req.tool_call_id, ...v }),
-        });
-        continue;
-      }
-    }
-    if (e.kind === "tool_call_completed") {
-      const recorded = e.payload as ToolCallCompleted;
-      const tcid = (recorded as { tool_call_id?: string }).tool_call_id;
-
-      // mode=tool: caller-supplied result wins for named tool calls.
-      if (mode === "tool" && tcid && opts.toolSubstitutions && tcid in opts.toolSubstitutions) {
-        const newPayload = {
-          ...recorded,
-          status: "substituted",
-          result: opts.toolSubstitutions[tcid],
-        };
-        events.push({
-          ...e,
-          id: ulid(),
-          payload: newPayload,
-          payload_hash: sha256OfJSON(newPayload),
-        });
-        continue;
-      }
-
-      // mode=experimental: re-invoke the named tool with the supplied result.
-      if (
-        mode === "experimental" &&
-        tcid === opts.experimentalToolCallId
-      ) {
-        experimentalSubstituted = true;
-        const newPayload = {
-          ...recorded,
-          status: "reinvoked",
-          result:
-            opts.experimentalReplacementResult ?? {
-              status: "live-reinvocation-pending",
-            },
-        };
-        events.push({
-          ...e,
-          id: ulid(),
-          payload: newPayload,
-          payload_hash: sha256OfJSON(newPayload),
-        });
-        continue;
-      }
-
-      events.push({
-        ...e,
-        id: ulid(),
-        payload: { ...recorded, status: "replayed" },
-      });
-      continue;
-    }
-    // Default: pass-through (re-id so replay events remain causally distinct).
-    // Under mode=experimental, after the re-invocation has fired, mark
-    // downstream events with a `_replay` field so the diff sees them as
-    // `changed` (the recorded payload hashes the same; the marker carries
-    // "this event re-walked under a different upstream result").
-    if (experimentalSubstituted) {
-      const tagged = {
-        ...(e.payload as object),
-        _replay: { mode: "experimental", downstream_of: opts.experimentalToolCallId },
-      };
-      events.push({
-        ...e,
-        id: ulid(),
-        payload: tagged,
-        payload_hash: sha256OfJSON(tagged),
-      });
-      continue;
-    }
-    events.push({ ...e, id: ulid() });
+    const replayed = replayPostCheckpointEvent({
+      event: e,
+      events,
+      excluded,
+      opts,
+      policy,
+      mode,
+      experimentalSubstituted,
+    });
+    events.push(replayed.event);
+    experimentalSubstituted = replayed.experimentalSubstituted;
   }
 
   return {
@@ -293,6 +128,275 @@ export function runFromEvent(opts: RunFromEventOptions): ReplayRun {
     overrides,
     created_at: new Date().toISOString(),
     events,
+  };
+}
+
+interface ReplayEventInput {
+  event: ActantEvent;
+  events: ActantEvent[];
+  excluded: Set<string>;
+  opts: RunFromEventOptions;
+  policy: Policy | undefined;
+  mode: RunFromEventOptions["mode"];
+  experimentalSubstituted: boolean;
+}
+
+interface ReplayEventResult {
+  event: ActantEvent;
+  experimentalSubstituted: boolean;
+}
+
+type ReplayToolCompletionPayload = Omit<ToolCallCompleted, "status"> & {
+  status: ToolCallCompleted["status"] | "substituted" | "reinvoked";
+};
+
+function validateExperimentalReplay(
+  opts: RunFromEventOptions,
+  original: ActantEvent[],
+  runId: string,
+): void {
+  if (opts.mode !== "experimental") return;
+  const target = opts.experimentalToolCallId;
+  if (!target) throw new Error("experimental mode requires `experimentalToolCallId`");
+  if (!original.some((e) => eventReferencesToolCall(e, target))) {
+    throw new Error(`tool_call_id "${target}" not present in run ${runId}`);
+  }
+}
+
+function eventReferencesToolCall(event: ActantEvent, toolCallId: string): boolean {
+  if (
+    event.kind !== "tool_call_requested" &&
+    event.kind !== "tool_call_completed" &&
+    event.kind !== "tool_call_started"
+  ) {
+    return false;
+  }
+  return (event.payload as { tool_call_id?: string } | undefined)?.tool_call_id === toolCallId;
+}
+
+function rebuildReplayManifest(
+  events: ActantEvent[],
+  before: ActantEvent[],
+  excluded: Set<string>,
+): void {
+  if (excluded.size === 0) return;
+  const manifestEvent = lastContextManifestEvent(before);
+  if (!manifestEvent) return;
+
+  const rebuilt = contextManifestWithoutExcluded(
+    manifestEvent.payload as ContextManifest,
+    excluded,
+  );
+  const idx = events.findIndex((e) => e.id === manifestEvent.id);
+  if (idx < 0) return;
+
+  const event = events[idx]!;
+  events[idx] = {
+    ...event,
+    payload: rebuilt,
+    payload_hash: sha256OfJSON(rebuilt),
+  };
+}
+
+function lastContextManifestEvent(events: ActantEvent[]): ActantEvent | undefined {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i];
+    if (event?.kind === "context_build") return event;
+  }
+  return undefined;
+}
+
+function contextManifestWithoutExcluded(
+  manifest: ContextManifest,
+  excluded: Set<string>,
+): ContextManifest {
+  const kept: ContextItem[] = manifest.included.filter((i) => !excluded.has(i.id));
+  const newlyBlocked = manifest.included
+    .filter((i) => excluded.has(i.id))
+    .map((i) => ({
+      ...i,
+      flags: Array.from(new Set([...(i.flags ?? []), "replay_excluded"])),
+    }));
+  return {
+    manifest_hash: sha256OfJSON({
+      included: kept.map((i) => ({ id: i.id, content_hash: i.content_hash })),
+    }),
+    included: kept,
+    ...(manifest.blocked || newlyBlocked.length
+      ? { blocked: [...(manifest.blocked ?? []), ...newlyBlocked] }
+      : {}),
+  };
+}
+
+function replayPostCheckpointEvent(input: ReplayEventInput): ReplayEventResult {
+  const alternatePlanner = replayAlternatePlannerEvent(input.event, input.opts);
+  if (alternatePlanner) return replayResult(alternatePlanner, input.experimentalSubstituted);
+
+  const toolRequest = replayToolRequestEvent(input.event, input.excluded);
+  if (toolRequest) return replayResult(toolRequest, input.experimentalSubstituted);
+
+  const guardVerdict = replayGuardVerdictEvent(input.event, input.events, input.policy);
+  if (guardVerdict) return replayResult(guardVerdict, input.experimentalSubstituted);
+
+  const toolCompletion = replayToolCompletionEvent(input);
+  if (toolCompletion) return toolCompletion;
+
+  return replayResult(
+    replayDefaultEvent(input.event, input.opts, input.experimentalSubstituted),
+    input.experimentalSubstituted,
+  );
+}
+
+function replayResult(event: ActantEvent, experimentalSubstituted: boolean): ReplayEventResult {
+  return { event, experimentalSubstituted };
+}
+
+function replayAlternatePlannerEvent(
+  event: ActantEvent,
+  opts: RunFromEventOptions,
+): ActantEvent | undefined {
+  if (event.kind !== "model_call" || opts.alternatePlannerOutput === undefined) {
+    return undefined;
+  }
+  return {
+    ...event,
+    id: ulid(),
+    payload: { ...(event.payload as object), summary: opts.alternatePlannerOutput },
+  };
+}
+
+function replayToolRequestEvent(
+  event: ActantEvent,
+  excluded: Set<string>,
+): ActantEvent | undefined {
+  if (event.kind !== "tool_call_requested") return undefined;
+  return {
+    ...event,
+    id: ulid(),
+    payload: adjustToolArgsForExclusions(event.payload as ToolCallRequest, excluded),
+  };
+}
+
+function replayGuardVerdictEvent(
+  event: ActantEvent,
+  events: ActantEvent[],
+  policy: Policy | undefined,
+): ActantEvent | undefined {
+  if (event.kind !== "guard_verdict" || !policy) return undefined;
+  const req = lastReplayToolRequest(events, (event.payload as { tool_call_id: string }).tool_call_id);
+  if (!req) return undefined;
+
+  const verdict = evaluate(policy, req);
+  const payload = { tool_call_id: req.tool_call_id, ...verdict };
+  return {
+    ...event,
+    id: ulid(),
+    payload,
+    payload_hash: sha256OfJSON(payload),
+  };
+}
+
+function lastReplayToolRequest(
+  events: ActantEvent[],
+  toolCallId: string,
+): ToolCallRequest | undefined {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i];
+    if (
+      event?.kind === "tool_call_requested" &&
+      (event.payload as ToolCallRequest).tool_call_id === toolCallId
+    ) {
+      return event.payload as ToolCallRequest;
+    }
+  }
+  return undefined;
+}
+
+function replayToolCompletionEvent(input: ReplayEventInput): ReplayEventResult | undefined {
+  if (input.event.kind !== "tool_call_completed") return undefined;
+  const recorded = input.event.payload as ToolCallCompleted;
+  const toolCallId = (recorded as { tool_call_id?: string }).tool_call_id;
+
+  const substituted = toolSubstitutionPayload(recorded, toolCallId, input.opts, input.mode);
+  if (substituted) return replayHashedCompletion(input.event, substituted, input.experimentalSubstituted);
+
+  const reinvoked = experimentalCompletionPayload(recorded, toolCallId, input.opts, input.mode);
+  if (reinvoked) return replayHashedCompletion(input.event, reinvoked, true);
+
+  return replayResult(
+    {
+      ...input.event,
+      id: ulid(),
+      payload: { ...recorded, status: "replayed" },
+    },
+    input.experimentalSubstituted,
+  );
+}
+
+function toolSubstitutionPayload(
+  recorded: ToolCallCompleted,
+  toolCallId: string | undefined,
+  opts: RunFromEventOptions,
+  mode: RunFromEventOptions["mode"],
+): ReplayToolCompletionPayload | undefined {
+  if (mode !== "tool" || !toolCallId || !opts.toolSubstitutions) return undefined;
+  if (!(toolCallId in opts.toolSubstitutions)) return undefined;
+  return {
+    ...recorded,
+    status: "substituted",
+    result: opts.toolSubstitutions[toolCallId],
+  };
+}
+
+function experimentalCompletionPayload(
+  recorded: ToolCallCompleted,
+  toolCallId: string | undefined,
+  opts: RunFromEventOptions,
+  mode: RunFromEventOptions["mode"],
+): ReplayToolCompletionPayload | undefined {
+  if (mode !== "experimental" || toolCallId !== opts.experimentalToolCallId) {
+    return undefined;
+  }
+  return {
+    ...recorded,
+    status: "reinvoked",
+    result: opts.experimentalReplacementResult ?? {
+      status: "live-reinvocation-pending",
+    },
+  };
+}
+
+function replayHashedCompletion(
+  event: ActantEvent,
+  payload: ReplayToolCompletionPayload,
+  experimentalSubstituted: boolean,
+): ReplayEventResult {
+  return replayResult(
+    {
+      ...event,
+      id: ulid(),
+      payload,
+      payload_hash: sha256OfJSON(payload),
+    },
+    experimentalSubstituted,
+  );
+}
+
+function replayDefaultEvent(
+  event: ActantEvent,
+  opts: RunFromEventOptions,
+  experimentalSubstituted: boolean,
+): ActantEvent {
+  if (!experimentalSubstituted) return { ...event, id: ulid() };
+  const tagged = {
+    ...(event.payload as object),
+    _replay: { mode: "experimental", downstream_of: opts.experimentalToolCallId },
+  };
+  return {
+    ...event,
+    id: ulid(),
+    payload: tagged,
+    payload_hash: sha256OfJSON(tagged),
   };
 }
 

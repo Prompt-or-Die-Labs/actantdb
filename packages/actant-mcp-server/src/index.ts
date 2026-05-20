@@ -313,7 +313,7 @@ Storage:
 `;
 
 async function runStdio(storeDir: string | undefined): Promise<void> {
-  const { server } = buildServer({ ...(storeDir !== undefined ? { storeDir } : {}) });
+  const { server } = buildServer(serverOptions(storeDir));
   const transport = new StdioServerTransport();
   await server.connect(transport);
   process.on("SIGINT", async () => {
@@ -323,7 +323,7 @@ async function runStdio(storeDir: string | undefined): Promise<void> {
 }
 
 async function runHttp(port: number, storeDir: string | undefined): Promise<void> {
-  const { server } = buildServer({ ...(storeDir !== undefined ? { storeDir } : {}) });
+  const { server } = buildServer(serverOptions(storeDir));
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   await server.connect(transport);
   const http = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -347,6 +347,10 @@ async function runHttp(port: number, storeDir: string | undefined): Promise<void
     await server.close();
     process.exit(0);
   });
+}
+
+function serverOptions(storeDir: string | undefined): { storeDir?: string } {
+  return storeDir === undefined ? {} : { storeDir };
 }
 
 // Detect direct execution. Works for `node dist/index.js` and `actantdb-mcp`.
