@@ -49,10 +49,10 @@ function discoverPackages() {
       dir,
       scripts: pkg.scripts ?? {},
       dependencies: {
-        ...(pkg.dependencies ?? {}),
-        ...(pkg.devDependencies ?? {}),
-        ...(pkg.peerDependencies ?? {}),
-        ...(pkg.optionalDependencies ?? {}),
+        ...pkg.dependencies,
+        ...pkg.devDependencies,
+        ...pkg.peerDependencies,
+        ...pkg.optionalDependencies,
       },
     });
   }
