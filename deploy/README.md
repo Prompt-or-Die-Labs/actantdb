@@ -9,7 +9,6 @@ the Rust toolchain.
 | Service           | Port(s)               | Why                                                     |
 |-------------------|-----------------------|---------------------------------------------------------|
 | `actantdb-server` | `4555`                | HTTP + WebSocket API. The thing your agents talk to.    |
-| `postgres`        | (internal only)       | Durable ledger backend.                                 |
 | `caddy`           | `80`, `443`           | Reverse proxy with auto-TLS when you set a domain.      |
 | `mailpit`         | `1025` SMTP, `8025` UI| Local SMTP catcher so agents can "send mail" in dev.    |
 
@@ -40,14 +39,16 @@ First real request:
 curl -sS -X POST http://localhost:4555/v1/command \
     -H 'content-type: application/json' \
     -d '{
-          "workspace_id":"default",
-          "type":"create_session",
-          "payload":{"actor_id":"shawn","title":"hello"}
+          "workspace_id":"ws_default",
+          "actor_id":"act_system",
+          "command_type":"create_session",
+          "input":{"title":"hello"}
         }'
 ```
 
-You should get back a JSON body with `chain_hash` set. That row is now
-in the ledger and visible to any client subscribed via WebSocket.
+You should get back a JSON body with `command_id` and a `session_id` in
+`result`. That row is now in the ledger and visible to any client subscribed
+via WebSocket.
 
 ## Pointing it at a real hostname (auto-TLS)
 
@@ -75,10 +76,6 @@ actually starting any containers — safe for CI, no daemon required.
 
 ## Notes on the other recipes in this directory
 
-- `deploy/docker/docker-compose.yaml` is the older local-cluster smoke
-  recipe (just server + Postgres). It is still here for the workspace
-  test suite. New consumers should prefer this directory's
-  `docker-compose.yml`.
 - `deploy/helm/actantdb/` is the Kubernetes chart for production
   clusters. The compose file is intentionally simpler than the chart —
   enough to demo the full feature surface locally, not enough to run a
@@ -91,6 +88,14 @@ docker compose -f deploy/docker-compose.yml down            # stop
 docker compose -f deploy/docker-compose.yml down -v         # stop + delete data
 ```
 
-The named volumes (`actantdb-pg`, `caddy-data`, `caddy-config`,
+The named volumes (`actantdb-data`, `caddy-data`, `caddy-config`,
 `mailpit-data`) persist across `up`/`down` cycles. Add `-v` only when
 you genuinely want to lose the ledger and the issued certs.
+
+## Postgres boundary
+
+`PgStorage` and `actant-command::Engine::postgres` are implemented for storage
+and command-engine use. `actantdb-server` still has SQLite-specific SQL in
+several HTTP routes, so the binary refuses `ACTANTDB_DATABASE_URL` instead of
+silently downgrading or panicking. Use this compose file for the runnable
+self-host server path until the HTTP route layer is ported.

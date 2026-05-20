@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ActantClient } from "./index.js";
+import { ActantClient, ActantHttpError } from "./index.js";
 
 class FakeResponse {
   constructor(
@@ -21,6 +21,13 @@ function makeFetcher(handler: (url: string, init?: RequestInit) => unknown): typ
     const url = typeof input === "string" ? input : input.toString();
     const body = handler(url, init);
     return new FakeResponse(true, 200, body) as unknown as Response;
+  };
+  return f as typeof fetch;
+}
+
+function makeFailingFetcher(status: number, body: unknown): typeof fetch {
+  const f = async (): Promise<Response> => {
+    return new FakeResponse(false, status, body) as unknown as Response;
   };
   return f as typeof fetch;
 }
@@ -71,5 +78,31 @@ describe("ActantClient", () => {
     const c = new ActantClient({ baseUrl: "http://x:4555", fetch: fetcher });
     await c.events({ sessionId: "sess_42" });
     expect(captured).toContain("session_id=sess_42");
+  });
+
+  it("throws typed public errors from server error bodies", async () => {
+    const c = new ActantClient({
+      baseUrl: "http://x:4555",
+      fetch: makeFailingFetcher(400, {
+        error: "invalid_input",
+        code: "invalid_input",
+        message: "invalid input: missing title",
+        hint: "Check the request payload and required fields.",
+        fix: "Run `actantdb metadata commands` to inspect accepted command inputs.",
+      }),
+    });
+    await expect(
+      c.command({
+        workspaceId: "ws_1",
+        actorId: "act_1",
+        commandType: "create_session",
+        input: {},
+      }),
+    ).rejects.toMatchObject({
+      name: "ActantHttpError",
+      status: 400,
+      code: "invalid_input",
+      hint: "Check the request payload and required fields.",
+    } satisfies Partial<ActantHttpError>);
   });
 });

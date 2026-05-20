@@ -24,10 +24,10 @@ Astro, Convex, and Supabase.
 
 | # | Gap | Status | Notes |
 |---|-----|--------|-------|
-| X1 | **`npm create actantdb` / `npx @actantdb/create-app`** | 🟢 | `packages/create-actantdb/`. Interactive (`prompts`+`kleur`) and headless (`--template <name> --framework <name> --no-interactive`) modes. 9 vitest tests. Verified end-to-end: `node packages/create-actantdb/dist/index.js test-scaffold --template minimal --framework mastra --no-interactive` produces a valid scaffold. |
+| X1 | **`npm create actantdb` / `npx @actantdb/create-app`** | 🟢 | `packages/create-actantdb/`. Interactive (`prompts`+`kleur`) and headless (`--template <name> --framework <name> --no-interactive`) modes. 15 vitest tests. Verified end-to-end for Node scaffolds, plus `scripts/smoke-bun-create.mjs` covers `--runtime bun` install/run. |
 | X2 | **First-launch Studio "welcome" screen** | 🟢 | `packages/actant-studio/ui-src/panels/RunsPanel.tsx` now renders a first-run empty state with a copy-pasteable `@actantdb/mastra` snippet that captures one tool call. Covered by Studio UI tests. |
 | X3 | **`actantdb doctor`** | 🟢 | Shipped in `crates/actant-cli/src/cmd/doctor.rs`. Checks rustc ≥ 1.88, node ≥ 22.5, disk space (5 GB threshold) on the db dir's filesystem, ports 4555 + 54323 (prints PID via `lsof`), optional `claude`/`codex`/`opencode` on PATH, `ACTANTDB_DATABASE_URL` shape, and Studio `dist/ui/` presence. Each check prints `[ok]/[warn]/[fail]` + a one-line fix where applicable. |
-| X4 | **Pretty errors with one-line fixes** | 🚧 | `create-actantdb` now reports unknown flags, missing flag values, invalid project names, templates, frameworks, and languages with `error/detail/fix` output. Many SDK / CLI errors are still raw `Error.message`. Need an `ActantError` base with `code`, `hint`, `fix_command?` shape applied to every public throw. |
+| X4 | **Pretty errors with one-line fixes** | 🚧 | `actant_core::ActantError` now exposes `code`, `hint`, and optional `fix`; `actant-server` returns that JSON shape; TS and Python SDKs parse it into typed public errors. Remaining work: make every `actantdb` CLI subcommand render the same shape instead of raw `anyhow` text. |
 | X5 | **Interactive 5-minute tutorial** | 🟢 | `docs/src/playground.md` embeds a dependency-free browser playground for capture -> authority review -> replay, and `docs/src/golden-quickstart.md` carries the one golden local quickstart. |
 | X6 | **CLI shell completion** | 🟢 | Hidden `actantdb completions <shell>` subcommand wired through `clap_complete::generate` in `crates/actant-cli/src/main.rs`. Supports bash/zsh/fish/elvish/powershell. |
 | X7 | **First-run telemetry opt-in (truthful)** | 🔴 | One prompt on first `actantdb` invocation: "share anonymous usage so we can fix what breaks?" with a clear opt-out path. Convex + Vercel do this. Don't be sneaky; the prompt itself is the trust-builder. |
@@ -45,26 +45,26 @@ Here's the map.
 | # | Framework | Status | Notes |
 |---|---|--------|-------|
 | X8  | **Mastra** | 🟢 | `@actantdb/mastra` ships `withActant()`. The canonical adapter. |
-| X9  | **LangGraph** | 🚧 | Demo at `examples/langgraph-router/` works, but there's no `@actantdb/langgraph` dedicated package. Most LangGraph users will look for one by name. Need: `packages/actant-langgraph/` re-exporting `withActant` with LangGraph-idiomatic naming + a `LangGraphNode` wrapper. |
+| X9  | **LangGraph** | 🟢 | `packages/actant-langgraph/` ships as `@actantdb/langgraph`, reuses the existing `withActant` pattern, and the `examples/langgraph-router/` demo consumes it by package name. |
 | X10 | **AI SDK by Vercel** | 🟢 | `packages/actant-ai-sdk/` ships as `@actantdb/ai-sdk` with workspace tests. |
 | X11 | **OpenAI Agents SDK** (`@openai/agents`) | 🟢 | `packages/actant-openai-agents/` ships as `@actantdb/openai-agents` with workspace tests. |
 | X12 | **Anthropic SDK direct** (`@anthropic-ai/sdk`) | 🟢 | `packages/actant-anthropic/` ships as `@actantdb/anthropic` with workspace tests. |
 | X13 | **OpenAI SDK direct** | 🟢 | `packages/actant-openai/` ships as `@actantdb/openai` with workspace tests. |
-| X14 | **CrewAI** (Python) | 🔴 | Python — our SDK exists. Need a `crewai-actantdb` package on PyPI with a `with_actant_logging(crew)` decorator. |
-| X15 | **AutoGen** (Microsoft, Python) | 🔴 | Same shape; Python. |
+| X14 | **CrewAI** (Python) | 🟢 | `sdks/python/actantdb/crewai.py` ships `ActantCrewAITracer` with dependency-free task/tool callback logging via scout records. |
+| X15 | **AutoGen** (Microsoft, Python) | 🟢 | `sdks/python/actantdb/autogen.py` ships `ActantAutoGenLogger` for message logging without importing AutoGen. |
 | X16 | **LangChain JS** | 🟢 | `packages/actant-langchain/` ships as `@actantdb/langchain` with workspace tests. |
-| X17 | **LangChain Python** | 🔴 | Same; Python pip package. |
-| X18 | **Inngest** | 🔴 | Inngest is the canonical durable-workflow alt to QStash. `@actantdb/inngest` middleware that logs every step as a ledger event. |
-| X19 | **Trigger.dev** | 🔴 | Same shape as Inngest. |
+| X17 | **LangChain Python** | 🟢 | `sdks/python/actantdb/langchain.py` ships `ActantCallbackHandler` with dependency-free callback methods. |
+| X18 | **Inngest** | 🟢 | `packages/actant-inngest/` ships as `@actantdb/inngest`; tests record an embedded run around an Inngest-shaped handler. |
+| X19 | **Trigger.dev** | 🟢 | `packages/actant-triggerdev/` ships as `@actantdb/triggerdev`; tests record an embedded run around a Trigger.dev-shaped task. |
+| X19a | **elizaOS** | 🟢 | `packages/actant-elizaos/` ships as `@actantdb/elizaos`; tests cover action wrapping, runtime wrapping, and plugin shape without importing elizaOS. |
 | X20 | **Vercel AI Gateway** | 🔴 | If a user proxies through Vercel AI Gateway, we should record `model_call` events with gateway routing metadata intact. |
 | X21 | **Ollama / local models** | 🚧 | `actant-runtime::models` registry knows about Ollama. The `withActant` wrapper sees the model name. Need explicit guidance in docs + a `examples/ollama-only/` demo. |
 | X22 | **Convex** | 🟢 | `@actantdb/convex` exists and its package tests passed in the current workspace run. A public smoke demo is still useful, but the package is no longer untested. |
 | X23 | **Supabase** | 🔴 | The opposite direction — adapter for *running ActantDB inside a Supabase Edge Function* so a Supabase consumer can add ActantDB without standing up a separate server. Worth shipping once GAPS row #26 (docker-compose) ships. |
 
-**Part B: 7 🟢, 2 🚧, 7 🔴, 0 ⊝.** The highest-volume TypeScript adapters now
-exist. Remaining red rows are mostly Python framework adapters, durable
-workflow middleware, gateway-specific metadata capture, and a Supabase edge
-adapter.
+**Part B: 14 🟢, 1 🚧, 2 🔴, 0 ⊝.** The high-volume TypeScript and Python
+agent adapters now exist. Remaining red rows are gateway-specific metadata
+capture and a Supabase edge adapter.
 
 ---
 
@@ -76,7 +76,7 @@ the server?
 | # | Runtime | Status | Notes |
 |---|---|--------|-------|
 | X24 | **Node ≥ 22.5** (`node:sqlite`) | 🟢 | First-class runtime. `@actantdb/core` runs embedded. |
-| X25 | **Bun** | 🚧 | Probably works (Bun is Node-compatible) but never tested. Need: smoke test in CI matrix. |
+| X25 | **Bun** | 🟢 | `@actantdb/core` resolves `bun:sqlite` when `node:sqlite` is unavailable. `scripts/smoke-bun-create.mjs` packs the workspace, scaffolds with `create-actantdb --runtime bun`, runs `bun install`, runs `bun start`, and asserts the embedded ledger exists. CI job: `test-bun-create`. |
 | X26 | **Deno** | 🔴 | No `node:sqlite`. Would need a Deno-native SQLite (`@db/sqlite`) variant of `@actantdb/core` or HTTP-only mode (`@actantdb/sdk`). Most Deno-targeted agent devs would accept HTTP-only. |
 | X27 | **Cloudflare Workers** | 🔴 | No filesystem, no `node:sqlite`. Server mode via fetch only. Future-proof path: a `@actantdb/cloudflare` adapter that wraps a Durable Object + R2 for the ledger. Big lift. Defer until requested. |
 | X28 | **Vercel Edge / Next.js Route Handlers (edge)** | 🔴 | Same constraints as Workers. Server-mode via `fetch` works today; embedded does not. |
@@ -84,9 +84,9 @@ the server?
 | X30 | **Native Mac / iOS via Swift SDK** | 🟢 | `sdks/swift/` ships `ActantDB` (HTTP+WS) + `ActantAgent` (high-tier) + `ActantDBSupervisor` (spawn the actantdb-server subprocess). Closed via GAPS row #1. |
 | X31 | **Native Android via Kotlin** | 🔴 | Java/Kotlin SDK missing entirely. Android agent dev is small today but growing. |
 
-**Part C: 2 🟢, 1 🚧, 4 🔴, 1 ⊝.** The embedded-runtime list is what's
-fundamentally limiting "drop into my existing project". Bun (X25) and Deno
-(X26) are easy wins; Edge runtimes (X27, X28) are big.
+**Part C: 3 🟢, 0 🚧, 4 🔴, 1 ⊝.** The embedded-runtime list is what's
+fundamentally limiting "drop into my existing project". Deno (X26) is the
+remaining easy win; Edge runtimes (X27, X28) are big.
 
 ---
 
@@ -121,7 +121,7 @@ products typically ship 6–10 languages.
 | # | Language | Status | Notes |
 |---|---|--------|-------|
 | X42 | **TypeScript** (`@actantdb/sdk`) | 🟢 | Core surface, well-typed, generated from `actant-contracts`. |
-| X43 | **Python** (`sdks/python/actantdb`) | 🚧 | Ships; **no `.pyi` type stubs**, no async client (just blocking), no `asyncio` flavor. Modern Python agent devs expect `httpx.AsyncClient`-style. |
+| X43 | **Python** (`sdks/python/actantdb`) | 🚧 | Ships sync + `AsyncActantClient`, typed public HTTP errors, and LangChain/CrewAI/AutoGen helpers. Remaining gap: no `.pyi` type stubs. |
 | X44 | **Swift** (`sdks/swift`) | 🟢 | Full `ActantDB` + `ActantAgent` + supervisor. Closed via GAPS #1. |
 | X45 | **Rust** (`sdks/rust`, `actantdb-client`) | 🟢 | Workspace member; covers HTTP + WS subscribe; mirrors Python+Swift surface. Closed via GAPS #2. |
 | X46 | **Go** | 🔴 | Missing. Go is the second-largest substrate language for new infra; many ops teams default to it. |
@@ -235,9 +235,9 @@ Things our users need to test *their* agent code that integrates with us.
 
 | Status | Count | Notes |
 |---|---:|---|
-| 🟢 ships | **40** | First-touch, high-volume TS adapters, CLI tooling, MCP, recipes, testing helpers, docs/API references, and the shipped Part K server features. |
+| 🟢 ships | **45** | First-touch, high-volume TS/Python adapters, CLI tooling, MCP, recipes, testing helpers, docs/API references, and the shipped Part K server features. |
 | 🚧 partial | **10** | Things that exist but need wrapper hardening, runtime validation, or product polish |
-| 🔴 missing | **43** | DX backlog after this pass: language SDKs (Go/Kotlin/.NET/Ruby/PHP/Elixir), edge runtimes (CF Workers/Deno/Vercel Edge), VSCode extension, package managers (Homebrew/Scoop/APT/Nix), trace-UI integrations, big-ticket UI, Studio i18n/mobile/dark-mode toggle, Python framework adapters, durable workflow middleware, gateway metadata capture, and fixture generators. |
+| 🔴 missing | **38** | DX backlog after this pass: language SDKs (Go/Kotlin/.NET/Ruby/PHP/Elixir), edge runtimes (CF Workers/Deno/Vercel Edge), VSCode extension, package managers (Homebrew/Scoop/APT/Nix), trace-UI integrations, big-ticket UI, Studio i18n/mobile/dark-mode toggle, gateway metadata capture, and fixture generators. |
 | ⊝ deliberate non-goal | **1** | Browser runtime remains a non-goal for the current embedded Node package; a separate WASM package is tracked as X92. |
 | **Total rows** | **94** | |
 

@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildContextManifest } from "@actantdb/core";
-import { withActant } from "@actantdb/mastra";
+import { withActant } from "@actantdb/langgraph";
 import { demoPolicy } from "@actantdb/policy";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -111,7 +111,7 @@ await agent.tools["shell.run"].execute({ command: "rm -rf cache dist" });
 ctx.finish({ ok: true });
 wrapped.actant.close();
 
-console.error(`✅ Recorded LangGraph demo for project=${PROJECT}`);
+console.error(`Recorded LangGraph demo for project=${PROJECT}`);
 console.error(`   ${calls.length} tool calls executed.`);
 console.error(`   The shell.run was constrained: ${JSON.stringify(calls[calls.length - 1]?.args)}`);
 console.error(`\nOpen Studio:`);

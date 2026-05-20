@@ -1,13 +1,17 @@
 //! Postgres backend for `actant-storage`.
 //!
-//! Phase 6. Mirrors the public `Storage` API but uses `sqlx::PgPool`.
+//! Mirrors the public storage methods needed by the command substrate, but
+//! uses `sqlx::PgPool`.
 //! Schema lives in `/migrations/pg/*.sql`.
 
 use std::str::FromStr;
+use std::sync::Arc;
 
 use actant_core::ActantError;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::PgPool;
+
+use crate::{BlobStore, MemoryStore};
 
 // Postgres migration apply order. Migration KEY (the first field) is the
 // applied-tracking identifier — once applied to a PG database it never
@@ -53,9 +57,18 @@ const PG_MIGRATIONS: &[(&str, &str)] = &[
 ];
 
 /// Postgres storage handle.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PgStorage {
     pool: PgPool,
+    pub(crate) blob_store: Arc<dyn BlobStore>,
+}
+
+impl std::fmt::Debug for PgStorage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PgStorage")
+            .field("pool", &self.pool)
+            .finish()
+    }
 }
 
 impl PgStorage {
@@ -68,9 +81,23 @@ impl PgStorage {
             .connect_with(opts)
             .await
             .map_err(|e| ActantError::Storage(e.to_string()))?;
-        let s = PgStorage { pool };
+        let s = PgStorage {
+            pool,
+            blob_store: Arc::new(MemoryStore::new()),
+        };
         s.run_migrations().await?;
         Ok(s)
+    }
+
+    /// Swap in a custom blob store for artifact payloads.
+    pub fn with_blob_store(mut self, store: Arc<dyn BlobStore>) -> Self {
+        self.blob_store = store;
+        self
+    }
+
+    /// Access the configured blob store.
+    pub fn blob_store(&self) -> Arc<dyn BlobStore> {
+        self.blob_store.clone()
     }
 
     /// Underlying pool.
@@ -150,8 +177,7 @@ fn first_line(s: &str) -> &str {
 mod tests {
     use super::*;
 
-    /// Connects to a Postgres if `ACTANTDB_TEST_PG_URL` is set; otherwise
-    /// skips. CI must set this against a sidecar (see deploy/docker/docker-compose).
+    /// Connects to Postgres if `ACTANTDB_TEST_PG_URL` is set; otherwise skips.
     #[tokio::test]
     async fn opens_and_applies_pg_schema() {
         let Ok(url) = std::env::var("ACTANTDB_TEST_PG_URL") else {

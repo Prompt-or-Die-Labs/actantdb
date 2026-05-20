@@ -2,7 +2,7 @@
 
 **Cross-framework demo — same wrapper, different agent shape.**
 
-A routing agent shaped like a LangGraph node. Has `tools` and an `invoke()` instead of `generate()`. The wrapper doesn't care. This proves [`@actantdb/mastra`](../../packages/actant-mastra)'s duck-typing claim.
+A routing agent shaped like a LangGraph node. Has `tools` and an `invoke()` instead of `generate()`. The wrapper doesn't care. This consumes [`@actantdb/langgraph`](../../packages/actant-langgraph) by package name.
 
 ## Run it
 
@@ -19,10 +19,9 @@ Open http://127.0.0.1:4555. You'll see:
 
 ## What this proves vs. the Mastra demo
 
-The Mastra demo proves the wedge captures + replays one specific framework. This demo proves the **wrapper is framework-agnostic**: it works on any agent that exposes `tools: Record<string, { execute }>`. That's the F2-prevention property — Mastra users today, LangGraph / OpenAI Agents SDK / hand-rolled tomorrow.
+The Mastra demo proves the wedge captures + replays one specific framework. This demo proves the LangGraph package uses the same thin `withActant` pattern for any graph or node loop that exposes `tools: Record<string, { execute }>`.
 
 ## Package boundary
 
-This demo intentionally uses the same duck-typed wrapper as the Mastra demo.
-A dedicated `@actantdb/langgraph` package is a compatibility wrapper, not a
-separate validation gate.
+`@actantdb/langgraph` is a compatibility package, not a second Guard or ledger
+implementation.

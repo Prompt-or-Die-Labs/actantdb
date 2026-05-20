@@ -2,7 +2,6 @@
 #
 # Spins up:
 #   - actantdb-server   (HTTP + WebSocket API on :4555)
-#   - postgres          (the durable ledger backend)
 #   - caddy             (reverse proxy with auto-TLS; skip for loopback)
 #   - mailpit           (local SMTP catcher on :1025, web UI on :8025)
 #
@@ -15,35 +14,14 @@
 # See deploy/README.md for the walk-through.
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: actantdb
-      POSTGRES_USER: actantdb
-      POSTGRES_PASSWORD: actantdb
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U actantdb"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-    volumes:
-      - actantdb-pg:/var/lib/postgresql/data
-    # Postgres stays on the internal network only; reach it through
-    # actantdb-server. Uncomment to expose for local SQL clients.
-    # ports:
-    #   - "5432:5432"
-
   actantdb-server:
     image: ghcr.io/prompt-or-die-labs/actantdb:latest
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
       ACTANTDB_BIND: 0.0.0.0:4555
-      ACTANTDB_DATABASE_URL: postgres://actantdb:actantdb@postgres:5432/actantdb
+      ACTANTDB_DB: /data/actantdb.sqlite
       # SMTP-equivalent vars for any worker that wants to send mail
       # against the local catcher instead of a real provider.
       ACTANTDB_SMTP_HOST: mailpit
@@ -51,6 +29,8 @@ services:
       RUST_LOG: info,actant_server=debug
     ports:
       - "4555:4555"
+    volumes:
+      - actantdb-data:/data
     restart: unless-stopped
 
   caddy:
@@ -84,7 +64,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  actantdb-pg:
+  actantdb-data:
   caddy-data:
   caddy-config:
   mailpit-data:

@@ -16,6 +16,8 @@ export type FrameworkChoice =
 
 export type LanguageChoice = "ts" | "js";
 
+export type RuntimeChoice = "node" | "bun";
+
 export interface Template {
   /** Identifier used as the --template flag value. */
   id: string;

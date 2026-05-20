@@ -7,16 +7,20 @@ release-scenario evidence. CI remains the source of truth for the full matrix.
 
 | Suite | Result | Method |
 | --- | --- | --- |
-| TypeScript workspace tests | passed | `pnpm -r test` |
+| TypeScript adapter tests | passed | `pnpm --filter @actantdb/{sdk,langgraph,inngest,triggerdev,elizaos} test` |
+| TypeScript adapter builds | passed | `pnpm --filter @actantdb/{sdk,inngest,triggerdev,elizaos,all,types} build` |
 | TypeScript workspace build | passed | `pnpm -r build` |
-| Workspace smoke | passed | `pnpm smoke` |
-| Rust workspace check | passed | `cargo check --workspace --all-targets` |
-| Focused Rust crate tests | passed | `cargo test -p actant-storage`, `actant-sync`, `actant-replay`, `actantdb-client`, `actant-server --lib`, `actant-subscribe --lib` |
+| TypeScript workspace tests | passed | `pnpm -r test` |
+| Workspace smoke | passed | `pnpm smoke`, `pnpm smoke:bun-create` |
+| Swift SDK tests | passed | `swift test --package-path sdks/swift` (73 passed, 1 skipped) |
+| Swift local FFI embedded smoke | passed | `bash sdks/swift/scripts/build-local-actantffi-xcframework.sh`, then `ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" swift test --package-path sdks/swift --filter embeddedRoundTrip` |
+| Python SDK tests | passed | `PYTHONPATH=sdks/python python3 -m unittest sdks/python/tests/test_client.py` (14 passed, 1 skipped) |
+| Rust storage/command/server checks | passed | `cargo check -p actant-storage --all-targets`, `cargo check -p actant-command --all-targets`, `cargo check -p actant-core --all-targets`, `cargo check -p actant-server --all-targets`, `cargo check -p actant-cli --all-targets`, `cargo check -p actant-ffi --all-targets` |
+| Rust targeted tests | passed | `cargo test -p actant-core --all-targets`, `cargo test -p actant-storage --all-targets`, `cargo test -p actant-command --all-targets`, `cargo test -p actant-server --all-targets`, `cargo test -p actant-cli --all-targets`, `cargo test -p actant-ffi` |
+| Workspace hygiene | passed | `git diff --check`, `graphify update .` |
 
-Not completed locally in this pass: full `actant-server` and
-`actant-subscribe` integration-test binaries, because the local compile/link
-step exceeded the interactive run budget. CI owns the full cross-platform
-matrix.
+Not completed locally in this pass: full `cargo test --workspace`, by repository
+rule. CI owns the full cross-platform matrix.
 
 ## Historical release-scenario counts
 
@@ -142,8 +146,9 @@ Surfaced from the trial runs and filed as GH issues #1–#4:
 - Per-framework integration tests (Mastra, LangGraph, OpenAI Agents).
   `@actantdb/mastra` works against any tools-record-shaped agent, but
   framework-specific integration tests don't exist yet.
-- Postgres backend. `PgStorage` exists but the command engine still
-  hard-codes the SQLite path (per GAPS.md #5). Postgres works for raw
-  storage; full-stack server-against-Postgres isn't tested.
+- Postgres backend. `PgStorage` and `actant-command::Engine::postgres` now
+  share the backend-neutral storage path. `actantdb-server` is still
+  SQLite-only at the HTTP route layer and refuses `ACTANTDB_DATABASE_URL`;
+  full-stack server-against-Postgres is not supported or tested yet.
 - Multi-tenant cross-workspace boundary at scale. The unit-level cross-
   tenant guards have tests; an adversarial-load run hasn't been done.

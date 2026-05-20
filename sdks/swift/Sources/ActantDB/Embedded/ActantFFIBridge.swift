@@ -1,54 +1,22 @@
 import Foundation
 
-// MARK: - ActantFFI bridge
-//
-// This file is the consumer-side seam over the uniffi-generated
-// `ActantHandle` Swift class produced by `crates/actant-ffi`. The generated
-// glue is shipped as the `ActantFFI` binary target (see `.binaryTarget` in
-// `Package.swift`); when that target is missing, the bridge falls back to a
-// stub that throws on every method so the package still compiles.
-//
-// Expected generated surface (per IOS_EMBEDDING.md §1, finalized by the
-// parallel agent building `crates/actant-ffi`):
-//
-//     import ActantFFI
-//
-//     public class ActantHandle {
-//         public static func open(storeDir: String, workspaceId: String)
-//             throws -> ActantHandle
-//         public func dispatch(
-//             commandType: String,
-//             inputJson: String,
-//             idempotencyKey: String?
-//         ) throws -> ActantFFICommandOutcome
-//         public func eventsSince(cursor: String?, limit: UInt32)
-//             throws -> [ActantFFIEventRow]
-//         public func ingest(eventsNdjson: String) throws -> ActantFFIIngestReport
-//         public func close()
-//     }
-//
-// TODO(ffi): once `crates/actant-ffi` lands, drop the stub branch, switch the
-// production branch to call the generated `ActantHandle`, and convert the
-// generated FFI types to the SDK-facing `CommandOutcome` / `EventRow` /
-// `IngestReport` types.
-
-#if canImport(ActantFFI)
+#if ACTANTDB_LOCAL_FFI
 import ActantFFI
 
-/// Production bridge backed by the uniffi-generated `ActantHandle`. The
-/// generated class is reference-typed and thread-safe per uniffi's runtime
-/// guarantees; we wrap it in an actor so the SDK's async surface composes
-/// without requiring callers to reason about FFI threading.
+extension ActantHandle: @unchecked Sendable {}
+
 public actor ActantFFIBridge: EmbeddedHandle {
     private let inner: ActantHandle
+    private let workspaceID: String
+    private let actorID: String
 
-    public init(storeDir: URL, workspaceID: String, actorID: String) throws {
-        // `actorID` is currently informational on the FFI side; the Rust core
-        // reads the configured workspace + per-event actor at dispatch time.
-        _ = actorID
-        self.inner = try ActantHandle.open(
+    public init(storeDir: URL, workspaceID: String, actorID: String) async throws {
+        self.workspaceID = workspaceID
+        self.actorID = actorID
+        self.inner = try await ActantHandle.open(
             storeDir: storeDir.path,
-            workspaceId: workspaceID
+            workspaceId: workspaceID,
+            actorId: actorID
         )
     }
 
@@ -61,7 +29,7 @@ public actor ActantFFIBridge: EmbeddedHandle {
             data: JSONEncoder.actant.encode(input),
             encoding: .utf8
         ) ?? "null"
-        let ffi = try inner.dispatch(
+        let ffi = try await inner.dispatch(
             commandType: commandType,
             inputJson: inputJSON,
             idempotencyKey: idempotencyKey
@@ -73,62 +41,84 @@ public actor ActantFFIBridge: EmbeddedHandle {
         cursor: HLCCursor?,
         limit: UInt32
     ) async throws -> [EventRow] {
-        let cursorString = cursor.map { "\($0.physicalMS):\($0.logical)" }
-        let ffiRows = try inner.eventsSince(cursor: cursorString, limit: limit)
-        return try ffiRows.map(Self.convertEventRow)
+        let cursorPhysicalMS = try cursor.map { try Self.unsignedHLCPhysicalMS($0.physicalMS) }
+        let ffiRows = try await inner.eventsSince(
+            cursorHlcPhysicalMs: cursorPhysicalMS,
+            cursorHlcLogical: cursor?.logical,
+            limit: limit
+        )
+        return try ffiRows.map { try self.convertEventRow($0) }
     }
 
     public func ingest(events: [EventRow]) async throws -> IngestReport {
-        let ndjson = try events.map { row -> String in
-            let data = try JSONEncoder.actant.encode(row)
-            return String(data: data, encoding: .utf8) ?? ""
-        }.joined(separator: "\n")
-        let ffi = try inner.ingest(eventsNdjson: ndjson)
+        let ffiEvents = try events.map(Self.convertEventRow)
+        let ffi = try await inner.ingest(events: ffiEvents)
         return Self.convertIngestReport(ffi)
     }
 
     public func close() async {
-        inner.close()
+        await inner.close()
     }
 
-    // MARK: - Conversion helpers (FFI ↔ SDK types)
-    //
-    // !!! PLACEHOLDER — WILL NOT COMPILE AGAINST REAL `ActantFFI` MODULE !!!
-    //
-    // The bodies below treat the uniffi-generated types as `Any` and try a
-    // JSON round-trip, which fails at compile time the moment a real
-    // `ActantFFI` module exposes the typed records (uniffi-generated structs
-    // are not `Encodable`). This is intentional: the bridge has to be
-    // rewritten once the parallel `crates/actant-ffi` agent finalizes the
-    // generated Swift surface (see GAPS row #39). At that point:
-    //   1. Replace `_ ffi: Any` with the concrete generated record types
-    //      (e.g. `ActantFFICommandOutcome`).
-    //   2. Map field-by-field — uniffi gives camelCased property accessors.
-    //   3. Drop the JSON round-trip entirely.
-    //
-    // Keeping the bridge file present (rather than stubbing it out entirely)
-    // means consumers see the planned shape today; the integration agent
-    // touches one file when the FFI surface is real.
+    private static func convertOutcome(_ ffi: ActantFFI.CommandOutcome) throws -> CommandOutcome {
+        let result = try JSONDecoder.actant.decode(JSONValue.self, from: Data(ffi.resultJson.utf8))
+        return CommandOutcome(
+            commandID: ffi.commandId,
+            eventID: ffi.eventId,
+            result: result
+        )
+    }
 
-    private static func convertOutcome(_ ffi: Any) throws -> CommandOutcome {
-        if let data = try? JSONEncoder().encode(AnyEncodable(ffi)),
-           let decoded = try? JSONDecoder.actant.decode(CommandOutcome.self, from: data) {
-            return decoded
+    private func convertEventRow(_ ffi: ActantFFI.EventRow) throws -> EventRow {
+        let physicalMS = try Self.signedHLCPhysicalMS(ffi.hlcPhysicalMs)
+        return EventRow(
+            id: ffi.id,
+            workspaceID: workspaceID,
+            sessionID: ffi.sessionId,
+            deviceID: ffi.deviceId,
+            actorID: actorID,
+            eventType: ffi.eventType,
+            payloadJSON: Data(ffi.payloadJson.utf8),
+            payloadHash: ffi.payloadHash,
+            prevChainHash: nil,
+            hlc: HLCCursor(physicalMS: physicalMS, logical: ffi.hlcLogical),
+            createdAt: ffi.createdAt
+        )
+    }
+
+    private static func convertEventRow(_ row: EventRow) throws -> ActantFFI.EventRow {
+        guard let payloadJSON = String(data: row.payloadJSON, encoding: .utf8) else {
+            throw ActantError.decoding("EventRow.payloadJSON is not valid UTF-8", body: row.payloadJSON)
         }
-        return CommandOutcome(commandID: "ffi_unknown", eventID: nil, result: .null)
+        return ActantFFI.EventRow(
+            id: row.id,
+            sessionId: row.sessionID,
+            eventType: row.eventType,
+            payloadJson: payloadJSON,
+            payloadHash: row.payloadHash,
+            createdAt: row.createdAt,
+            deviceId: row.deviceID,
+            hlcPhysicalMs: try unsignedHLCPhysicalMS(row.hlc.physicalMS),
+            hlcLogical: row.hlc.logical
+        )
     }
 
-    private static func convertEventRow(_ ffi: Any) throws -> EventRow {
-        let data = try JSONEncoder().encode(AnyEncodable(ffi))
-        return try JSONDecoder.actant.decode(EventRow.self, from: data)
+    private static func convertIngestReport(_ ffi: ActantFFI.IngestReport) -> IngestReport {
+        IngestReport(accepted: ffi.accepted, skipped: ffi.skipped, rejected: ffi.rejected)
     }
 
-    private static func convertIngestReport(_ ffi: Any) -> IngestReport {
-        if let data = try? JSONEncoder().encode(AnyEncodable(ffi)),
-           let decoded = try? JSONDecoder.actant.decode(IngestReport.self, from: data) {
-            return decoded
+    private static func signedHLCPhysicalMS(_ value: UInt64) throws -> Int64 {
+        guard value <= UInt64(Int64.max) else {
+            throw ActantError.decoding("hlc_physical_ms exceeds Int64.max", body: Data())
         }
-        return IngestReport(accepted: 0, skipped: 0, rejected: [])
+        return Int64(value)
+    }
+
+    private static func unsignedHLCPhysicalMS(_ value: Int64) throws -> UInt64 {
+        guard value >= 0 else {
+            throw ActantError.transport("hlc_physical_ms must be non-negative")
+        }
+        return UInt64(value)
     }
 }
 
@@ -140,7 +130,7 @@ public actor ActantFFIBridge: EmbeddedHandle {
 /// stable message so consumers can branch on it; `Actant.embedded(...)` fails
 /// fast at construction time.
 public actor ActantFFIBridge: EmbeddedHandle {
-    public init(storeDir: URL, workspaceID: String, actorID: String) throws {
+    public init(storeDir: URL, workspaceID: String, actorID: String) async throws {
         _ = (storeDir, workspaceID, actorID)
         throw ActantError.transport(
             "ActantFFI binary target not linked — see docs/IOS_EMBEDDING.md"

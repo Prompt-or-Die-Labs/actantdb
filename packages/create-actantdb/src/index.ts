@@ -21,6 +21,7 @@ import {
   getTemplate,
   type FrameworkChoice,
   type LanguageChoice,
+  type RuntimeChoice,
 } from "./templates.js";
 
 export { TEMPLATES, FRAMEWORKS, getTemplate } from "./templates.js";
@@ -34,6 +35,7 @@ interface Args {
   template?: string;
   framework?: FrameworkChoice;
   language?: LanguageChoice;
+  runtime?: RuntimeChoice;
   studioPort?: number;
   interactive: boolean;
   yes: boolean;
@@ -64,6 +66,7 @@ Options:
   --template <id>     ${TEMPLATES.map((t) => t.id).join(" | ")}
   --framework <id>    ${FRAMEWORKS.map((f) => f.id).join(" | ")}
   --language <ts|js>  default: ts
+  --runtime <node|bun> default: node
   --port <n>          Studio port for the scaffolded project (default ${DEFAULT_STUDIO_PORT})
   --no-interactive    Skip prompts; require every choice on argv.
   --yes               Alias for --no-interactive.
@@ -119,6 +122,9 @@ const VALUE_ARGS: Record<string, ValueArg> = {
   },
   "--language": (out, value) => {
     if (value !== undefined) out.language = value as LanguageChoice;
+  },
+  "--runtime": (out, value) => {
+    if (value !== undefined) out.runtime = value as RuntimeChoice;
   },
   "--port": (out, value) => {
     if (value) out.studioPort = Number(value);
@@ -176,6 +182,7 @@ export interface ScaffoldChoices {
   template: string;
   framework: FrameworkChoice;
   language: LanguageChoice;
+  runtime: RuntimeChoice;
   studioPort: number;
 }
 
@@ -199,6 +206,7 @@ export function scaffold(
     template: choices.template,
     framework: choices.framework,
     language: choices.language,
+    runtime: choices.runtime,
     studioPort: choices.studioPort,
     actantdbVersion: opts.version ?? `^${PACKAGE_VERSION}`,
   });
@@ -281,6 +289,7 @@ async function interactiveFlow(args: Args): Promise<ScaffoldChoices> {
 
   const normalizedFramework = normalizeFramework(framework);
   const normalizedLanguage = normalizeLanguage(language ?? "ts");
+  const normalizedRuntime = normalizeRuntime(args.runtime ?? "node");
   const studioPort = normalizePort(args.studioPort ?? DEFAULT_STUDIO_PORT);
 
   return {
@@ -288,6 +297,7 @@ async function interactiveFlow(args: Args): Promise<ScaffoldChoices> {
     template: template.id,
     framework: normalizedFramework,
     language: normalizedLanguage,
+    runtime: normalizedRuntime,
     studioPort,
   };
 }
@@ -300,12 +310,14 @@ function nonInteractiveFlow(args: Args): ScaffoldChoices {
   if (!templateDef) throw unknownTemplate(template);
   const framework = normalizeFramework(args.framework ?? templateDef.defaultFramework);
   const language = normalizeLanguage(args.language ?? "ts");
+  const runtime = normalizeRuntime(args.runtime ?? "node");
   const studioPort = normalizePort(args.studioPort ?? DEFAULT_STUDIO_PORT);
   return {
     projectName: name,
     template,
     framework,
     language,
+    runtime,
     studioPort,
   };
 }
@@ -348,6 +360,14 @@ function normalizeLanguage(language: string | undefined): LanguageChoice {
   throw new UserFacingError(`unknown language: ${language ?? ""}`, {
     detail: "Available languages: ts, js.",
     fix: "Use `--language js` for the fewest moving parts.",
+  });
+}
+
+function normalizeRuntime(runtime: string | undefined): RuntimeChoice {
+  if (runtime === "node" || runtime === "bun") return runtime;
+  throw new UserFacingError(`unknown runtime: ${runtime ?? ""}`, {
+    detail: "Available runtimes: node, bun.",
+    fix: "Use `--runtime bun` for Bun's embedded SQLite path.",
   });
 }
 
@@ -399,6 +419,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   const targetDir = resolve(process.cwd(), choices.projectName);
   try {
     const result = scaffold(targetDir, choices, { force: args.force });
+    const commands = nextStepCommands(choices.runtime);
     process.stdout.write(
       [
         "",
@@ -406,10 +427,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
         "",
         kleur.gray("Next steps:"),
         `  cd ${choices.projectName}`,
-        `  npm install`,
-        `  npm start`,
-        `  npm run studio`,
-        `  npm run doctor`,
+        `  ${commands.install}`,
+        `  ${commands.start}`,
+        `  ${commands.studio}`,
+        `  ${commands.doctor}`,
         "",
         kleur.gray("Files written:"),
         ...result.filesWritten.map((f) => `  ${f}`),
@@ -421,6 +442,28 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     process.stderr.write(formatError(err));
     return 1;
   }
+}
+
+function nextStepCommands(runtime: RuntimeChoice): {
+  install: string;
+  start: string;
+  studio: string;
+  doctor: string;
+} {
+  if (runtime === "bun") {
+    return {
+      install: "bun install",
+      start: "bun start",
+      studio: "bun run studio",
+      doctor: "bun run doctor",
+    };
+  }
+  return {
+    install: "npm install",
+    start: "npm start",
+    studio: "npm run studio",
+    doctor: "npm run doctor",
+  };
 }
 
 // Detect direct execution.

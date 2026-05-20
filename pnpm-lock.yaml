@@ -67,9 +67,9 @@ importers:
       '@actantdb/core':
         specifier: workspace:*
         version: link:../../packages/actant-core
-      '@actantdb/mastra':
+      '@actantdb/langgraph':
         specifier: workspace:*
-        version: link:../../packages/actant-mastra
+        version: link:../../packages/actant-langgraph
       '@actantdb/policy':
         specifier: workspace:*
         version: link:../../packages/actant-policy
@@ -220,6 +220,41 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
 
+  packages/actant-elizaos:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../actant-core
+      '@actantdb/types':
+        specifier: workspace:*
+        version: link:../actant-types
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
+
+  packages/actant-inngest:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../actant-core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
+
   packages/actant-langchain:
     dependencies:
       '@actantdb/core':
@@ -235,6 +270,25 @@ importers:
         specifier: '*'
         version: 1.1.47(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.20.1)(zod@3.25.76))(ws@8.20.1)
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
+
+  packages/actant-langgraph:
+    dependencies:
+      '@actantdb/mastra':
+        specifier: workspace:*
+        version: link:../actant-mastra
+    devDependencies:
+      '@actantdb/policy':
+        specifier: workspace:*
+        version: link:../actant-policy
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19
@@ -476,6 +530,22 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
 
+  packages/actant-triggerdev:
+    dependencies:
+      '@actantdb/core':
+        specifier: workspace:*
+        version: link:../actant-core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(jsdom@25.0.1)
+
   packages/actant-types:
     devDependencies:
       typescript:
@@ -518,9 +588,18 @@ importers:
       '@actantdb/core':
         specifier: workspace:*
         version: link:../actant-core
+      '@actantdb/elizaos':
+        specifier: workspace:*
+        version: link:../actant-elizaos
+      '@actantdb/inngest':
+        specifier: workspace:*
+        version: link:../actant-inngest
       '@actantdb/langchain':
         specifier: workspace:*
         version: link:../actant-langchain
+      '@actantdb/langgraph':
+        specifier: workspace:*
+        version: link:../actant-langgraph
       '@actantdb/mastra':
         specifier: workspace:*
         version: link:../actant-mastra
@@ -545,6 +624,9 @@ importers:
       '@actantdb/testing':
         specifier: workspace:*
         version: link:../actant-testing
+      '@actantdb/triggerdev':
+        specifier: workspace:*
+        version: link:../actant-triggerdev
       '@actantdb/types':
         specifier: workspace:*
         version: link:../actant-types

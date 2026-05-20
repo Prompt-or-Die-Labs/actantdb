@@ -2,7 +2,7 @@
   "name": "actant-demo-langgraph-router",
   "version": "0.0.1",
   "private": true,
-  "description": "Second public example for ActantDB — a LangGraph-shaped router agent wrapped through @actantdb/mastra. Demonstrates that the wrapper is duck-typed and works with non-Mastra agent frameworks.",
+  "description": "Second public example for actantdb — a LangGraph-shaped router agent wrapped through @actantdb/langgraph. Demonstrates that the wrapper is duck-typed and works with LangGraph-style tool registries.",
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@actantdb/core": "workspace:*",
-    "@actantdb/mastra": "workspace:*",
+    "@actantdb/langgraph": "workspace:*",
     "@actantdb/policy": "workspace:*",
     "@actantdb/studio": "workspace:*",
     "@actantdb/types": "workspace:*"

@@ -21,6 +21,8 @@ describe("argv parsing", () => {
       "mastra",
       "--language",
       "ts",
+      "--runtime",
+      "bun",
       "--port",
       "5173",
       "--no-interactive",
@@ -29,6 +31,7 @@ describe("argv parsing", () => {
     expect(args.template).toBe("coding-agent");
     expect(args.framework).toBe("mastra");
     expect(args.language).toBe("ts");
+    expect(args.runtime).toBe("bun");
     expect(args.studioPort).toBe(5173);
     expect(args.interactive).toBe(false);
   });
@@ -80,6 +83,7 @@ describe("renderTemplate", () => {
       template: "minimal",
       framework: "hand-rolled",
       language: "js",
+      runtime: "node",
       studioPort: 4173,
       actantdbVersion: "^0.0.15",
     });
@@ -98,6 +102,7 @@ describe("renderTemplate", () => {
       template: "coding-agent",
       framework: "mastra",
       language: "ts",
+      runtime: "node",
       studioPort: 4173,
       actantdbVersion: "^0.0.15",
     });
@@ -118,6 +123,7 @@ describe("scaffold", () => {
           template: "minimal",
           framework: "hand-rolled",
           language: "js",
+          runtime: "node",
           studioPort: 4173,
         },
         { force: true, version: "^0.0.15" },
@@ -128,6 +134,7 @@ describe("scaffold", () => {
       const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
       expect(pkg.name).toBe("my-app");
       expect(pkg.dependencies["@actantdb/core"]).toBe("^0.0.15");
+      expect(pkg.scripts.start).toBe("node agent.mjs");
       expect(pkg.scripts.doctor).toBe("actantdb --db ./.actantdb/actant.db doctor");
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -143,6 +150,7 @@ describe("scaffold", () => {
         template: "minimal",
         framework: "hand-rolled",
         language: "js",
+        runtime: "node",
         studioPort: 4173,
       },
       { force: true, version: "^0.0.15" },
@@ -155,12 +163,67 @@ describe("scaffold", () => {
           template: "minimal",
           framework: "hand-rolled",
           language: "js",
+          runtime: "node",
           studioPort: 4173,
         },
         { force: false, version: "^0.0.15" },
       ),
     ).toThrow(/not empty/);
     rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("runtime choices", () => {
+  it("renders a Bun runnable minimal JS scaffold", () => {
+    const files = renderTemplate({
+      projectName: "bun-app",
+      template: "minimal",
+      framework: "hand-rolled",
+      language: "js",
+      runtime: "bun",
+      studioPort: 4173,
+      actantdbVersion: "^0.0.15",
+    });
+    const byPath = Object.fromEntries(files.map((f) => [f.path, f.content]));
+    const pkg = JSON.parse(byPath["package.json"]!);
+    expect(pkg.scripts.start).toBe("bun agent.mjs");
+    expect(pkg.engines.bun).toBe(">=1.3");
+  });
+
+  it("prints Bun next steps for a Bun scaffold", async () => {
+    const dir = freshDir();
+    const originalCwd = process.cwd();
+    const originalWrite = process.stdout.write;
+    const captured: string[] = [];
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      captured.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return true;
+    }) as NodeJS.WriteStream["write"];
+    try {
+      process.chdir(dir);
+      const code = await main([
+        "bun-app",
+        "--template",
+        "minimal",
+        "--framework",
+        "hand-rolled",
+        "--language",
+        "js",
+        "--runtime",
+        "bun",
+        "--yes",
+      ]);
+      expect(code).toBe(0);
+      const output = captured.join("");
+      expect(output).toContain("bun install");
+      expect(output).toContain("bun start");
+      expect(output).toContain("bun run studio");
+      expect(existsSync(join(dir, "bun-app", "agent.mjs"))).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      process.stdout.write = originalWrite;
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

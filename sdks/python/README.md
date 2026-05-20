@@ -5,7 +5,7 @@ pip install -e sdks/python
 ```
 
 ```python
-from actantdb import ActantClient
+from actantdb import ActantClient, AsyncActantClient
 
 c = ActantClient("http://127.0.0.1:4555")
 print(c.healthz())
@@ -20,3 +20,26 @@ c.append_user_message(
 ```
 
 Mirrors the TypeScript [`@actantdb/sdk`](../../packages/actant-sdk/README.md).
+
+Async usage stays dependency-free:
+
+```python
+import asyncio
+from actantdb import AsyncActantClient
+
+async def main():
+    c = AsyncActantClient("http://127.0.0.1:4555")
+    print(await c.healthz())
+
+asyncio.run(main())
+```
+
+Named Python adapter helpers are included without taking framework
+dependencies:
+
+```python
+from actantdb import ActantCallbackHandler, ActantCrewAITracer, ActantAutoGenLogger
+```
+
+HTTP errors raise `ActantError` with `status`, `code`, `message`, `hint`, and
+`fix` fields when the server returns the public error body.

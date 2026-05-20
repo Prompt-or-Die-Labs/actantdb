@@ -25,16 +25,23 @@ export type PolicyRef = string;
 
 /** Severity for ledger errors surfaced through the public API. */
 export type ActantErrorKind =
-  | "ledger_io"
-  | "ledger_corrupt"
-  | "policy_invalid"
-  | "approval_pending"
+  | "storage_error"
+  | "invalid_input"
+  | "permission_denied"
+  | "approval_required"
   | "approval_denied"
-  | "replay_missing_event"
-  | "guard_halt";
+  | "not_found"
+  | "conflict"
+  | "idempotent_replay"
+  | "policy_halt"
+  | "internal_error"
+  | "not_implemented";
 
 export interface ActantError {
   kind: ActantErrorKind;
+  code?: ActantErrorKind;
   message: string;
+  hint?: string;
+  fix?: string | null;
   cause?: unknown;
 }

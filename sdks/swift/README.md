@@ -139,7 +139,15 @@ swift build
 swift test
 ```
 
-25 tests, ~0.03s, zero external dependencies. Tests use `MockURLProtocol` with an actor-based cross-suite mutex so handler state never races.
+Most tests use `MockURLProtocol` with an actor-based cross-suite mutex so handler state never races.
+
+To validate the embedded path before a published `ActantFFI.xcframework` exists:
+
+```bash
+bash sdks/swift/scripts/build-local-actantffi-xcframework.sh
+ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" \
+  swift test --package-path sdks/swift --filter embeddedRoundTrip
+```
 
 ## ActantAgent (opinionated facade)
 
@@ -224,6 +232,24 @@ extension ActantAgent.RelationshipStore: SwooshCore.KnowledgeGraph {}
 ```
 
 No adapter classes, no wrapper layer.
+
+### Runtime state
+
+`FileBackedRuntimeStateStore` persists goals, manifestation history, scout
+state, and workflow drafts as a JSON snapshot. Point it at an Application
+Support file and construct a new store with the same URL after a daemon restart.
+
+```swift
+let stateURL = appSupport.appending(path: "runtime-state.json")
+let state = FileBackedRuntimeStateStore(fileURL: stateURL)
+try await state.upsertGoal(RuntimeGoal(
+    id: "goal_1",
+    title: "Ship local persistence",
+    createdAt: now,
+    updatedAt: now
+))
+let snapshot = try await state.load()
+```
 
 ### Subprocess supervisor
 

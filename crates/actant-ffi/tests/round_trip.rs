@@ -8,6 +8,7 @@
 //! they're safe under the "do NOT run cargo test --workspace; disk crash"
 //! directive — nothing touches the filesystem.
 
+use actant_core::{sha256_hex, ActorId, EventId, Hlc};
 use actant_ffi::{ActantHandle, EventRow, FfiError};
 
 #[tokio::test]
@@ -54,7 +55,7 @@ async fn open_dispatch_events_round_trip() {
 }
 
 #[tokio::test]
-async fn ingest_same_event_twice_reports_stub_until_gaps_43() {
+async fn ingest_same_event_twice_accepts_then_skips() {
     let handle = ActantHandle::open(
         String::new(),
         "ws_default".to_string(),
@@ -63,38 +64,34 @@ async fn ingest_same_event_twice_reports_stub_until_gaps_43() {
     .await
     .expect("open");
 
+    let payload = "{}";
+    let hlc = Hlc::new(1, 0);
+    let actor = ActorId::from_string("actor_ffi_ingest");
+    let id = EventId::content_derived(payload.as_bytes(), hlc, &actor);
     let row = EventRow {
-        id: "evt_test_dup".to_string(),
+        id: id.as_str().to_string(),
         session_id: None,
         event_type: "test_event".to_string(),
-        payload_json: "{}".to_string(),
-        payload_hash: "0".repeat(64),
+        payload_json: payload.to_string(),
+        payload_hash: sha256_hex(payload.as_bytes()),
         created_at: "1970-01-01T00:00:00Z".to_string(),
         device_id: "device_ffi_test".to_string(),
-        hlc_physical_ms: 1,
-        hlc_logical: 0,
+        hlc_physical_ms: hlc.physical_ms,
+        hlc_logical: hlc.logical,
     };
 
-    // Both ingest calls return the documented stub error until row #43
-    // wires up the real Storage::ingest_events implementation.  The test
-    // pins the contract so a silent change to "succeeds and writes" is
-    // caught by CI rather than by a confused mobile consumer.
-    let first = handle.ingest(vec![row.clone()]).await;
-    let second = handle.ingest(vec![row]).await;
+    let first = handle
+        .ingest(vec![row.clone()])
+        .await
+        .expect("first ingest");
+    let second = handle.ingest(vec![row]).await.expect("second ingest");
 
-    match (first, second) {
-        (Err(FfiError::Storage(a)), Err(FfiError::Storage(b))) => {
-            assert!(
-                a.contains("GAPS #43"),
-                "stub message must reference GAPS #43: {a}"
-            );
-            assert!(
-                b.contains("GAPS #43"),
-                "stub message must reference GAPS #43: {b}"
-            );
-        }
-        other => panic!("expected stub Storage error twice, got {other:?}"),
-    }
+    assert_eq!(first.accepted, 1);
+    assert_eq!(first.skipped, 0);
+    assert!(first.rejected.is_empty());
+    assert_eq!(second.accepted, 0);
+    assert_eq!(second.skipped, 1);
+    assert!(second.rejected.is_empty());
 }
 
 #[tokio::test]

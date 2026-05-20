@@ -5,6 +5,10 @@ The product surface. TypeScript packages distributed via npm, ESM-only, TypeScri
 | Package              | What it does                                                                |
 | -------------------- | --------------------------------------------------------------------------- |
 | `@actantdb/mastra`   | `withActant(agent, opts)` duck-typed wrapper. Captures every tool call, runs Guard, supports approval flows, exposes the timeline to Studio. Works on Mastra, LangGraph, and hand-rolled agents. |
+| `@actantdb/langgraph` | LangGraph package name for the same thin `withActant` wrapper.              |
+| `@actantdb/inngest`  | Inngest handler wrapper that records each function invocation as an embedded ActantDB run. |
+| `@actantdb/triggerdev` | Trigger.dev task wrapper that records each task invocation as an embedded ActantDB run. |
+| `@actantdb/elizaos`  | elizaOS action/runtime/plugin wrapper that records action execution as embedded ActantDB runs. |
 | `@actantdb/core`     | Local ledger backed by `node:sqlite`, hash-chained events, monotonic ULIDs, idempotency. |
 | `@actantdb/policy`   | Verdict builders + the alpha-demo policy (`rm -rf …/dist` constrain hint).  |
 | `@actantdb/replay`   | Checkpoint / run / diff with memory + policy overrides.                     |
@@ -38,7 +42,7 @@ pnpm --filter @actantdb/<pkg> test -- <pattern>
 
 ## How this connects to the Rust crates
 
-`@actantdb/core` is the embedded path: a TypeScript ledger on `node:sqlite`. When a workload outgrows it, `@actantdb/sdk` points at an `actantdb-server` (the Rust `actant-server` binary) and the TypeScript surface stays identical (`actant.command(...)`, `actant.approvals.pending()`, `actant.replay.fromEvent(...)`).
+`@actantdb/core` is the embedded path: a TypeScript ledger on `node:sqlite` or Bun's `bun:sqlite`. When a workload outgrows it, `@actantdb/sdk` points at an `actantdb-server` (the Rust `actant-server` binary) and the TypeScript surface stays identical (`actant.command(...)`, `actant.approvals.pending()`, `actant.replay.fromEvent(...)`).
 
 The NAPI-RS / WASM bridges that bundle the Rust kernel directly inside `@actantdb/core` are declared as `optionalDependencies` but not built yet — that's a named deferred item in [`/CHANGELOG.md`](../CHANGELOG.md). Today the embedded path is pure TypeScript; the server path is Rust.
 

@@ -42,6 +42,38 @@ export type {
 } from "@actantdb/openai-agents";
 export { ActantCallbackHandler } from "@actantdb/langchain";
 export type { ActantCallbackHandlerOptions } from "@actantdb/langchain";
+export {
+  withActant as withActantLangGraph,
+  withLangGraph,
+  type LangGraphAgentLike,
+  type WrappedLangGraph,
+} from "@actantdb/langgraph";
+export {
+  withActantInngest,
+  type InngestContextLike,
+  type InngestHandler,
+  type WithActantInngestOptions,
+  type WrappedInngestHandler,
+} from "@actantdb/inngest";
+export {
+  withActantTriggerTask,
+  type TriggerTaskContextLike,
+  type TriggerTaskHandler,
+  type WithActantTriggerOptions,
+  type WrappedTriggerTask,
+} from "@actantdb/triggerdev";
+export {
+  withActantElizaAction,
+  withActantElizaRuntime,
+  createActantElizaPlugin,
+  type ActantElizaPlugin,
+  type ActantElizaPluginOptions,
+  type ElizaActionLike,
+  type ElizaMessageLike,
+  type ElizaRuntimeLike,
+  type WithActantElizaOptions,
+  type WrappedElizaAction,
+} from "@actantdb/elizaos";
 // @actantdb/workflow re-exported selectively to avoid name collisions:
 //   - `ClientOptions` collides with @actantdb/sdk's ClientOptions
 //   - `RunStatus` collides with @actantdb/box's RunStatus
@@ -80,3 +112,4 @@ export type {
   WorkflowRequestBody,
 } from "@actantdb/workflow";
 export type * from "@actantdb/types";
+export * from "@actantdb/langchain";

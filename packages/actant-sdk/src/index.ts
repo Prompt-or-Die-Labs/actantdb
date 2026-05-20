@@ -10,6 +10,7 @@
 
 import type {
   ActantEvent,
+  ActantErrorKind,
   ApprovalDecision,
   ApprovalRequest,
 } from "@actantdb/types";
@@ -44,6 +45,41 @@ export interface CommandResponse {
   result: unknown;
 }
 
+/** Typed error body returned by actantdb-server. */
+export interface ActantErrorResponse {
+  error: string;
+  code?: string;
+  message?: string;
+  hint?: string;
+  fix?: string | null;
+}
+
+/** Public HTTP error with the server's stable taxonomy. */
+export class ActantHttpError extends Error {
+  readonly status: number;
+  readonly code: ActantErrorKind | string;
+  readonly hint: string | undefined;
+  readonly fix: string | null | undefined;
+  readonly body: string;
+
+  constructor(args: {
+    status: number;
+    code: ActantErrorKind | string;
+    message: string;
+    body: string;
+    hint?: string;
+    fix?: string | null;
+  }) {
+    super(args.message);
+    this.name = "ActantHttpError";
+    this.status = args.status;
+    this.code = args.code;
+    this.body = args.body;
+    this.hint = args.hint;
+    this.fix = args.fix;
+  }
+}
+
 /** Approval row as returned by /v1/approvals. */
 export interface ApprovalRow {
   id: string;
@@ -70,7 +106,7 @@ export class ActantClient {
   /** Health check. */
   async healthz(): Promise<{ status: string; time: string }> {
     const r = await this.fetcher(`${this.base}/v1/healthz`);
-    if (!r.ok) throw new Error(`healthz: ${r.status}`);
+    if (!r.ok) throw await errorFromResponse(r, "healthz");
     return r.json() as Promise<{ status: string; time: string }>;
   }
 
@@ -91,8 +127,7 @@ export class ActantClient {
       body: JSON.stringify(body),
     });
     if (!r.ok) {
-      const text = await r.text();
-      throw new Error(`command ${req.commandType}: ${r.status} ${text}`);
+      throw await errorFromResponse(r, `command ${req.commandType}`);
     }
     return r.json() as Promise<CommandResponse>;
   }
@@ -192,7 +227,7 @@ export class ActantClient {
     const u = new URL(`${this.base}/v1/events`);
     u.searchParams.set("session_id", opts.sessionId);
     const r = await this.fetcher(u.toString());
-    if (!r.ok) throw new Error(`events: ${r.status}`);
+    if (!r.ok) throw await errorFromResponse(r, "events");
     return r.json() as Promise<{ events: ActantEvent[] }>;
   }
 
@@ -201,7 +236,7 @@ export class ActantClient {
     const u = new URL(`${this.base}/v1/approvals`);
     u.searchParams.set("workspace_id", opts.workspaceId);
     const r = await this.fetcher(u.toString());
-    if (!r.ok) throw new Error(`approvals: ${r.status}`);
+    if (!r.ok) throw await errorFromResponse(r, "approvals");
     return r.json() as Promise<{ approvals: ApprovalRow[] }>;
   }
 
@@ -315,6 +350,39 @@ export class ActantClient {
       },
     };
   }
+}
+
+function parseErrorBody(text: string): ActantErrorResponse | null {
+  try {
+    const parsed = JSON.parse(text) as Partial<ActantErrorResponse>;
+    const error = typeof parsed.error === "string" ? parsed.error : undefined;
+    const code = typeof parsed.code === "string" ? parsed.code : error;
+    if (!error && !code) return null;
+    return {
+      error: error ?? code ?? "http_error",
+      ...(code !== undefined ? { code } : {}),
+      ...(typeof parsed.message === "string" ? { message: parsed.message } : {}),
+      ...(typeof parsed.hint === "string" ? { hint: parsed.hint } : {}),
+      ...(typeof parsed.fix === "string" || parsed.fix === null ? { fix: parsed.fix } : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function errorFromResponse(response: Response, context: string): Promise<ActantHttpError> {
+  const body = await response.text();
+  const parsed = parseErrorBody(body);
+  const code = parsed?.code ?? parsed?.error ?? "http_error";
+  const message = parsed?.message ?? `${context}: HTTP ${response.status}`;
+  return new ActantHttpError({
+    status: response.status,
+    code,
+    message,
+    body,
+    ...(parsed?.hint !== undefined ? { hint: parsed.hint } : {}),
+    ...(parsed?.fix !== undefined ? { fix: parsed.fix } : {}),
+  });
 }
 
 /** Message received over the WebSocket subscription. */

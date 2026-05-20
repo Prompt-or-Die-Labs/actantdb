@@ -20,6 +20,10 @@
     "./anthropic": "./dist/anthropic.js",
     "./openai": "./dist/openai.js",
     "./langchain": "./dist/langchain.js",
+    "./langgraph": "./dist/langgraph.js",
+    "./inngest": "./dist/inngest.js",
+    "./triggerdev": "./dist/triggerdev.js",
+    "./elizaos": "./dist/elizaos.js",
     "./mcp-server": "./dist/mcp-server.js",
     "./testing": "./dist/testing.js"
   },
@@ -41,6 +45,10 @@
     "@actantdb/anthropic": "workspace:*",
     "@actantdb/openai": "workspace:*",
     "@actantdb/langchain": "workspace:*",
+    "@actantdb/langgraph": "workspace:*",
+    "@actantdb/inngest": "workspace:*",
+    "@actantdb/triggerdev": "workspace:*",
+    "@actantdb/elizaos": "workspace:*",
     "@actantdb/mcp-server": "workspace:*",
     "@actantdb/testing": "workspace:*"
   },

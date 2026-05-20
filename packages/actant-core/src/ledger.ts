@@ -1,7 +1,7 @@
 import { mkdirSync, existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 
 import type {
   ActantEvent,
@@ -14,6 +14,47 @@ import { canonicalJSON, nextChainHash, sha256, sha256OfJSON } from "./hash.js";
 import { ulid } from "./ulid.js";
 
 const GENESIS_HASH = "0".repeat(64);
+const requireFromHere = createRequire(import.meta.url);
+
+type SqliteParam = string | number | bigint | null | Uint8Array;
+
+interface SqliteStatement {
+  run(...params: SqliteParam[]): unknown;
+  all(...params: SqliteParam[]): unknown[];
+  get(...params: SqliteParam[]): unknown | undefined;
+}
+
+interface SqliteDatabase {
+  exec(sql: string): void;
+  prepare(sql: string): SqliteStatement;
+  close(): void;
+}
+
+type SqliteConstructor = new (path: string) => SqliteDatabase;
+
+interface NodeSqliteModule {
+  DatabaseSync: SqliteConstructor;
+}
+
+interface BunSqliteModule {
+  Database: SqliteConstructor;
+}
+
+const Database = resolveSqlite();
+
+function resolveSqlite(): SqliteConstructor {
+  try {
+    return (requireFromHere("node:sqlite") as NodeSqliteModule).DatabaseSync;
+  } catch {
+    try {
+      return (requireFromHere("bun:sqlite") as BunSqliteModule).Database;
+    } catch {
+      throw new Error(
+        "@actantdb/core embedded mode requires Node's `node:sqlite` or Bun's `bun:sqlite`.",
+      );
+    }
+  }
+}
 
 /** Options to open a Ledger. */
 export interface LedgerOptions {
@@ -61,19 +102,19 @@ export type LedgerListener = (event: ActantEvent) => void;
 export class Ledger {
   readonly project: string;
   readonly dbPath: string;
-  private db: DatabaseSync;
+  private db: SqliteDatabase;
   private listeners: Set<LedgerListener> = new Set();
 
   constructor(opts: LedgerOptions) {
     this.project = opts.project;
     if (opts.inMemory) {
       this.dbPath = ":memory:";
-      this.db = new DatabaseSync(":memory:");
+      this.db = new Database(":memory:");
     } else {
       const root = opts.storeDir ?? join(homedir(), ".actantdb");
       this.dbPath = opts.dbPath ?? join(root, opts.project, "events.sqlite");
       mkdirSync(dirname(this.dbPath), { recursive: true });
-      this.db = new DatabaseSync(this.dbPath);
+      this.db = new Database(this.dbPath);
     }
     this.db.exec(SCHEMA);
   }
@@ -138,7 +179,7 @@ export class Ledger {
   /** Read events matching the filter, in causal (id) order. */
   query(filter: LedgerFilter = {}): ActantEvent[] {
     const where: string[] = [];
-    const params: unknown[] = [];
+    const params: SqliteParam[] = [];
     if (filter.runId) {
       where.push("run_id = ?");
       params.push(filter.runId);
@@ -159,7 +200,7 @@ export class Ledger {
               chain_hash, sensitivity, created_at
        FROM events ${wh} ORDER BY id ASC ${limit}`,
     );
-    const rows = stmt.all(...(params as never[])) as unknown as RawRow[];
+    const rows = stmt.all(...params) as RawRow[];
     return rows.map(rowToEvent);
   }
 

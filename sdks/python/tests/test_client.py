@@ -13,7 +13,14 @@ import os
 import unittest
 from unittest.mock import patch
 
-from actantdb import ActantClient, ActantError
+from actantdb import (
+    ActantAutoGenLogger,
+    ActantCallbackHandler,
+    ActantClient,
+    ActantCrewAITracer,
+    ActantError,
+    AsyncActantClient,
+)
 
 
 class FakeResponse(io.BytesIO):
@@ -76,6 +83,32 @@ class ClientTests(unittest.TestCase):
             with self.assertRaises(ActantError) as cm:
                 c.create_session(workspace_id="ws_1", actor_id="act_1")
         self.assertEqual(cm.exception.status, 400)
+        self.assertEqual(cm.exception.code, "invalid_input")
+        self.assertEqual(str(cm.exception), "missing field")
+
+    def test_http_error_keeps_hint_and_fix(self):
+        import urllib.error
+
+        def fake_open(req, timeout):
+            raise urllib.error.HTTPError(
+                req.full_url,
+                501,
+                "Not Implemented",
+                {},
+                io.BytesIO(
+                    b'{"error":"not_implemented","message":"not implemented",'
+                    b'"hint":"Use SQLite for this endpoint.",'
+                    b'"fix":"Switch to the supported backend."}'
+                ),
+            )
+
+        with patch("actantdb.client._open_http_request", side_effect=fake_open):
+            c = ActantClient("http://x:4555")
+            with self.assertRaises(ActantError) as cm:
+                c.healthz()
+        self.assertEqual(cm.exception.code, "not_implemented")
+        self.assertEqual(cm.exception.hint, "Use SQLite for this endpoint.")
+        self.assertEqual(cm.exception.fix, "Switch to the supported backend.")
 
     def test_rejects_non_http_base_url(self):
         with self.assertRaises(ValueError):
@@ -191,6 +224,27 @@ class ClientTests(unittest.TestCase):
             c = ActantClient("http://x:4555")
             c.scout_records(workspace_id="ws_1", source="src_a")
         self.assertIn("source=src_a", captured["url"])
+
+    def test_async_client_wraps_sync_surface(self):
+        captured = {}
+
+        def fake_open(req, timeout):
+            captured["body"] = json.loads(req.data.decode("utf-8"))
+            return FakeResponse(b'{"command_id":"cmd_x","result":{"session_id":"sess_y"}}')
+
+        async def run_case():
+            with patch("actantdb.client._open_http_request", side_effect=fake_open):
+                c = AsyncActantClient("http://x:4555")
+                return await c.create_session(workspace_id="ws_1", actor_id="act_1")
+
+        sid = __import__("asyncio").run(run_case())
+        self.assertEqual(sid, "sess_y")
+        self.assertEqual(captured["body"]["command_type"], "create_session")
+
+    def test_named_adapter_imports_are_dependency_free(self):
+        self.assertEqual(ActantCallbackHandler.__name__, "ActantCallbackHandler")
+        self.assertEqual(ActantCrewAITracer.__name__, "ActantCrewAITracer")
+        self.assertEqual(ActantAutoGenLogger.__name__, "ActantAutoGenLogger")
 
 
 @unittest.skipUnless(

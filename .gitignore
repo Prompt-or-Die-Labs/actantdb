@@ -47,6 +47,7 @@ build/
 DerivedData/
 *.xcodeproj/
 *.xcworkspace/
+sdks/swift/.actantffi/
 
 # Env / secrets
 .env

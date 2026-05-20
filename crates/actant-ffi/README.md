@@ -12,7 +12,7 @@ iOS embedded-mode plan documented in
 |------------------|-------------------|------------------------------------------------------------|
 | `ActantHandle`   | `uniffi::Object`  | Opaque handle: `open`, `dispatch`, `events_since`, `ingest`, `close`. |
 | `CommandOutcome` | `uniffi::Record`  | Flat mirror of `actant_command::CommandOutcome`.            |
-| `EventRow`       | `uniffi::Record`  | Flat mirror of `agent_event` (HLC columns pending GAPS #42).|
+| `EventRow`       | `uniffi::Record`  | Flat mirror of `agent_event` with replication fields.        |
 | `IngestReport`   | `uniffi::Record`  | accepted / skipped / rejected counts.                       |
 | `FfiError`       | `uniffi::Error`   | FFI-safe flattening of `actant_core::ActantError`.          |
 
@@ -50,15 +50,22 @@ That writes `actant_ffi.swift` + `actant_ffiFFI.h` + `actant_ffiFFI.modulemap`
 into `bindings/swift/`. The XCFramework workflow (GAPS row #41) packages those
 together with the `lipo`-fattened static archive into `ActantFFI.xcframework.zip`.
 
+For local Swift SDK validation before a tagged release artifact exists:
+
+```sh
+bash sdks/swift/scripts/build-local-actantffi-xcframework.sh
+ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" \
+  swift test --package-path sdks/swift --filter embeddedRoundTrip
+```
+
 ## Open dependencies (cross-agent)
 
 - **GAPS row #42** — HLC clock + `device_id` columns in `agent_event`.
   Until that migration lands, `events_since` returns `"_legacy_"` / `0` /
   `0` for the replication fields. The SQL projection in `src/lib.rs` is
   the single place that changes.
-- **GAPS row #43** — `Storage::ingest_events()`. Until it lands, `ingest`
-  returns `FfiError::Storage("pending GAPS #43 …")` deterministically;
-  the round-trip test pins that contract.
+- **GAPS row #43** — `Storage::ingest_events()` is wired. `ingest` accepts
+  content-derived ids and reports idempotent skips for duplicates.
 
 ## Local verification
 

@@ -11,6 +11,9 @@ npm create actantdb@latest my-app
 # Golden local path — embedded ledger, JavaScript, no server:
 npm create actantdb@latest my-app -- --template minimal --framework hand-rolled --language js --yes
 
+# Bun first-run path:
+npm create actantdb@latest my-app -- --template minimal --framework hand-rolled --language js --runtime bun --yes
+
 # Non-interactive TypeScript path:
 npx create-actantdb my-app \
   --template coding-agent \
@@ -52,6 +55,7 @@ and the right stub agent shape inside the scaffolded project.
 | `--template`        | (prompt)       | Template id. |
 | `--framework`       | template default | Framework id. |
 | `--language`        | `ts`           | `ts` or `js`. |
+| `--runtime`         | `node`         | `node` or `bun`; controls the scaffolded start script and engines field. |
 | `--port`            | `4173`         | Studio port wired into the `npm run studio` script. |
 | `--no-interactive`  | off            | Skip prompts; require every choice. |
 | `--yes`, `-y`       | off            | Alias for `--no-interactive`. |

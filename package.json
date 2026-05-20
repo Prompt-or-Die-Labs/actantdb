@@ -14,6 +14,7 @@
     "test":    "pnpm -r test",
     "lint":    "pnpm -r lint",
     "smoke":   "node ./scripts/smoke.mjs",
+    "smoke:bun-create": "node ./scripts/smoke-bun-create.mjs",
     "typedoc": "typedoc",
     "ci":      "pnpm -r build && pnpm -r test && pnpm smoke"
   },

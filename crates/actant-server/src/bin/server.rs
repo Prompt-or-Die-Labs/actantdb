@@ -47,24 +47,14 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
     let args = Args::parse();
-    // Fail loud on Postgres bootstrap until the substrate actually supports it.
-    // Storage audit gap #1 was: `ACTANTDB_DATABASE_URL` was silently ignored
-    // and the server opened SQLite anyway — Helm `storage.backend=postgres`
-    // looked healthy while writing to a local file. Refuse to start so the
-    // mismatch surfaces immediately. Remove this guard once
-    // `crates/actant-storage::PgStorage` ships the full repo surface (see
-    // STORAGE_AUDIT.md gap #2 + GAPS.md row #5).
     if let Ok(url) = std::env::var("ACTANTDB_DATABASE_URL") {
         if !url.is_empty() {
             anyhow::bail!(
-                "ACTANTDB_DATABASE_URL is set ({}) but the Postgres backend \
-                 is not yet usable end-to-end: `crates/actant-storage::PgStorage` \
-                 ships 7 of the 87 tables and 0 of the repo methods needed by \
-                 the command engine. The server refuses to start so this \
-                 doesn't silently downgrade to SQLite. Track:\n  \
-                 - STORAGE_AUDIT.md gap #2\n  \
-                 - GAPS.md row #5\n\
-                 To run on SQLite anyway: unset ACTANTDB_DATABASE_URL and \
+                "ACTANTDB_DATABASE_URL is set ({}) but actantdb-server is \
+                 still a SQLite-only HTTP surface. Postgres is available in \
+                 actant-storage and actant-command; the server refuses this \
+                 mixed mode until every raw HTTP route has Postgres SQL. \
+                 To run the server on SQLite, unset ACTANTDB_DATABASE_URL and \
                  pass --db <path>.",
                 redact_db_url(&url)
             );

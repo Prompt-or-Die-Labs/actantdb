@@ -976,18 +976,28 @@ async fn run_subscription(state: Arc<AppState>, mut sock: WebSocket, topic: Topi
 }
 
 fn err_response(e: ActantError) -> Response {
-    let (status, kind) = match &e {
-        ActantError::InvalidInput(_) => (StatusCode::BAD_REQUEST, "invalid_input"),
-        ActantError::NotFound(_) => (StatusCode::NOT_FOUND, "not_found"),
-        ActantError::PermissionDenied(_) => (StatusCode::FORBIDDEN, "permission_denied"),
-        ActantError::ApprovalRequired(_) => (StatusCode::ACCEPTED, "approval_required"),
-        ActantError::ApprovalDenied(_) => (StatusCode::FORBIDDEN, "approval_denied"),
-        ActantError::IdempotentReplay(_) => (StatusCode::OK, "idempotent_replay"),
-        _ => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
+    let status = match &e {
+        ActantError::InvalidInput(_) => StatusCode::BAD_REQUEST,
+        ActantError::NotFound(_) => StatusCode::NOT_FOUND,
+        ActantError::PermissionDenied(_) => StatusCode::FORBIDDEN,
+        ActantError::ApprovalRequired(_) => StatusCode::ACCEPTED,
+        ActantError::ApprovalDenied(_) => StatusCode::FORBIDDEN,
+        ActantError::IdempotentReplay(_) => StatusCode::OK,
+        ActantError::Conflict(_) => StatusCode::CONFLICT,
+        ActantError::NotImplemented(_) => StatusCode::NOT_IMPLEMENTED,
+        ActantError::PolicyHalt(_) => StatusCode::FORBIDDEN,
+        ActantError::Storage(_) | ActantError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
     };
+    let code = e.code();
     (
         status,
-        Json(serde_json::json!({"error": kind, "message": e.to_string()})),
+        Json(serde_json::json!({
+            "error": code,
+            "code": code,
+            "message": e.to_string(),
+            "hint": e.hint(),
+            "fix": e.fix(),
+        })),
     )
         .into_response()
 }

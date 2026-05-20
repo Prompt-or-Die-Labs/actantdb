@@ -105,7 +105,7 @@ public actor Actant {
         workspaceID: String,
         actorID: String
     ) async throws -> Actant {
-        let bridge = try ActantFFIBridge(
+        let bridge = try await ActantFFIBridge(
             storeDir: storeDir,
             workspaceID: workspaceID,
             actorID: actorID

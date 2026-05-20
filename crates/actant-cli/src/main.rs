@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use actant_command::Engine;
-use actant_core::{ActorId, WorkspaceId};
+use actant_core::{ActantError, ActorId, WorkspaceId};
 use actant_storage::{Storage, StorageConfig};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 
@@ -248,7 +248,14 @@ enum Command {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() {
+    if let Err(err) = run().await {
+        print_public_error(&err);
+        std::process::exit(1);
+    }
+}
+
+async fn run() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -567,6 +574,20 @@ async fn main() -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn print_public_error(err: &anyhow::Error) {
+    if let Some(e) = err.downcast_ref::<ActantError>() {
+        eprintln!("error: {}", e.code());
+        eprintln!("message: {e}");
+        eprintln!("hint: {}", e.hint());
+        if let Some(fix) = e.fix() {
+            eprintln!("fix: {fix}");
+        }
+        return;
+    }
+    eprintln!("error: cli_error");
+    eprintln!("message: {err}");
 }
 
 fn default_db_path() -> PathBuf {

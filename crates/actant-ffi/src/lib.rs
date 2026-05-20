@@ -26,24 +26,17 @@
 //!
 //! ## Open dependencies (in flight in other agents)
 //!
-//! - GAPS row #42 — HLC clock + `device_id` columns in `agent_event`.
-//!   Until those columns land in the SQLite schema, [`ActantHandle::events_since`]
-//!   returns zero-valued defaults for `hlc_physical_ms`, `hlc_logical`, and
-//!   `"_legacy_"` for `device_id`. The SQL projection is the only thing that
-//!   needs to change when the migration lands.
-//! - GAPS row #43 — `Storage::ingest_events()` for idempotent batch ingest.
-//!   Until that method exists in `actant-storage`, [`ActantHandle::ingest`]
-//!   is a clearly-named stub that returns
-//!   `FfiError::Storage("pending GAPS #43 …")`. The FFI surface itself is
-//!   stable; only the body needs to be re-pointed.
+//! - GAPS row #43 — `Storage::ingest_events()` backs [`ActantHandle::ingest`].
+//!   The FFI event shape intentionally stays flat and uses the handle-bound
+//!   workspace / actor for inbound rows.
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
 use std::sync::Arc;
 
 use actant_command::Engine;
-use actant_core::{now_rfc3339, ActantError, ActorId, Workspace, WorkspaceId};
-use actant_storage::{Storage, StorageConfig};
+use actant_core::{now_rfc3339, ActantError, Actor, ActorId, ActorKind, Workspace, WorkspaceId};
+use actant_storage::{IngestEvent, Storage, StorageConfig};
 
 uniffi::setup_scaffolding!();
 
@@ -70,10 +63,6 @@ pub struct CommandOutcome {
 
 /// One row from the Chronicle, hoisted to a flat FFI-safe shape.
 ///
-/// Until GAPS row #42 lands `device_id` + HLC columns in the schema, the
-/// replication fields default to `"_legacy_"` / `0` / `0`. The SQL
-/// projection in [`ActantHandle::events_since`] is the only place that
-/// changes when the migration arrives.
 #[derive(uniffi::Record, Debug, Clone, PartialEq, Eq)]
 pub struct EventRow {
     /// Stable event id (today: ULID; post-#42: HLC + sha256 content hash).
@@ -88,11 +77,11 @@ pub struct EventRow {
     pub payload_hash: String,
     /// RFC-3339 wall-clock stamp recorded at append time.
     pub created_at: String,
-    /// Originating device. `"_legacy_"` until GAPS #42 lands.
+    /// Originating device.
     pub device_id: String,
-    /// HLC physical component (ms). `0` until GAPS #42 lands.
+    /// HLC physical component (ms).
     pub hlc_physical_ms: u64,
-    /// HLC logical component. `0` until GAPS #42 lands.
+    /// HLC logical component.
     pub hlc_logical: u32,
 }
 
@@ -257,12 +246,25 @@ impl ActantHandle {
                 })
                 .await?;
         }
+        let actor = ActorId::from_string(actor_id);
+        if storage.get_actor(&actor).await?.is_none() {
+            storage
+                .insert_actor(&Actor {
+                    id: actor.clone(),
+                    workspace_id: ws_id.clone(),
+                    kind: ActorKind::Human,
+                    display_name: actor.as_str().to_string(),
+                    created_at: now_rfc3339(),
+                    disabled_at: None,
+                })
+                .await?;
+        }
         let engine = Engine::new(storage.clone());
         Ok(Arc::new(Self {
             storage,
             engine,
             workspace: ws_id,
-            actor: ActorId::from_string(actor_id),
+            actor,
         }))
     }
 
@@ -300,22 +302,15 @@ impl ActantHandle {
     /// Read events for the bound workspace newer than the supplied HLC
     /// cursor, oldest first.
     ///
-    /// Until GAPS row #42 lands HLC columns in `agent_event`, the cursor
-    /// args are accepted for shape stability but ignored — the query
-    /// orders by `created_at, id` and the row-level HLC / device fields
-    /// return the documented `"_legacy_"` / `0` defaults.
     pub async fn events_since(
         &self,
         cursor_hlc_physical_ms: Option<u64>,
         cursor_hlc_logical: Option<u32>,
         limit: u32,
     ) -> FfiResult<Vec<EventRow>> {
-        let _ = (cursor_hlc_physical_ms, cursor_hlc_logical);
+        let cursor_physical = cursor_hlc_physical_ms.map(|v| v as i64);
+        let cursor_logical = cursor_hlc_logical.map(|v| v as i64);
         let limit = limit.clamp(1, 10_000) as i64;
-        // Direct sqlx query against the shared pool. Doing it here (instead
-        // of through a `Storage::*` repo method) keeps the boundary clean —
-        // the GAPS #42 migration will swap the SELECT list for the real HLC
-        // columns without churning `actant-storage`'s public API.
         let pool = self.storage.pool();
         let rows = sqlx::query_as::<
             _,
@@ -326,15 +321,31 @@ impl ActantHandle {
                 Option<String>, // payload_inline
                 String,         // payload_hash
                 String,         // created_at
+                String,         // device_id
+                i64,            // hlc_physical_ms
+                i64,            // hlc_logical
             ),
         >(
-            "SELECT id, session_id, event_type, payload_inline, payload_hash, created_at
+            "SELECT id, session_id, event_type, payload_inline, payload_hash, created_at,
+                    COALESCE(device_id, '_legacy_') AS device_id,
+                    COALESCE(hlc_physical_ms, 0) AS hlc_physical_ms,
+                    COALESCE(hlc_logical, 0) AS hlc_logical
              FROM agent_event
              WHERE workspace_id = ?
-             ORDER BY created_at ASC, id ASC
+               AND (
+                    ? IS NULL OR ? IS NULL
+                    OR hlc_physical_ms > ?
+                    OR (hlc_physical_ms = ? AND hlc_logical > ?)
+               )
+             ORDER BY hlc_physical_ms ASC, hlc_logical ASC, created_at ASC, id ASC
              LIMIT ?",
         )
         .bind(self.workspace.as_str())
+        .bind(cursor_physical)
+        .bind(cursor_logical)
+        .bind(cursor_physical)
+        .bind(cursor_physical)
+        .bind(cursor_logical)
         .bind(limit)
         .fetch_all(pool)
         .await
@@ -343,7 +354,17 @@ impl ActantHandle {
         Ok(rows
             .into_iter()
             .map(
-                |(id, session_id, event_type, payload_inline, payload_hash, created_at)| {
+                |(
+                    id,
+                    session_id,
+                    event_type,
+                    payload_inline,
+                    payload_hash,
+                    created_at,
+                    device_id,
+                    hlc_physical_ms,
+                    hlc_logical,
+                )| {
                     EventRow {
                         id,
                         session_id,
@@ -351,10 +372,9 @@ impl ActantHandle {
                         payload_json: payload_inline.unwrap_or_else(|| "{}".to_string()),
                         payload_hash,
                         created_at,
-                        // Pending GAPS #42 — defaults until the migration lands.
-                        device_id: "_legacy_".to_string(),
-                        hlc_physical_ms: 0,
-                        hlc_logical: 0,
+                        device_id,
+                        hlc_physical_ms: hlc_physical_ms.max(0) as u64,
+                        hlc_logical: hlc_logical.max(0) as u32,
                     }
                 },
             )
@@ -362,18 +382,55 @@ impl ActantHandle {
     }
 
     /// Batch-ingest events from a peer.
-    ///
-    /// **Stubbed pending GAPS row #43** (`Storage::ingest_events()`). The
-    /// FFI surface is final — only the body needs to be re-pointed at the
-    /// real storage method when it lands.
     pub async fn ingest(&self, events: Vec<EventRow>) -> FfiResult<IngestReport> {
-        // Touch the field so the compiler doesn't warn before #43 is wired up.
-        let _ = events.len();
-        Err(FfiError::Storage(
-            "pending GAPS #43: Storage::ingest_events() not yet implemented; \
-             see docs/IOS_EMBEDDING.md §4 for the target semantics"
-                .to_string(),
-        ))
+        let batch = events
+            .into_iter()
+            .map(|row| {
+                let canonical_payload = row.payload_json.clone().into_bytes();
+                let payload_hash = row.payload_hash.clone();
+                IngestEvent {
+                    event: actant_core::AgentEvent {
+                        id: actant_core::EventId::from_string(row.id),
+                        workspace_id: self.workspace.clone(),
+                        actor_id: self.actor.clone(),
+                        session_id: row.session_id.map(actant_core::SessionId::from_string),
+                        parent_event_id: None,
+                        event_type: row.event_type,
+                        causality_kind: actant_core::CausalityKind::Audit,
+                        sensitivity: actant_core::Sensitivity::Low,
+                        authority_scope_id: None,
+                        payload_inline: Some(row.payload_json),
+                        payload_ref: None,
+                        payload_hash: row.payload_hash,
+                        event_hash: payload_hash,
+                        created_at: row.created_at,
+                        model_call_id: None,
+                        tool_call_id: None,
+                        workflow_run_id: None,
+                        memory_id: None,
+                        artifact_id: None,
+                        command_id: None,
+                        effect_id: None,
+                    },
+                    hlc: actant_core::Hlc::new(row.hlc_physical_ms, row.hlc_logical),
+                    device_id: row.device_id,
+                    canonical_payload,
+                }
+            })
+            .collect::<Vec<_>>();
+        let report = self.storage.ingest_events(&batch, None).await?;
+        Ok(IngestReport {
+            accepted: report.accepted,
+            skipped: report.skipped,
+            rejected: report
+                .rejected
+                .into_iter()
+                .map(|r| match r.event_id {
+                    Some(event_id) => format!("{}:{}:{event_id}", r.index, r.reason),
+                    None => format!("{}:{}", r.index, r.reason),
+                })
+                .collect(),
+        })
     }
 
     /// Release the underlying connection pool eagerly.

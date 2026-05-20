@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+OUT="${1:-"$ROOT/sdks/swift/.actantffi/ActantFFI.xcframework"}"
+BINDINGS="$ROOT/target/swift-bindings-local"
+HEADERS="$ROOT/target/swift-bindings-local-headers"
+SWIFT_SOURCES="$ROOT/sdks/swift/.actantffi/Sources/ActantFFI"
+
+if ! command -v xcodebuild >/dev/null 2>&1; then
+  echo "xcodebuild is required to create ActantFFI.xcframework" >&2
+  exit 1
+fi
+
+cd "$ROOT"
+cargo build --release -p actant-ffi
+TARGET_DIR="$(
+  cargo metadata --no-deps --format-version 1 \
+    | sed -n 's/.*"target_directory":"\([^"]*\)".*/\1/p'
+)"
+DYLIB="$TARGET_DIR/release/libactant_ffi.dylib"
+STATICLIB="$TARGET_DIR/release/libactant_ffi.a"
+
+if [[ ! -f "$DYLIB" ]]; then
+  echo "missing uniffi dylib: $DYLIB" >&2
+  exit 1
+fi
+if [[ ! -f "$STATICLIB" ]]; then
+  echo "missing static library: $STATICLIB" >&2
+  exit 1
+fi
+
+rm -rf "$BINDINGS" "$HEADERS" "$OUT" "$SWIFT_SOURCES"
+mkdir -p "$(dirname "$OUT")"
+cargo run --bin uniffi-bindgen -p actant-ffi -- \
+  generate \
+  --library "$DYLIB" \
+  --language swift \
+  --out-dir "$BINDINGS"
+perl -0pi -e 's/fileprivate class UniffiHandleMap<T>/fileprivate final class UniffiHandleMap<T>: \@unchecked Sendable/' "$BINDINGS/actant_ffi.swift"
+perl -0pi -e 's/private var initializationResult/private let initializationResult/' "$BINDINGS/actant_ffi.swift"
+mkdir -p "$HEADERS" "$SWIFT_SOURCES"
+cp "$BINDINGS/actant_ffiFFI.h" "$HEADERS/"
+cp "$BINDINGS/actant_ffiFFI.modulemap" "$HEADERS/"
+cp "$BINDINGS/actant_ffiFFI.modulemap" "$HEADERS/module.modulemap"
+cp "$BINDINGS/actant_ffi.swift" "$SWIFT_SOURCES/"
+xcodebuild -create-xcframework \
+  -library "$STATICLIB" \
+  -headers "$HEADERS" \
+  -output "$OUT"
+
+echo "ACTANTDB_LOCAL_FFI_XCFRAMEWORK=$OUT"
+if [[ "$OUT" == "$ROOT/sdks/swift/"* ]]; then
+  echo "SwiftPM relative path: ACTANTDB_LOCAL_FFI_XCFRAMEWORK=${OUT#"$ROOT/sdks/swift/"}"
+fi

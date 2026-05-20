@@ -152,6 +152,19 @@ jobs:
             ActantFFI.checksum
 ```
 
+Before the first tagged XCFramework exists, local Swift validation uses the
+development hook in `sdks/swift/Package.swift`:
+
+```bash
+bash sdks/swift/scripts/build-local-actantffi-xcframework.sh
+ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" \
+  swift test --package-path sdks/swift --filter embeddedRoundTrip
+```
+
+That env var only adds local generated Swift + `.binaryTarget(path:)` targets
+for the current SwiftPM invocation. The published package manifest remains clean
+until the release asset URL and checksum are known.
+
 `sdks/swift/Package.swift` gains a `binaryTarget`:
 
 ```swift
@@ -239,7 +252,7 @@ get the same gate. Unblocks `xcodebuild -scheme ActantAgent -destination
 3. **PR after that** — iOS-clean audit + the feature-flag fixes (item 2).
 4. **PR after that** — migration 0007 + HLC implementation in `actant-core` (item 4).
 5. **PR after that** — conflict policy + replay/merge surface (item 5).
-6. **PR after that** — XCFramework CI workflow + `Package.swift` binaryTarget (item 3). Last because it depends on all of 1-5.
+6. **PR after that** — first tagged XCFramework release + uncommented public `Package.swift` binaryTarget (item 3). Last because it depends on all of 1-5. Local validation is already unblocked via `ACTANTDB_LOCAL_FFI_XCFRAMEWORK`.
 7. **Cross-link** — `SYNC_DESIGN.md` covers what rides on top.
 
 ## Out of scope

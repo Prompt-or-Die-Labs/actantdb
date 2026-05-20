@@ -13,6 +13,7 @@
 
 mod backend;
 mod backup;
+mod pg_repo;
 mod postgres;
 mod repo;
 

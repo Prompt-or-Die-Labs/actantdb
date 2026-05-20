@@ -17,13 +17,14 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import type { FrameworkChoice, LanguageChoice } from "./templates.js";
+import type { FrameworkChoice, LanguageChoice, RuntimeChoice } from "./templates.js";
 
 export interface RenderContext {
   projectName: string;
   template: string;
   framework: FrameworkChoice;
   language: LanguageChoice;
+  runtime: RuntimeChoice;
   studioPort: number;
   actantdbVersion: string;
 }
@@ -59,7 +60,8 @@ export function writeRendered(targetDir: string, files: RenderedFile[]): void {
 
 function packageJson(ctx: RenderContext): string {
   const isTs = ctx.language === "ts";
-  const entry = isTs ? "tsx src/agent.ts" : "node agent.mjs";
+  const runtimeBin = ctx.runtime === "bun" ? "bun" : "node";
+  const entry = isTs ? "tsx src/agent.ts" : `${runtimeBin} agent.mjs`;
   const buildScript = isTs ? "tsc -p tsconfig.json" : 'echo "no build step"';
 
   const deps: Record<string, string> = {
@@ -93,7 +95,7 @@ function packageJson(ctx: RenderContext): string {
     },
     dependencies: deps,
     devDependencies: devDeps,
-    engines: { node: ">=22.5" },
+    engines: ctx.runtime === "bun" ? { bun: ">=1.3" } : { node: ">=22.5" },
   };
   return JSON.stringify(body, null, 2) + "\n";
 }

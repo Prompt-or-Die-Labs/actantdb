@@ -15,6 +15,7 @@ Acceptance criterion:
 | Item | Status | Evidence |
 | --- | --- | --- |
 | `@actantdb/mastra` wraps a Mastra-shaped agent | ✅ | [`packages/actant-mastra/src/index.ts`](./packages/actant-mastra/src/index.ts) accepts any agent with `tools: Record<string, {execute}>`. |
+| `@actantdb/langgraph` wraps a LangGraph-shaped tool registry | ✅ | [`packages/actant-langgraph/src/index.ts`](./packages/actant-langgraph/src/index.ts) reuses the same `withActant` wrapper; [`examples/langgraph-router/`](./examples/langgraph-router) imports it by package name. |
 | Captures tool calls | ✅ | `tool_call_requested` / `tool_call_started` / `tool_call_completed`; round-trip covered in [`packages/actant-mastra/src/index.test.ts`](./packages/actant-mastra/src/index.test.ts). |
 | Captures context manifest | ✅ | `context_build` event + `buildContextManifest()` in [`packages/actant-core/src/runtime.ts`](./packages/actant-core/src/runtime.ts). |
 | Supports approval and constraint | ✅ | Guard verdicts (`allow`, `constrain`, `require_approval`, `block`, `halt`) in [`packages/actant-policy/src/index.ts`](./packages/actant-policy/src/index.ts); constrain rewrite covered by [`scripts/smoke.mjs`](./scripts/smoke.mjs). |
@@ -34,8 +35,8 @@ Acceptance criterion:
 | Item | Status | Evidence |
 | --- | --- | --- |
 | Embedded local ledger | ✅ | `@actantdb/core` uses SQLite via `node:sqlite`; Node >= 22.5 path documented in [`README.md`](./README.md). |
-| Rust HTTP + WS server | ✅ | [`crates/actant-server/`](./crates/actant-server) with health probes, TLS support, and OpenAPI coverage. |
-| SQLite + Postgres storage | ✅ | [`crates/actant-storage/`](./crates/actant-storage), SQLite/PG migration parity in CI. |
+| Rust HTTP + WS server | ✅ | [`crates/actant-server/`](./crates/actant-server) with health probes, TLS support, and OpenAPI coverage. SQLite-backed today. |
+| SQLite + Postgres storage | ✅ | [`crates/actant-storage/`](./crates/actant-storage), [`crates/actant-command/`](./crates/actant-command), SQLite/PG migration parity in CI. Postgres covers storage + command engine, not the HTTP server. |
 | Hash-chain and idempotency | ✅ | `agent_event.prev_chain_hash` and idempotency records covered by spec verification. |
 | Auth + tenant boundary | ✅ | [`crates/actant-auth/`](./crates/actant-auth), [`crates/actant-tenant/`](./crates/actant-tenant). |
 | Effect workers | ✅ | Shell, file, model, MCP, browser, email, slack, and manager workers under `crates/actant-workers/`. |
@@ -45,7 +46,8 @@ Acceptance criterion:
 | Deployment recipes | ✅ | [`deploy/docker-compose.yml`](./deploy/docker-compose.yml), [`deploy/Dockerfile`](./deploy/Dockerfile), [`deploy/helm/`](./deploy/helm). |
 | MCP surface | ✅ | [`packages/actant-mcp-server/`](./packages/actant-mcp-server) exposes tools and resources over stdio + HTTP. |
 
-**Gate 2: green.**
+**Gate 2: mostly green.** Postgres-backed HTTP server mode remains outside the
+green claim until route SQL is ported.
 
 ## Gate 3 — Compatibility and release discipline
 
@@ -69,5 +71,5 @@ Acceptance criterion:
 
 ## Summary
 
-The repo-verifiable quality gates are green. Market-facing outcomes and
-publication timing are operations, not quality gates.
+The repo-verifiable gates are tracked here with their current boundaries.
+Market-facing outcomes and publication timing are operations, not quality gates.

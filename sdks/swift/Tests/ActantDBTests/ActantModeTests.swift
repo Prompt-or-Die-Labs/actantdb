@@ -95,17 +95,26 @@ struct ActantModeTests {
 
     // MARK: - Embedded mode
 
-    #if canImport(ActantFFI)
-    @Test("Actant.embedded(...) constructs through ActantFFIBridge when the FFI is linked")
-    func embeddedConstructs() async throws {
+    #if ACTANTDB_LOCAL_FFI
+    @Test("Actant.embedded(...) dispatches and reads events when the FFI is linked")
+    func embeddedRoundTrip() async throws {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("actantdb-modetest-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: tmp) }
         let actant = try await Actant.embedded(
             storeDir: tmp,
             workspaceID: "ws_default",
             actorID: "act_user"
         )
-        #expect(await actant.workspaceID == "ws_default")
+        let outcome = try await actant.dispatch(
+            command: "create_session",
+            input: .object(["title": .string("swift ffi round trip")])
+        )
+        #expect(outcome.commandID.isEmpty == false)
+        #expect(outcome.result["session_id"]?.stringValue != nil)
+
+        let events = try await actant.eventsSince(nil, limit: 100)
+        #expect(events.contains { $0.eventType == "session_created" })
     }
     #else
     @Test("Actant.embedded(...) fails fast when ActantFFI binary target is missing")

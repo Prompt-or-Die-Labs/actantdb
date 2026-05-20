@@ -14,8 +14,8 @@ const wrapped = withActant(myAgent, { ledger });
 ```
 
 That's it. Every public symbol from `@actantdb/core`, `@actantdb/policy`,
-`@actantdb/mastra`, `@actantdb/replay`, `@actantdb/sdk`, and `@actantdb/types`
-is re-exported.
+`@actantdb/mastra`, `@actantdb/replay`, `@actantdb/sdk`, `@actantdb/elizaos`,
+and `@actantdb/types` is re-exported.
 
 ## Just want one piece?
 
@@ -26,6 +26,7 @@ Install only what you need. Each individual package is leaner:
 | Just the embedded ledger | `npm i @actantdb/core` | ~150 KB |
 | Just Guard + policy DSL | `npm i @actantdb/policy` | ~40 KB |
 | Just the agent wrapper | `npm i @actantdb/mastra` | ~80 KB |
+| Just the elizaOS adapter | `npm i @actantdb/elizaos` | ~40 KB |
 | Just replay + diff | `npm i @actantdb/replay` | ~60 KB |
 | Just the HTTP/WS client (server mode) | `npm i @actantdb/sdk` | ~70 KB |
 | Everything | `npm i @actantdb/all` | bundles the above |
