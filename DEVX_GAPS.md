@@ -76,7 +76,7 @@ the server?
 | # | Runtime | Status | Notes |
 |---|---|--------|-------|
 | X24 | **Node ≥ 22.5** (`node:sqlite`) | 🟢 | First-class runtime. `@actantdb/core` runs embedded. |
-| X25 | **Bun** | 🟢 | `@actantdb/core` resolves `bun:sqlite` when `node:sqlite` is unavailable. `scripts/smoke-bun-create.mjs` packs the workspace, scaffolds with `create-actantdb --runtime bun`, runs `bun install`, runs `bun start`, and asserts the embedded ledger exists. CI job: `test-bun-create`. |
+| X25 | **Bun** | 🟢 | `@actantdb/core` resolves `bun:sqlite` when `node:sqlite` is unavailable. The repo has a committed `bun.lock`, Bun workspace scripts (`build:bun`, `test:bun`, `ci:bun`), and `scripts/smoke-bun-create.mjs` can pack with either `pnpm` or `bun pm pack` before scaffolding with `create-actantdb --runtime bun`, running `bun install`, running `bun start`, and asserting the embedded ledger exists. CI job: `test-bun-create`. |
 | X26 | **Deno** | 🔴 | No `node:sqlite`. Would need a Deno-native SQLite (`@db/sqlite`) variant of `@actantdb/core` or HTTP-only mode (`@actantdb/sdk`). Most Deno-targeted agent devs would accept HTTP-only. |
 | X27 | **Cloudflare Workers** | 🔴 | No filesystem, no `node:sqlite`. Server mode via fetch only. Future-proof path: a `@actantdb/cloudflare` adapter that wraps a Durable Object + R2 for the ledger. Big lift. Defer until requested. |
 | X28 | **Vercel Edge / Next.js Route Handlers (edge)** | 🔴 | Same constraints as Workers. Server-mode via `fetch` works today; embedded does not. |

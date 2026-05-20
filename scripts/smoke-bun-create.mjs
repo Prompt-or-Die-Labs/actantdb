@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 const root = resolve(new URL("..", import.meta.url).pathname);
 const packDir = mkdtempSync(join(tmpdir(), "actantdb-bun-packs-"));
 const workDir = mkdtempSync(join(tmpdir(), "actantdb-bun-create-"));
+const runningOnBun = typeof Bun !== "undefined";
 const version = JSON.parse(readFileSync(join(root, "packages/actant-core/package.json"), "utf8"))
   .version;
 
@@ -22,11 +23,11 @@ const packages = [
 try {
   run("bun", ["--version"], root);
   for (const [, dir] of packages) {
-    run("pnpm", ["-C", join(root, "packages", dir), "pack", "--pack-destination", packDir], root);
+    packPackage(dir);
   }
 
   run(
-    "node",
+    runningOnBun ? "bun" : "node",
     [
       join(root, "packages/create-actantdb/dist/index.js"),
       "bun-first-run",
@@ -78,4 +79,13 @@ function run(cmd, args, cwd) {
   if (res.status !== 0) {
     throw new Error(`${cmd} ${args.join(" ")} failed with exit ${res.status}`);
   }
+}
+
+function packPackage(dir) {
+  const packageDir = join(root, "packages", dir);
+  if (runningOnBun) {
+    run("bun", ["pm", "pack", "--destination", packDir], packageDir);
+    return;
+  }
+  run("pnpm", ["-C", packageDir, "pack", "--pack-destination", packDir], root);
 }

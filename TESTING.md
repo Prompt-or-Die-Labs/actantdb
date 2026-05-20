@@ -11,6 +11,7 @@ release-scenario evidence. CI remains the source of truth for the full matrix.
 | TypeScript adapter builds | passed | `pnpm --filter @actantdb/{sdk,inngest,triggerdev,elizaos,all,types} build` |
 | TypeScript workspace build | passed | `pnpm -r build` |
 | TypeScript workspace tests | passed | `pnpm -r test` |
+| Bun workspace lane | passed | `bun install --frozen-lockfile`, `bun run build:bun`, `bun run test:bun`, `bun run lint:bun`, `bun run smoke:bun`, `bun run smoke:bun-create:bun` |
 | Workspace smoke | passed | `pnpm smoke`, `pnpm smoke:bun-create` |
 | Swift SDK tests | passed | `swift test --package-path sdks/swift` (73 passed, 1 skipped) |
 | Swift local FFI embedded smoke | passed | `bash sdks/swift/scripts/build-local-actantffi-xcframework.sh`, then `ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" swift test --package-path sdks/swift --filter embeddedRoundTrip` |

@@ -6,20 +6,33 @@
   "description": "ActantDB monorepo — TypeScript packages first, Rust kernel embedded.",
   "license": "Apache-2.0",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/test-cleanup",
+    "examples/langgraph-router",
+    "examples/cli-only",
+    "bench/box"
   ],
   "scripts": {
-    "build":   "pnpm -r build",
-    "dev":     "pnpm -r --parallel dev",
-    "test":    "pnpm -r test",
-    "lint":    "pnpm -r lint",
-    "smoke":   "node ./scripts/smoke.mjs",
+    "build": "pnpm -r build",
+    "build:bun": "bun ./scripts/bun-workspace.mjs build",
+    "dev": "pnpm -r --parallel dev",
+    "dev:bun": "bun ./scripts/bun-workspace.mjs dev --parallel",
+    "test": "pnpm -r test",
+    "test:bun": "bun ./scripts/bun-workspace.mjs test",
+    "lint": "pnpm -r lint",
+    "lint:bun": "bun ./scripts/bun-workspace.mjs lint",
+    "smoke": "node ./scripts/smoke.mjs",
+    "smoke:bun": "bun ./scripts/smoke.mjs",
     "smoke:bun-create": "node ./scripts/smoke-bun-create.mjs",
+    "smoke:bun-create:bun": "bun ./scripts/smoke-bun-create.mjs",
     "typedoc": "typedoc",
-    "ci":      "pnpm -r build && pnpm -r test && pnpm smoke"
+    "ci": "pnpm -r build && pnpm -r test && pnpm smoke",
+    "ci:bun": "bun run build:bun && bun run test:bun && bun run smoke:bun && bun run smoke:bun-create:bun"
   },
   "packageManager": "pnpm@9.0.0",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@actantdb/core": "workspace:*",
     "@actantdb/mastra": "workspace:*",

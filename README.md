@@ -128,7 +128,7 @@ New project? `npm create actantdb@latest my-app` scaffolds a runnable wrapper, t
 
 ## Install (the substrate)
 
-Requires **Node ≥22.5** or **Bun ≥1.3** for embedded mode. `@actantdb/core` uses `node:sqlite` on Node, which is unflagged starting at Node 24 (Node 22 needs `--experimental-sqlite`), and `bun:sqlite` on Bun.
+Requires **Node ≥22.5** or **Bun ≥1.3** for embedded mode. `@actantdb/core` uses `node:sqlite` on Node, which is unflagged starting at Node 24 (Node 22 needs `--experimental-sqlite`), and `bun:sqlite` on Bun. Consumer apps can install with npm, pnpm, or Bun; the packages do not require the ActantDB repo's maintainer toolchain.
 
 ```bash
 # Add backend capture to your agent:
@@ -305,6 +305,13 @@ pnpm install
 pnpm -r build
 pnpm -r test
 pnpm smoke           # workspace E2E
+
+# Bun lane
+bun install --frozen-lockfile
+bun run build:bun
+bun run test:bun
+bun run smoke:bun
+bun run smoke:bun-create:bun
 
 # Python SDK (14 local tests + 1 server integration skip unless ACTANTDB_TEST_URL is set)
 (cd sdks/python && python3 -m unittest discover -s tests)
