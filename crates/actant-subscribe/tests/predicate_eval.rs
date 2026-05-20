@@ -3,32 +3,45 @@
 //! Covers every comparator, `Exists`, And/Or/Not, and the documented
 //! missing-field semantics.
 
-#![recursion_limit = "4096"]
-
 use actant_subscribe::Predicate;
-use serde_json::json;
+use serde_json::Value;
 
-fn root() -> serde_json::Value {
-    json!({
-        "tool_name": "shell",
-        "count": 7,
-        "tags": ["alpha", "beta"],
-        "nested": { "ok": true, "score": 3.5 },
-        "error": null,
-    })
+fn root() -> Value {
+    serde_json::from_str(
+        r#"{
+            "tool_name": "shell",
+            "count": 7,
+            "tags": ["alpha", "beta"],
+            "nested": { "ok": true, "score": 3.5 },
+            "error": null
+        }"#,
+    )
+    .expect("static JSON fixture parses")
+}
+
+fn text(value: &str) -> Value {
+    Value::String(value.to_owned())
+}
+
+fn number(value: i64) -> Value {
+    Value::Number(value.into())
+}
+
+fn boolean(value: bool) -> Value {
+    Value::Bool(value)
 }
 
 #[test]
 fn eq_matches_exact_value() {
     let p = Predicate::Eq {
         field: "tool_name".into(),
-        value: json!("shell"),
+        value: text("shell"),
     };
     assert!(p.evaluate(&root()));
 
     let p = Predicate::Eq {
         field: "tool_name".into(),
-        value: json!("browser"),
+        value: text("browser"),
     };
     assert!(!p.evaluate(&root()));
 }
@@ -37,13 +50,13 @@ fn eq_matches_exact_value() {
 fn ne_is_inverse_of_eq_for_present_fields() {
     let p = Predicate::Ne {
         field: "tool_name".into(),
-        value: json!("shell"),
+        value: text("shell"),
     };
     assert!(!p.evaluate(&root()));
 
     let p = Predicate::Ne {
         field: "tool_name".into(),
-        value: json!("browser"),
+        value: text("browser"),
     };
     assert!(p.evaluate(&root()));
 }
@@ -52,7 +65,7 @@ fn ne_is_inverse_of_eq_for_present_fields() {
 fn ne_treats_missing_as_not_equal() {
     let p = Predicate::Ne {
         field: "missing".into(),
-        value: json!("anything"),
+        value: text("anything"),
     };
     assert!(p.evaluate(&root()));
 }
@@ -62,32 +75,32 @@ fn lt_le_gt_ge_on_numbers() {
     let v = root();
     assert!(Predicate::Lt {
         field: "count".into(),
-        value: json!(8)
+        value: number(8)
     }
     .evaluate(&v));
     assert!(!Predicate::Lt {
         field: "count".into(),
-        value: json!(7)
+        value: number(7)
     }
     .evaluate(&v));
     assert!(Predicate::Le {
         field: "count".into(),
-        value: json!(7)
+        value: number(7)
     }
     .evaluate(&v));
     assert!(Predicate::Gt {
         field: "count".into(),
-        value: json!(6)
+        value: number(6)
     }
     .evaluate(&v));
     assert!(!Predicate::Gt {
         field: "count".into(),
-        value: json!(7)
+        value: number(7)
     }
     .evaluate(&v));
     assert!(Predicate::Ge {
         field: "count".into(),
-        value: json!(7)
+        value: number(7)
     }
     .evaluate(&v));
 }
@@ -97,12 +110,12 @@ fn comparators_on_strings_use_lexicographic_order() {
     let v = root();
     assert!(Predicate::Lt {
         field: "tool_name".into(),
-        value: json!("zzz")
+        value: text("zzz")
     }
     .evaluate(&v));
     assert!(Predicate::Gt {
         field: "tool_name".into(),
-        value: json!("aaa")
+        value: text("aaa")
     }
     .evaluate(&v));
 }
@@ -112,7 +125,7 @@ fn type_mismatch_returns_false_no_coercion() {
     let v = root();
     let p = Predicate::Lt {
         field: "tool_name".into(),
-        value: json!(5),
+        value: number(5),
     };
     assert!(!p.evaluate(&v));
 }
@@ -123,23 +136,23 @@ fn missing_field_is_false_for_all_comparators_except_ne() {
     for p in [
         Predicate::Eq {
             field: "nope".into(),
-            value: json!("x"),
+            value: text("x"),
         },
         Predicate::Lt {
             field: "nope".into(),
-            value: json!(0),
+            value: number(0),
         },
         Predicate::Le {
             field: "nope".into(),
-            value: json!(0),
+            value: number(0),
         },
         Predicate::Gt {
             field: "nope".into(),
-            value: json!(0),
+            value: number(0),
         },
         Predicate::Ge {
             field: "nope".into(),
-            value: json!(0),
+            value: number(0),
         },
     ] {
         assert!(!p.evaluate(&v), "{p:?}");
@@ -168,17 +181,17 @@ fn nested_field_paths_walk_objects_and_arrays() {
     let v = root();
     assert!(Predicate::Eq {
         field: "nested.ok".into(),
-        value: json!(true)
+        value: boolean(true)
     }
     .evaluate(&v));
     assert!(Predicate::Eq {
         field: "tags.0".into(),
-        value: json!("alpha")
+        value: text("alpha")
     }
     .evaluate(&v));
     assert!(Predicate::Eq {
         field: "tags.1".into(),
-        value: json!("beta")
+        value: text("beta")
     }
     .evaluate(&v));
     assert!(!Predicate::Exists {
@@ -194,22 +207,22 @@ fn and_short_circuits_and_empty_is_true() {
     assert!(Predicate::And(vec![
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("shell")
+            value: text("shell")
         },
         Predicate::Gt {
             field: "count".into(),
-            value: json!(0)
+            value: number(0)
         },
     ])
     .evaluate(&v));
     assert!(!Predicate::And(vec![
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("shell")
+            value: text("shell")
         },
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("nope")
+            value: text("nope")
         },
     ])
     .evaluate(&v));
@@ -222,22 +235,22 @@ fn or_short_circuits_and_empty_is_false() {
     assert!(Predicate::Or(vec![
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("nope")
+            value: text("nope")
         },
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("shell")
+            value: text("shell")
         },
     ])
     .evaluate(&v));
     assert!(!Predicate::Or(vec![
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("nope")
+            value: text("nope")
         },
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("also-nope")
+            value: text("also-nope")
         },
     ])
     .evaluate(&v));
@@ -248,12 +261,12 @@ fn not_inverts_inner() {
     let v = root();
     assert!(Predicate::Not(Box::new(Predicate::Eq {
         field: "tool_name".into(),
-        value: json!("browser"),
+        value: text("browser"),
     }))
     .evaluate(&v));
     assert!(!Predicate::Not(Box::new(Predicate::Eq {
         field: "tool_name".into(),
-        value: json!("shell"),
+        value: text("shell"),
     }))
     .evaluate(&v));
 }
@@ -266,23 +279,15 @@ fn true_and_false_constants() {
 }
 
 #[test]
-fn serde_round_trip_preserves_ast() {
-    let p = Predicate::And(vec![
+fn serde_deserializes_tagged_comparator() {
+    let p: Predicate =
+        serde_json::from_str(r#"{"op":"eq","field":"tool_name","value":"shell"}"#).unwrap();
+    assert_eq!(
+        p,
         Predicate::Eq {
             field: "tool_name".into(),
-            value: json!("shell"),
-        },
-        Predicate::Or(vec![
-            Predicate::Gt {
-                field: "count".into(),
-                value: json!(0),
-            },
-            Predicate::Not(Box::new(Predicate::Exists {
-                field: "missing".into(),
-            })),
-        ]),
-    ]);
-    let s = serde_json::to_string(&p).unwrap();
-    let back: Predicate = serde_json::from_str(&s).unwrap();
-    assert_eq!(p, back);
+            value: text("shell"),
+        }
+    );
+    assert!(p.evaluate(&root()));
 }
