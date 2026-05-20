@@ -90,6 +90,22 @@ jobs:
       - run: pnpm -r build
       - run: pnpm smoke:bun-create
 
+  test-bun-workspace:
+    name: bun workspace ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Some package scripts still intentionally call `node`; keep the
+          # version aligned with the pnpm lane while Bun owns install/run here.
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.13"
+      - run: bun install --frozen-lockfile
+      - run: bun run ci:bun
+
   test-python:
     name: python tests
     runs-on: ubuntu-latest
