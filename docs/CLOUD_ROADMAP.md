@@ -1,8 +1,9 @@
 # ActantDB Cloud — roadmap
 
 ActantDB has been local-first and self-hosted since day one. This document
-anchors the move to a hosted cloud option, starting with **ActantDB Box** —
-our answer to [Upstash Box](https://upstash.com/docs/box).
+anchors the move to a hosted backend option, starting with **ActantDB Box** —
+our answer to [Upstash Box](https://upstash.com/docs/box) as an agent workspace
+backend, not as a replacement agent runtime.
 
 ## Phase 1 — Local Box (this PR)
 
@@ -29,7 +30,7 @@ Run modes:
 
 - **`mode: "local"` (default)** — local workspace + local subprocess. Free,
   fast, full ledger of every action. Works offline.
-- **`mode: "cloud"`** — points at an ActantDB Cloud endpoint. Phase 2
+- **`mode: "cloud"`** — points at an ActantDB Cloud backend endpoint. Phase 2
   ships the control plane; the SDK contract is in place from day one so
   consumer code is the same regardless of mode.
 
@@ -54,12 +55,12 @@ Required components:
 | Multi-tenant workspace boundary | `actant-tenant` | partial, needs hardening + hot-path verification |
 | User identity + linking-code login | `actant-auth` | ✅ shipped |
 | Per-actor billing / metering | new — `actant-billing` | not started |
-| Hosted runtime (microVM / container per Box) | new — `actant-runtime-host` (Firecracker or runc) | not started |
-| Control plane API (`/v1/cloud/box/*`) | extension of `actant-server` | API contract drafted, no impl |
+| Hosted workspace backend (microVM / container per Box) | new host service (Firecracker or runc) | not started |
+| Backend control plane API (`/v1/cloud/box/*`) | extension of `actant-server` | API contract drafted, no impl |
 | Public DNS + TLS | infra (Cloudflare / Caddy) | not started |
 | Snapshot storage (S3-backed, content-addressed) | `actant-objectstore` already exists | substrate ready |
 | Schedule executor for cron triggers | `actant-trigger` already exists | substrate ready |
-| Cold-start optimization (warm pool of pre-booted boxes) | `actant-runtime-host` | not started |
+| Cold-start optimization (warm pool of pre-booted workspaces) | host service | not started |
 
 Cost target: undercut Upstash's $0.10/CPU-hr by running on bare-metal or
 spot capacity. Concrete pricing decided after Phase 2 lands.
@@ -84,7 +85,7 @@ These are post-MVP; Phase 1 + 2 ship first.
 
 ## What ships in this PR
 
-Just **`@actantdb/box` local mode**, with the cloud contract documented
+Just **`@actantdb/box` local mode**, with the cloud backend contract documented
 but not wired. Consumers can write `Box.create({ mode: "cloud" })` today
 and get a clear `NotImplemented` pointing here. Same call site works the
 day cloud lands.

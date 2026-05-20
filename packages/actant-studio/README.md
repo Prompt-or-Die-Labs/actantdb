@@ -1,13 +1,13 @@
 # actant-studio
 
-Local UI + CLI for Actant. Ships the `actant` binary.
+Local operator UI + CLI for ActantDB. Ships the `actantdb` binary.
 
 ```bash
-npx actant studio                                # open the local UI
-actant approve <tool_call_id> --scope once
-actant deny    <tool_call_id> --reason "out of policy"
-actant replay run <event_id> --without-memory mem_42
-actant replay diff <run_a> <run_b>
+npx actantdb studio                                # open the local UI
+actantdb approve <tool_call_id> --scope once
+actantdb deny    <tool_call_id> --reason "out of policy"
+actantdb replay run <event_id> --without-memory mem_42
+actantdb replay diff <run_a> <run_b>
 ```
 
 ## What Studio shows
@@ -19,7 +19,8 @@ Per [`/examples/test-cleanup/README.md`](../../examples/test-cleanup/README.md):
 - **Approval drawer.** Approve / deny / constrain a pending tool call. The constrained variant is recorded.
 - **Replay control.** Pick an event, choose overrides (policy, memory exclusion, alternate model), run, see the side-by-side diff.
 
-That is the scope for v0.1. Anything more is post-Gate-3.
+That is the scope for the local backend console. Studio inspects and controls
+agent backend state; it does not author or run agents.
 
 ## Tech
 
@@ -30,6 +31,8 @@ That is the scope for v0.1. Anything more is post-Gate-3.
 
 ## Status
 
-Pre-alpha. The Studio surface is the visible part of the killer demo and the validation tests. If the demo doesn't make sense in Studio, the demo is broken.
+Pre-1.0. The Studio surface is the visible part of the backend: ledger
+timeline, approval queue, replay diffs, and diagnostics. If those records are
+confusing in Studio, the backend contract is confusing.
 
 See [`/PIVOT.md`](../../PIVOT.md), [`/CHANGELOG.md`](../../CHANGELOG.md), [`/CHANGELOG.md`](../../CHANGELOG.md).

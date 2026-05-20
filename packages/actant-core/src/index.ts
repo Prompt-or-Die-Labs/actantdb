@@ -1,8 +1,7 @@
 /**
- * @actantdb/core — embedded TS runtime for ActantDB.
+ * @actantdb/core — embedded TypeScript backend for ActantDB.
  *
- * Phase 1: pure TypeScript implementation backed by node:sqlite.
- * NAPI / WASM acceleration paths are reserved for post-wedge.
+ * Local ledger + approval + replay state backed by node:sqlite or bun:sqlite.
  */
 
 import { createRequire } from "node:module";

@@ -72,7 +72,7 @@ export interface RunContext {
   finish(payload?: unknown): ActantEvent;
 }
 
-/** Construct a project-scoped Actant runtime. */
+/** Construct a project-scoped Actant backend handle. */
 export function createActant(opts: ActantOptions): ActantHandle {
   const ledger = new Ledger({
     project: opts.project,

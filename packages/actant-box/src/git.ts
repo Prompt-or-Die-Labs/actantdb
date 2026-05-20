@@ -107,13 +107,24 @@ export class BoxGitAPI {
     const command = `gh ${ghArgs.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`;
     const ghAvailable = await hasBinary("gh");
     if (!ghAvailable) {
-      this.recordEffect("pr_fallback", { command });
+      this.recordEffect("pr_fallback", { command, reason: "gh_missing" });
       return { url: "", submitted: false, command };
     }
-    const { output } = await runProcess("gh", ghArgs, this.workspaceCwd(), {
-      ...process.env,
-      GH_PROMPT_DISABLED: "1",
-    });
+    const originRemote = await this.hasOriginRemote();
+    if (!originRemote) {
+      this.recordEffect("pr_fallback", { command, reason: "origin_remote_missing" });
+      return { url: "", submitted: false, command };
+    }
+    const { output } = await runProcess(
+      "gh",
+      ghArgs,
+      this.workspaceCwd(),
+      {
+        ...process.env,
+        GH_PROMPT_DISABLED: "1",
+      },
+      { timeoutMs: 30_000 },
+    );
     const urlMatch = output.match(/https?:\/\/\S+/);
     const url = urlMatch ? urlMatch[0] : "";
     this.recordEffect("pr_created", { url, command });
@@ -227,6 +238,15 @@ export class BoxGitAPI {
       sensitivity: "low",
     });
   }
+
+  private async hasOriginRemote(): Promise<boolean> {
+    const { output, exitCode } = await runProcess(
+      "git",
+      ["remote", "get-url", "origin"],
+      this.workspaceCwd(),
+    ).catch(() => ({ output: "", stderr: "", exitCode: 1 }));
+    return exitCode === 0 && output.trim().length > 0;
+  }
 }
 
 // ----- helpers -----
@@ -242,12 +262,26 @@ function runProcess(
   args: string[],
   cwd: string,
   env: NodeJS.ProcessEnv = process.env,
+  opts: { timeoutMs?: number } = {},
 ): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { cwd, env });
     let output = "";
     let stderr = "";
     let settled = false;
+    const timer =
+      opts.timeoutMs === undefined
+        ? undefined
+        : setTimeout(() => {
+            if (!settled) {
+              settled = true;
+              child.kill();
+              reject(new Error(`${cmd} ${args.join(" ")} timed out after ${opts.timeoutMs}ms`));
+            }
+          }, opts.timeoutMs);
+    const clearTimer = () => {
+      if (timer !== undefined) clearTimeout(timer);
+    };
     child.stdout?.on("data", (b: Buffer) => {
       output += b.toString("utf8");
     });
@@ -257,12 +291,14 @@ function runProcess(
     child.on("error", (err) => {
       if (!settled) {
         settled = true;
+        clearTimer();
         reject(err);
       }
     });
     child.on("close", (code) => {
       if (!settled) {
         settled = true;
+        clearTimer();
         resolve({ output, stderr, exitCode: code });
       }
     });

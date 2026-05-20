@@ -26,7 +26,7 @@ export const agent = withActant(myMastraAgent, {
 Then open Studio:
 
 ```bash
-npx actant studio
+npx actantdb studio
 ```
 
 ## What gets captured
@@ -43,7 +43,7 @@ npx actant studio
 | `context.build`             | manifest hash + included / blocked counts + per-item visibility decision |
 | `effect.observed`           | structured observation (when the tool emits one)     |
 
-Captured locally to `~/.actant/<project>/events.sqlite`. No remote backend required. No data leaves your machine unless you opt in.
+Captured locally to `~/.actantdb/<project>/events.sqlite`. No remote backend required. No data leaves your machine unless you opt in.
 
 ## Approval API
 
@@ -52,17 +52,17 @@ In Studio: click the pending approval, choose **allow**, **constrain** (rewrites
 Or from the CLI:
 
 ```bash
-actant approve <tool_call_id>
-actant approve <tool_call_id> --scope session
-actant deny    <tool_call_id> --reason "policy mismatch"
+actantdb approve <tool_call_id>
+actantdb approve <tool_call_id> --scope session
+actantdb deny    <tool_call_id> --reason "policy mismatch"
 ```
 
 ## Replay
 
 ```bash
-actant replay run <event_id> --without-memory mem_42
-actant replay run <event_id> --policy strict
-actant replay diff <run_a> <run_b>
+actantdb replay run <event_id> --without-memory mem_42
+actantdb replay run <event_id> --policy strict
+actantdb replay diff <run_a> <run_b>
 ```
 
 Replay does NOT re-execute real side effects in v0.1. Recorded tool results are reused. To re-invoke models or tools, opt into experimental mode (v0.2).

@@ -1,13 +1,16 @@
 # `@actantdb/box`
 
-Local-first ActantDB Box. A sandboxed agent workspace with file, exec, git,
-schedule, and snapshot primitives — every action captured in a hash-chained
-ActantDB ledger.
+Local-first backend workspace primitive for agents. `@actantdb/box` gives an
+existing agent a sandboxed workspace with file, exec, git, schedule, and
+snapshot primitives; every action is captured in a hash-chained ActantDB
+ledger.
 
 The SDK surface is a 1:1 mirror of [Upstash Box](https://upstash.com/docs/box)
-so porting is a one-line import change. The cloud control plane lands in a
-future release (see [docs/CLOUD_ROADMAP.md](../../docs/CLOUD_ROADMAP.md)); for
-now, `mode: "cloud"` resolves the contract but throws on every operation.
+so porting is a one-line import change. It is not an agent runtime: preset CLI
+harnesses are integration adapters, and the default value is backend state for
+the agent you already run. The cloud backend control plane lands in a future
+release (see [docs/CLOUD_ROADMAP.md](../../docs/CLOUD_ROADMAP.md)); for now,
+`mode: "cloud"` resolves the contract but throws on every operation.
 
 ## Install
 
@@ -22,7 +25,7 @@ No Rust toolchain, no Docker, no exposed ports.
 ```ts
 import { Box, Agent, ClaudeCode } from "@actantdb/box";
 
-// Box.create with a preset coding-agent harness — drop-in for @upstash/box.
+// Optional preset CLI harness — useful for Box parity, not required.
 const box = await Box.create({
   name: "my-workspace",
   agent: {
@@ -46,9 +49,10 @@ the workspace. Install the CLI on PATH or set `CLAUDE_PATH` / `CODEX_PATH` /
 `OPENCODE_PATH`. Every spawn lands as a typed event in the box's hash-chained
 ledger so you can replay the run later.
 
-## Custom agent (no preset)
+## Workspace primitives (no harness)
 
-If you'd rather plug in your own Mastra / LangGraph / hand-rolled agent:
+If your Mastra / LangGraph / elizaOS / hand-rolled agent already owns the
+planning loop, use Box only as its backend workspace:
 
 ```ts
 const box = await Box.create({ name: "my-workspace" });
@@ -105,7 +109,7 @@ difference is what it costs and where it runs:
 | Replay with overrides | n/a                      | `@actantdb/replay`        |
 | Policy engine         | n/a                      | `@actantdb/policy`        |
 
-When `mode: "cloud"` lands, the contract is already in place — the call site
+When the cloud backend lands, the contract is already in place — the call site
 above doesn't change.
 
 ## API reference
@@ -255,7 +259,7 @@ run.logs();        // ActantEvent[] for this run
 ```
 
 > Local mode never infers token counts. `inputTokens`/`outputTokens` are
-> always `0`; `computeMs` is measured. The cloud surface will populate the
+> always `0`; `computeMs` is measured. The cloud backend will populate the
 > rest.
 
 ### Errors
@@ -280,7 +284,7 @@ Codes: `not_found`, `already_exists`, `io_error`, `exec_failed`,
 
 `Box.create({ mode: "cloud" })` resolves to a Box whose every operation
 throws `cloud_unsupported`. The contract is here so consumer code is portable
-the day the control plane lands. See
+the day the backend control plane lands. See
 [docs/CLOUD_ROADMAP.md](../../docs/CLOUD_ROADMAP.md).
 
 ## License

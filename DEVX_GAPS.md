@@ -272,24 +272,25 @@ a specific named user persona.
 If we ship just those 10, the "first 5 minutes" UX goes from "works if
 you read the README carefully" to "obviously the right tool".
 
-## Part K — Big-ticket features previously framed as "anti-scope"
+## Part K — Backend boundary items
 
-Reclassified: every item below is something we ARE building (or want to
-plan for), not a deliberate non-goal. They're called out separately
-because each is a multi-week effort with its own architecture story.
+These are larger features that affect the "agent backend, not agent runtime"
+boundary. Items that strengthen backend state, inspection, policy, audit, or
+sync remain in scope. Items that make ActantDB the agent-authoring product are
+explicit non-goals.
 
 | # | Item | Status | Notes |
 |---|---|--------|-------|
 | X88 | **Auto-generated REST API from schema (`@actantdb/auto-rest`)** | 🟢 | `crates/actant-server/src/{auto_rest.rs, schema_introspect.rs}`. PostgREST-style `/rest/v1/<table>` with `select=`/`order=`/`limit=`/`offset=` + filter operators (`eq.`, `neq.`, `lt.`, `gt.`, `lte.`, `gte.`, `like.`, `in.(...)`, `is.null`). `agent_event` + `command_record` stay append-only-via-commands. Feature-gated behind `auto-rest`. Tests in `crates/actant-server/tests/auto_rest_*.rs`. |
 | X89 | **GraphQL endpoint** | 🟢 | `crates/actant-server/src/graphql_api.rs` via `async-graphql`. Schema auto-derived from the same introspection that backs X88. Reads = `query`; mutations route through the typed-command envelope (no Hasura-style auto-mutations). Feature-gated behind `graphql`. Tests in `crates/actant-server/tests/graphql_*.rs`. |
-| X90 | **Vector database as a primary product surface** | 🚧 | `actant-index` + `actant-embed` substrate already exists. What's missing: first-class API (`box.vectors.upsert/search/delete`), Studio panel, collection lifecycle, hybrid search (vector + metadata), per-collection embedding model. Effort: ~4 weeks. Bumps us into Pinecone / Weaviate / Qdrant comparison set. |
-| X91 | **Visual workflow canvas in Studio** | 🔴 | Drag-drop DAG builder that emits `actant-flow::Workflow` definitions. React Flow under the hood. Round-trips: edit in canvas → save → file commit; edit file → reload canvas. Effort: ~4 weeks (a panel-shaped React app on top of an existing Workflow API). |
-| X92 | **Browser embedded mode (`@actantdb/core-wasm`)** | 🔴 | WASM SQLite (sql.js or wa-sqlite) so the ledger runs fully client-side. Same API as `@actantdb/core`. Use cases: in-browser agent demos, offline mobile (iOS Safari), zero-backend prototypes. Effort: ~3 weeks; file persistence story is the tricky part (IndexedDB OPFS). |
+| X90 | **Retrieval backend APIs** | 🚧 | `actant-index` + `actant-embed` substrate already exists. What's missing: first-class backend API (`vectors.upsert/search/delete`), Studio inspection panel, collection lifecycle, hybrid search (vector + metadata), per-collection embedding model. Effort: ~4 weeks. This should remain an agent-backend capability, not a pivot into being a standalone vector DB. |
+| X91 | **Workflow inspection canvas in Studio** | 🟡 | A read/write operator view for existing `actant-flow::Workflow` definitions is useful, but it must not become a competing agent builder. Acceptable scope: inspect backend runs, approvals, schedules, and saved workflow definitions; edit definitions only where ActantDB already owns the backend state. |
+| X92 | **Browser embedded ledger (`@actantdb/core-wasm`)** | 🔴 | WASM SQLite (sql.js or wa-sqlite) so the ledger can run fully client-side for demos and offline prototypes. Same backend API as `@actantdb/core`; not an agent runtime. Effort: ~3 weeks; file persistence story is the tricky part (IndexedDB OPFS). |
 | X93 | **Generic pub/sub broker mode** | 🟢 | `crates/actant-subscribe/src/broker.rs` + `crates/actant-server/src/pubsub_routes.rs`. Named-topic broker with workspace isolation; persistence via the new `pubsub_message` table (`migrations/0006_pubsub.sql` + `migrations/pg/0006_pubsub.sql` — keeps GAPS row #22 parity gate at 91/91). WebSocket transport at `/v1/pubsub/<workspace>/<topic>`. Five tests in `crates/actant-subscribe/tests/broker_*.rs`. |
 | X94 | **Mailpit-equivalent local SMTP catcher** | 🟢 | `deploy/docker-compose.yml` ships Mailpit alongside `actantdb-server` (SMTP on :1025, web UI on :8025); `ACTANTDB_SMTP_HOST`/`ACTANTDB_SMTP_PORT` env wired so any worker that sends mail hits the catcher by default. In-process catcher (no Docker required) is the deferred extension. |
-| X95 | **No-code agent builder (full Zapier-shape)** | 🔴 | Tying X91 (workflow canvas) + the agent harness (`@actantdb/box`) + tool definitions into a single drag-drop UI for non-developers. Bigger lift than X91 alone — needs auth, sharing, marketplace. Effort: ~8 weeks. |
+| X95 | **No-code agent builder (full Zapier-shape)** | ⊝ | Deliberate non-goal for ActantDB core. ActantDB should provide the backend records, policy, approvals, replay, audit, and operator UI that a builder can consume; it should not become the agent-authoring product itself. |
 
-**Part K totals:** 4 🟢 (X88 auto-REST, X89 GraphQL, X93 pub/sub broker, X94 Mailpit), 1 🚧 (X90 vector DB), 3 🔴 (X91 workflow canvas, X92 browser embedded, X95 no-code builder). Every row is real work; none of it is deliberately omitted.
+**Part K totals:** 4 🟢 (X88 auto-REST, X89 GraphQL, X93 pub/sub broker, X94 Mailpit), 1 🚧 (X90 retrieval backend APIs), 1 🟡 (X91 workflow inspection canvas), 1 🔴 (X92 browser embedded ledger), 1 ⊝ (X95 no-code agent builder). The product boundary is explicit: ActantDB is the backend for agents, not the agent-authoring runtime.
 
 ## Cross-link audit
 

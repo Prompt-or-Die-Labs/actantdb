@@ -1,6 +1,6 @@
 # ActantDB
 
-**The local-first black-box recorder and authority layer for agents.**
+**The local-first backend for agent state, authority, replay, memory, and audit.**
 
 ActantDB answers the first operational questions every useful agent creates:
 what did the model see, why was this tool allowed, who approved it, what changed,
@@ -8,8 +8,11 @@ and can we replay the run from the decision point?
 
 > **Your agent just called a tool. Do you know why?**
 
-The golden path is a local embedded SQLite ledger via npm. No cloud account, no
-daemon, no Docker, and no model API key are required for the first run.
+ActantDB is not an agent runtime. Keep Mastra, LangGraph, elizaOS, OpenAI
+Agents, AI SDK, LangChain, or your hand-rolled loop; ActantDB gives that agent
+the backend it is missing. The golden path is a local embedded SQLite ledger via
+npm. No cloud account, no daemon, no Docker, and no model API key are required
+for the first run.
 
 ---
 
@@ -60,9 +63,9 @@ cannot answer:
 
 ## Where it fits
 
-- Wrap an existing Mastra, LangGraph, LangChain, elizaOS, Inngest, Trigger.dev, OpenAI Agents SDK, or hand-rolled agent.
-- Record model calls, tool calls, approvals, memory decisions, and replay diffs.
-- Keep the default path embedded and local.
+- Keep your existing Mastra, LangGraph, LangChain, elizaOS, Inngest, Trigger.dev, OpenAI Agents SDK, AI SDK, or hand-rolled agent.
+- Add backend state for model calls, tool calls, approvals, memory decisions, context manifests, replay diffs, and audit exports.
+- Keep the default backend path embedded and local.
 - Add the Rust server only when you need shared approvals, HTTP/WebSocket access,
   tenancy, or deployment. The server path is SQLite today; Postgres is wired at
   the Rust storage + command-engine layer.
@@ -128,7 +131,7 @@ New project? `npm create actantdb@latest my-app` scaffolds a runnable wrapper, t
 Requires **Node ≥22.5** or **Bun ≥1.3** for embedded mode. `@actantdb/core` uses `node:sqlite` on Node, which is unflagged starting at Node 24 (Node 22 needs `--experimental-sqlite`), and `bun:sqlite` on Bun.
 
 ```bash
-# Wrap your agent (runtime dep):
+# Add backend capture to your agent:
 npm install @actantdb/mastra
 
 # LangGraph package name:
@@ -144,9 +147,9 @@ npm install @actantdb/elizaos
 npm install --save-dev @actantdb/studio
 ```
 
-`@actantdb/mastra` works with **any** agent that exposes a tools record — Mastra, LangGraph, OpenAI Agents SDK, hand-rolled. `@actantdb/langgraph` is the LangGraph-named package for the same thin wrapper. `@actantdb/elizaos` wraps elizaOS actions/plugin-shaped runtimes. `@actantdb/inngest` and `@actantdb/triggerdev` wrap handler/task functions without taking a framework dependency. If you're using Mastra, also `npm install @mastra/core`; for other framework-name packages no extra peer is needed.
+`@actantdb/mastra` works with **any** agent that exposes a tools record — Mastra, LangGraph, OpenAI Agents SDK, hand-rolled. `@actantdb/langgraph` is the LangGraph-named package for the same thin wrapper. `@actantdb/elizaos` wraps elizaOS actions/plugin-shaped runtime objects without becoming the Eliza agent. `@actantdb/inngest` and `@actantdb/triggerdev` wrap handler/task functions without taking a framework dependency. If you're using Mastra, also `npm install @mastra/core`; for other framework-name packages no extra peer is needed.
 
-Runtime boundary: embedded `@actantdb/core` needs Node or Bun SQLite plus a real filesystem. Python, Swift, Rust, Deno, Edge runtimes, and browsers should use the HTTP SDK path unless their runtime explicitly supports that embedded storage contract. See [`docs/RUNTIME_GUIDANCE.md`](./docs/RUNTIME_GUIDANCE.md).
+Embedded storage boundary: embedded `@actantdb/core` needs Node or Bun SQLite plus a real filesystem. Python, Swift, Rust, Deno, Edge runtimes, and browsers should use the HTTP SDK path unless their runtime explicitly supports that embedded storage contract. See [`docs/RUNTIME_GUIDANCE.md`](./docs/RUNTIME_GUIDANCE.md).
 
 Snippets below are valid in plain `.mjs` (no TypeScript needed). Save as `agent.mjs` and run `node agent.mjs`.
 
