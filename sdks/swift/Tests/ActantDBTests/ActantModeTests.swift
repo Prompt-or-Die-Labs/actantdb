@@ -95,7 +95,7 @@ struct ActantModeTests {
 
     // MARK: - Embedded mode
 
-    #if ACTANTDB_LOCAL_FFI
+    #if ACTANTDB_FFI
     @Test("Actant.embedded(...) dispatches and reads events when the FFI is linked")
     func embeddedRoundTrip() async throws {
         let tmp = FileManager.default.temporaryDirectory

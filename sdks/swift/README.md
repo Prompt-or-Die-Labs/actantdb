@@ -149,6 +149,20 @@ ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" \
   swift test --package-path sdks/swift --filter embeddedRoundTrip
 ```
 
+The script also regenerates `Sources/ActantFFI/actant_ffi.swift`, the UniFFI
+Swift glue used by both local and published XCFramework builds. The
+`ACTANTDB_LOCAL_FFI_XCFRAMEWORK` env var only supplies the local
+`actant_ffiFFI` binary target; it does not change the public manifest.
+
+For the first published XCFramework, build `.github/workflows/ios-xcframework.yml`
+on the release commit, copy the workflow's `ActantFFI.checksum` into
+`releasedActantFFI` in `Package.swift`, and tag that commit. The release asset
+URL pattern is:
+
+```text
+https://github.com/Prompt-or-Die-Labs/actantdb/releases/download/vX.Y.Z/ActantFFI.xcframework.zip
+```
+
 ## ActantAgent (opinionated facade)
 
 Sitting on top of `ActantDB` is a second library product, `ActantAgent`,

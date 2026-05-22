@@ -10,21 +10,35 @@ let localActantFFI = ProcessInfo.processInfo.environment["ACTANTDB_LOCAL_FFI_XCF
     .flatMap { $0.isEmpty ? nil : $0 }
     .map(localBinaryTargetPath)
 
-var targets: [Target] = []
-var actantDBDependencies: [Target.Dependency] = []
-var actantDBSwiftSettings: [SwiftSetting] = []
+let releasedActantFFI: (url: String, checksum: String)? = nil
 
+let actantFFIBinaryTarget: Target?
 if let localActantFFI {
-    targets.append(.binaryTarget(name: "actant_ffiFFI", path: localActantFFI))
-    targets.append(.target(
-        name: "ActantFFI",
-        dependencies: ["actant_ffiFFI"],
-        path: ".actantffi/Sources/ActantFFI",
-        linkerSettings: [.linkedFramework("SystemConfiguration", .when(platforms: [.macOS]))]
-    ))
-    actantDBDependencies.append("ActantFFI")
-    actantDBSwiftSettings.append(.define("ACTANTDB_LOCAL_FFI"))
+    actantFFIBinaryTarget = .binaryTarget(name: "actant_ffiFFI", path: localActantFFI)
+} else if let releasedActantFFI {
+    actantFFIBinaryTarget = .binaryTarget(
+        name: "actant_ffiFFI",
+        url: releasedActantFFI.url,
+        checksum: releasedActantFFI.checksum
+    )
+} else {
+    actantFFIBinaryTarget = nil
 }
+
+let actantFFITargets: [Target] = actantFFIBinaryTarget.map {
+    [
+        $0,
+        .target(
+            name: "ActantFFI",
+            dependencies: ["actant_ffiFFI"],
+            path: "Sources/ActantFFI",
+            linkerSettings: [.linkedFramework("SystemConfiguration", .when(platforms: [.macOS]))]
+        ),
+    ]
+} ?? []
+
+let actantDBDependencies: [Target.Dependency] = actantFFIBinaryTarget == nil ? [] : ["ActantFFI"]
+let actantDBSwiftSettings: [SwiftSetting] = actantFFIBinaryTarget == nil ? [] : [.define("ACTANTDB_FFI")]
 
 let package = Package(
     name: "ActantDB",
@@ -36,17 +50,7 @@ let package = Package(
         .library(name: "ActantDB", targets: ["ActantDB"]),
         .library(name: "ActantAgent", targets: ["ActantAgent"]),
     ],
-    targets: targets + [
-        // TODO: uncomment after the first `vX.Y.Z` tag ships an XCFramework via
-        // `.github/workflows/ios-xcframework.yml`. Until then the embedded path
-        // throws ActantError.transport("ActantFFI binary target not linked …").
-        // URL pattern: https://github.com/Prompt-or-Die-Labs/actantdb/releases/download/vX.Y.Z/ActantFFI.xcframework.zip
-        // Checksum is the contents of ActantFFI.checksum produced by the workflow.
-        // .binaryTarget(
-        //     name: "ActantFFI",
-        //     url: "https://github.com/Prompt-or-Die-Labs/actantdb/releases/download/v0.0.X/ActantFFI.xcframework.zip",
-        //     checksum: "<paste-the-sha256-from-ActantFFI.checksum-here>"
-        // ),
+    targets: actantFFITargets + [
         .target(
             name: "ActantDB",
             dependencies: actantDBDependencies,

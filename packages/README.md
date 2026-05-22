@@ -16,6 +16,7 @@ The product surface. TypeScript packages distributed via npm, ESM-only, TypeScri
 | `@actantdb/types`    | Generated from `crates/actant-contracts` via `codegen-ts`. Hand-edits forbidden. |
 | `@actantdb/sdk`      | HTTP + WS client for the Rust server. Use this when an embedded `@actantdb/core` outgrows the laptop. |
 | `@actantdb/convex`   | Adapter for Convex's `handler(ctx, args)` tool shape.                       |
+| `@actantdb/supabase` | Supabase Edge Function adapter that records into the ActantDB Postgres ledger without a separate server. |
 
 ## Conventions
 
@@ -53,5 +54,6 @@ The NAPI-RS / WASM bridges that bundle the Rust kernel directly inside `@actantd
 | `actant-demo-test-cleanup`         | `/examples/test-cleanup/`              | The killer "deleted the wrong file" walkthrough.       |
 | `actant-demo-langgraph-router`     | `/examples/langgraph-router/`    | The same demo on a LangGraph-shaped router.           |
 | `actant-demo-cli`                  | `/examples/cli-only/`          | Pure-CLI variant.                                     |
+| `actant-demo-ollama-only`          | `/examples/ollama-only/`      | Local Ollama model capture plus blocked cloud tools.  |
 
 `pnpm-workspace.yaml` includes both `packages/*` and `examples/test-cleanup*` so they share the workspace `@actantdb/*` versions.

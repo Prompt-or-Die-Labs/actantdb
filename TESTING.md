@@ -3,6 +3,19 @@
 This file separates the current local verification pass from older
 release-scenario evidence. CI remains the source of truth for the full matrix.
 
+## Current local pass — 2026-05-22
+
+| Suite | Result | Method |
+| --- | --- | --- |
+| Ollama-only demo | passed | `pnpm --filter actant-demo-ollama-only demo:mock` |
+| Supabase Edge adapter build | passed | `pnpm --filter @actantdb/supabase build` |
+| Supabase Edge adapter lint | passed | `pnpm --filter @actantdb/supabase lint` |
+| Supabase Edge adapter tests | passed | `pnpm --filter @actantdb/supabase test` (3 tests) |
+| Swift Package manifest | passed | `swift package dump-package --package-path sdks/swift` and `ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" swift package dump-package --package-path sdks/swift` |
+| iOS XCFramework workflow YAML | passed | `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ios-xcframework.yml")'` |
+| Workspace hygiene | passed | `git diff --check`, `graphify update .` |
+| Swift XCFramework local rebuild | blocked | `bash sdks/swift/scripts/build-local-actantffi-xcframework.sh` failed while compiling release Rust artifacts because the checkout machine had ~118 MiB free and Cargo reported `No space left on device`. The script, manifest, committed UniFFI Swift source, and workflow path were updated; full local rebuild needs disk space. |
+
 ## Current local pass — 2026-05-20
 
 | Suite | Result | Method |

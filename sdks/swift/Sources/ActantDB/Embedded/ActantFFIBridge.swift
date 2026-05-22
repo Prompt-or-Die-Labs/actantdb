@@ -1,6 +1,6 @@
 import Foundation
 
-#if ACTANTDB_LOCAL_FFI
+#if ACTANTDB_FFI
 import ActantFFI
 
 extension ActantHandle: @unchecked Sendable {}
@@ -124,11 +124,6 @@ public actor ActantFFIBridge: EmbeddedHandle {
 
 #else
 
-/// Fallback bridge for builds where the `ActantFFI` binary target is not
-/// linked (e.g. local `swift build` before the first XCFramework release ships,
-/// or non-Apple platforms). Every method throws `ActantError.transport` with a
-/// stable message so consumers can branch on it; `Actant.embedded(...)` fails
-/// fast at construction time.
 public actor ActantFFIBridge: EmbeddedHandle {
     public init(storeDir: URL, workspaceID: String, actorID: String) async throws {
         _ = (storeDir, workspaceID, actorID)

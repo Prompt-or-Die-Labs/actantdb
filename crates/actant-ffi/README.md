@@ -47,8 +47,10 @@ cargo run --bin uniffi-bindgen -p actant-ffi -- \
 ```
 
 That writes `actant_ffi.swift` + `actant_ffiFFI.h` + `actant_ffiFFI.modulemap`
-into `bindings/swift/`. The XCFramework workflow (GAPS row #41) packages those
-together with the `lipo`-fattened static archive into `ActantFFI.xcframework.zip`.
+into `bindings/swift/`. The SwiftPM package keeps the generated Swift glue at
+`sdks/swift/Sources/ActantFFI/actant_ffi.swift`; the XCFramework workflow
+diffs its freshly generated copy against that committed source before packaging
+the headers and `lipo`-fattened static archive into `ActantFFI.xcframework.zip`.
 
 For local Swift SDK validation before a tagged release artifact exists:
 
@@ -56,6 +58,12 @@ For local Swift SDK validation before a tagged release artifact exists:
 bash sdks/swift/scripts/build-local-actantffi-xcframework.sh
 ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" \
   swift test --package-path sdks/swift --filter embeddedRoundTrip
+```
+
+The release workflow writes the SwiftPM-compatible checksum with:
+
+```sh
+swift package compute-checksum ActantFFI.xcframework.zip > ActantFFI.checksum
 ```
 
 ## Open dependencies (cross-agent)

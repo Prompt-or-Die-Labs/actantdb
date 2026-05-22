@@ -19,6 +19,18 @@ ActantDB does not call models on your behalf. The wrapper observes what
 Install: `brew install ollama` (or [ollama.com/download](https://ollama.com/download)).
 Pull a model: `ollama pull llama3.2:8b`.
 
+The runnable repo demo is in [`examples/ollama-only/`](../../examples/ollama-only/):
+
+```bash
+pnpm --filter actant-demo-ollama-only demo
+```
+
+For CI or a laptop without Ollama running, use the explicit local mock path:
+
+```bash
+pnpm --filter actant-demo-ollama-only demo:mock
+```
+
 ```js
 // agent.mjs
 import { withActant } from "@actantdb/mastra";

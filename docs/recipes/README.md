@@ -1,6 +1,6 @@
 # ActantDB recipes
 
-Ten focused, copy-pasteable how-tos. Each one solves one common task with
+Eleven focused, copy-pasteable how-tos. Each one solves one common task with
 runnable code that compiles against the published `@actantdb/*` packages.
 
 | #  | Recipe                                                                     |
@@ -15,6 +15,7 @@ runnable code that compiles against the published `@actantdb/*` packages.
 | 08 | [Audit-export to S3 on a schedule](./08-audit-export-to-s3-on-a-schedule.md) |
 | 09 | [Add ActantDB to an existing Mastra app](./09-add-actantdb-to-an-existing-mastra-app.md) |
 | 10 | [Build your first MCP tool on top of ActantDB](./10-build-your-first-mcp-tool-on-top-of-actantdb.md) |
+| 11 | [Run inside a Supabase Edge Function](./11-run-in-a-supabase-edge-function.md) |
 
 ## Conventions
 

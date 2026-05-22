@@ -37,3 +37,12 @@ The CLI's `actant examples run <name>`:
 ## Tests
 
 CI runs every example as `actant examples run <name> --headless`, asserts exit code 0, and snapshots output. Failures here block merge.
+
+## Current runnable demos
+
+| Demo | Shows |
+| ---- | ----- |
+| `test-cleanup` | Mastra-shaped tool gating and replay. |
+| `langgraph-router` | LangGraph-shaped router using the same wrapper pattern. |
+| `cli-only` | Hand-rolled CLI loop with tool gating. |
+| `ollama-only` | Local Ollama model call capture plus blocked cloud completion tool. |

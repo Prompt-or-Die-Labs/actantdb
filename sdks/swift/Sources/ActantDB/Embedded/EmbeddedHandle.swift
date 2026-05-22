@@ -7,8 +7,7 @@ import Foundation
 /// Lives behind a protocol so:
 ///   - Tests can stub the bridge without spinning up the Rust core.
 ///   - The package compiles cleanly on platforms / build configurations where
-///     the `ActantFFI` binary target is missing — see `ActantFFIBridge.swift`
-///     for the `#if canImport(ActantFFI)` guard.
+///     the `ActantFFI` binary target is missing.
 ///
 /// Method signatures mirror `ActantHandle` (see `docs/IOS_EMBEDDING.md` §1)
 /// rather than `ActantClient` so the FFI path is a thin one-to-one proxy.

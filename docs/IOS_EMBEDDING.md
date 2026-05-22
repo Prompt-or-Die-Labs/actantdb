@@ -114,20 +114,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.88.0
-      - name: Add iOS targets
+      - name: Add Apple targets
         run: |
-          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios-sim
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - name: Build libactant_ffi.a for every target
         run: |
-          for target in aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios-sim aarch64-apple-darwin x86_64-apple-darwin; do
+          for target in aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-apple-darwin x86_64-apple-darwin; do
             cargo build --release --target "$target" -p actant-ffi
           done
       - name: lipo sim slices
         run: |
           lipo -create \
             target/aarch64-apple-ios-sim/release/libactant_ffi.a \
-            target/x86_64-apple-ios-sim/release/libactant_ffi.a \
+            target/x86_64-apple-ios/release/libactant_ffi.a \
             -output target/lib-sim.a
           lipo -create \
             target/aarch64-apple-darwin/release/libactant_ffi.a \
@@ -175,9 +175,22 @@ until the release asset URL and checksum are known.
 )
 ```
 
-The `ActantDB` target gets `dependencies: ["ActantFFI"]` and reaches the
-FFI types directly. Existing remote/spawned modes stay; the embedded mode
-is new code under `Sources/ActantDB/Embedded/`.
+The package manifest now models the actual UniFFI shape:
+
+- `actant_ffiFFI` is the binary target carrying the XCFramework C module.
+- `ActantFFI` is a Swift source target at `sdks/swift/Sources/ActantFFI/`
+  containing the generated `actant_ffi.swift` glue.
+- `ActantDB` depends on `ActantFFI` only when a local or released binary
+  target is configured, and defines `ACTANTDB_FFI` for that build.
+
+`releasedActantFFI` in `sdks/swift/Package.swift` stays `nil` until the first
+release asset URL and SwiftPM checksum exist. Local validation continues to use:
+
+```bash
+bash sdks/swift/scripts/build-local-actantffi-xcframework.sh
+ACTANTDB_LOCAL_FFI_XCFRAMEWORK=".actantffi/ActantFFI.xcframework" \
+  swift test --package-path sdks/swift --filter embeddedRoundTrip
+```
 
 ### 4. Replication-friendly event semantics
 
@@ -252,7 +265,10 @@ get the same gate. Unblocks `xcodebuild -scheme ActantAgent -destination
 3. **PR after that** — iOS-clean audit + the feature-flag fixes (item 2).
 4. **PR after that** — migration 0007 + HLC implementation in `actant-core` (item 4).
 5. **PR after that** — conflict policy + replay/merge surface (item 5).
-6. **PR after that** — first tagged XCFramework release + uncommented public `Package.swift` binaryTarget (item 3). Last because it depends on all of 1-5. Local validation is already unblocked via `ACTANTDB_LOCAL_FFI_XCFRAMEWORK`.
+6. **Release operation** — run the XCFramework workflow, pin `releasedActantFFI`
+   in `Package.swift` to the release asset URL plus `ActantFFI.checksum`, then
+   tag that commit. Local validation is unblocked via
+   `ACTANTDB_LOCAL_FFI_XCFRAMEWORK`.
 7. **Cross-link** — `SYNC_DESIGN.md` covers what rides on top.
 
 ## Out of scope

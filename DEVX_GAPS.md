@@ -12,7 +12,7 @@ This file is the audit. Same status taxonomy as `CLOUD_GAPS.md`:
 Cross-reference: [GAPS.md](./GAPS.md), [CLOUD_GAPS.md](./CLOUD_GAPS.md),
 [COMPARISON.md](./COMPARISON.md), [TESTING.md](./TESTING.md).
 
-Last updated: 2026-05-20.
+Last updated: 2026-05-22.
 
 ---
 
@@ -58,13 +58,13 @@ Here's the map.
 | X19 | **Trigger.dev** | 🟢 | `packages/actant-triggerdev/` ships as `@actantdb/triggerdev`; tests record an embedded run around a Trigger.dev-shaped task. |
 | X19a | **elizaOS** | 🟢 | `packages/actant-elizaos/` ships as `@actantdb/elizaos`; tests cover action wrapping, runtime wrapping, and plugin shape without importing elizaOS. |
 | X20 | **Vercel AI Gateway** | 🔴 | If a user proxies through Vercel AI Gateway, we should record `model_call` events with gateway routing metadata intact. |
-| X21 | **Ollama / local models** | 🚧 | `actant-runtime::models` registry knows about Ollama. The `withActant` wrapper sees the model name. Need explicit guidance in docs + a `examples/ollama-only/` demo. |
+| X21 | **Ollama / local models** | 🟢 | `actant-runtime::models` registry knows about Ollama, the docs recipe points at `examples/ollama-only/`, and `pnpm --filter actant-demo-ollama-only demo:mock` records a local-model run plus a blocked cloud completion tool. |
 | X22 | **Convex** | 🟢 | `@actantdb/convex` exists and its package tests passed in the current workspace run. A public smoke demo is still useful, but the package is no longer untested. |
-| X23 | **Supabase** | 🔴 | The opposite direction — adapter for *running ActantDB inside a Supabase Edge Function* so a Supabase consumer can add ActantDB without standing up a separate server. Worth shipping once GAPS row #26 (docker-compose) ships. |
+| X23 | **Supabase** | 🟢 | `@actantdb/supabase` ships a Supabase Edge Function wrapper that writes typed, hash-chained `agent_event` rows into the ActantDB Postgres schema. It intentionally does not import `@actantdb/core` because Edge Functions do not provide `node:sqlite`. Package build + 3 adapter tests pass. |
 
-**Part B: 14 🟢, 1 🚧, 2 🔴, 0 ⊝.** The high-volume TypeScript and Python
-agent adapters now exist. Remaining red rows are gateway-specific metadata
-capture and a Supabase edge adapter.
+**Part B: 16 🟢, 0 🚧, 1 🔴, 0 ⊝.** The high-volume TypeScript and Python
+agent adapters now exist. Remaining red row is gateway-specific metadata
+capture.
 
 ---
 
@@ -186,7 +186,7 @@ Where someone goes to learn a pattern.
 | # | Item | Status | Notes |
 |---|---|--------|-------|
 | X66 | **API reference (typedoc / rustdoc)** | 🟢 | `rustdoc` autogens on the Rust side. `typedoc.json` at the repo root + `pnpm typedoc` script render every `packages/actant-*/src/index.ts` into `docs/api-typescript/`. |
-| X67 | **`docs/recipes/`** | 🟢 | `docs/recipes/` ships an index README + 10 recipes: 01 approval, 02 replay-failed-run, 03 Next.js wiring, 04 Ollama-only, 05 snapshot testing, 06 BigQuery export, 07 share-a-replay-session, 08 audit-export-to-S3, 09 add-to-existing-mastra-app, 10 first-MCP-tool-on-top-of-ActantDB. |
+| X67 | **`docs/recipes/`** | 🟢 | `docs/recipes/` ships an index README + 11 recipes: 01 approval, 02 replay-failed-run, 03 Next.js wiring, 04 Ollama-only, 05 snapshot testing, 06 BigQuery export, 07 share-a-replay-session, 08 audit-export-to-S3, 09 add-to-existing-mastra-app, 10 first-MCP-tool-on-top-of-ActantDB, 11 Supabase Edge Function. |
 | X69 | **"Awesome ActantDB"** list | 🔴 | Curated list of community examples once we have any. Empty for now; can seed with our 3 demos + 5 templates. |
 | X70 | **Migration guides FROM other tools** | 🔴 | "Migrating from Langfuse to ActantDB" / "Adding ActantDB on top of your Inngest workflows" / "Replacing in-house logging with the ActantDB ledger". Inbound-marketing gold. |
 | X71 | **Interactive playground** | 🟢 | `docs/src/playground.md` embeds the local browser playground. It does not depend on Stackblitz, CodeSandbox, or hosted execution. |

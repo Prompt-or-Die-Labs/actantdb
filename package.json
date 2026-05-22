@@ -10,6 +10,7 @@
     "examples/test-cleanup",
     "examples/langgraph-router",
     "examples/cli-only",
+    "examples/ollama-only",
     "bench/box"
   ],
   "scripts": {
