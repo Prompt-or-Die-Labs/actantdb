@@ -51,7 +51,7 @@ PY
 
 case "$event" in
   session-start)
-    extra="Project skills live in .agent/skills: actantdb-codegen, actantdb-graphify, actantdb-verify, and dashboard. Workflows live in .agent/workflows. Git hooks live in .githooks and should be active through core.hooksPath=.githooks."
+    extra="Project skills live in .agent/skills: actantdb-codegen, actantdb-graphify, actantdb-verify, and dashboard. Workflows live in .agent/workflows. Use .agent/workflows/finish-with-coderabbit.md before final completion of code-changing goals, and whenever the user asks to finish, ship, review with CodeRabbit, or make a PR. Git hooks live in .githooks and should be active through core.hooksPath=.githooks."
     if [ -f graphify-out/graph.json ]; then
       extra="$extra For codebase questions, run graphify query, graphify path, or graphify explain before broad source search."
     fi
@@ -72,6 +72,9 @@ case "$event" in
         ;;
       *verify*|*test*|*green*|*ci*|*smoke*)
         context="Use ActantDB verification gates: just verify-specs, just verify-agents, crate-specific cargo test -p <crate>, pnpm -r build/test, and pnpm smoke. Avoid local cargo test --workspace."
+        ;;
+      *ready\ to\ finish*|*ready\ to\ ship*|*ship\ it*|*ship\ this*|*make\ pr*|*open\ pr*|*create\ pr*|*close\ pr*|*pull\ request*|*coderabbit*|*code\ rabbit*|*review\ loop*|*finalize*|*complete\ task*|*task\ complete*|*task\ is\ complete*|*goal\ complete*|*goal\ is\ complete*|*all\ done*|*mark\ as\ done*|*work\ is\ done*|*changes\ are\ done*)
+        context="Use .agent/workflows/finish-with-coderabbit.md before final completion. Run local gates, run CodeRabbit review with AGENTS.md context, fix every actionable issue, repeat until clean, then pause for approval before push or PR creation."
         ;;
     esac
     emit_context "$context"
