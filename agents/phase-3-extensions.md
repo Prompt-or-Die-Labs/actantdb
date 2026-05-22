@@ -2,7 +2,7 @@
 
 ## Context
 
-Consumed alongside `actant-embed.md`, `actant-capsule.md`, `actant-trust.md`. This is the multi-crate companion to Phase 3's new libraries — it catalogs what must change in each existing crate (`actant-storage`, `actant-context`, `actant-memory`, `actant-policy`, `actant-command`, `actant-subscribe`, `actant-server`) to land the six-stage context pipeline, full memory lifecycle, sensitivity lineage via capsules, memory conflicts, behavioral trust reads, and context-debt scoring.
+Consumed alongside `actant-embed.md`, `actant-policy.md`, and `actant-memory.md`. This is the multi-crate companion to Phase 3's new libraries — it catalogs what must change in each existing crate (`actant-storage`, `actant-context`, `actant-memory`, `actant-policy`, `actant-command`, `actant-subscribe`, `actant-server`) to land the six-stage context pipeline, full memory lifecycle, sensitivity lineage via capsules, memory conflicts, behavioral trust reads, and context-debt scoring.
 
 ## Scope
 
@@ -54,7 +54,7 @@ Add lifecycle commands implementations:
 ### `actant-policy`
 
 - Read `trust_profile` when computing risk for an actor; low trust escalates `medium → high` (configurable threshold).
-- Consult capsule policy via `actant-capsule::resolve` + `compose_strictest` when evaluating effects against context items.
+- Consult capsule policy via `actant-policy::capsule` when evaluating effects against context items.
 
 ### `actant-command`
 

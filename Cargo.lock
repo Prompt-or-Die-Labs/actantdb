@@ -72,22 +72,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-capsule"
-version = "0.0.15"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "actant-cli"
 version = "0.0.15"
 dependencies = [
@@ -120,11 +104,13 @@ dependencies = [
 name = "actant-command"
 version = "0.0.15"
 dependencies = [
+ "actant-contracts",
  "actant-core",
  "actant-policy",
  "actant-storage",
  "anyhow",
  "async-trait",
+ "proptest",
  "schemars",
  "serde",
  "serde_json",
@@ -174,9 +160,11 @@ dependencies = [
 name = "actant-contracts"
 version = "0.0.15"
 dependencies = [
+ "hex",
  "schemars",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "time",
  "ulid",
@@ -186,7 +174,9 @@ dependencies = [
 name = "actant-core"
 version = "0.0.15"
 dependencies = [
+ "actant-contracts",
  "hex",
+ "rand 0.8.6",
  "serde",
  "serde_json",
  "sha2",
@@ -235,6 +225,7 @@ dependencies = [
 name = "actant-embed"
 version = "0.0.15"
 dependencies = [
+ "actant-contracts",
  "actant-core",
  "actant-storage",
  "anyhow",
@@ -321,50 +312,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-index"
-version = "0.0.15"
-dependencies = [
- "actant-core",
- "actant-embed",
- "actant-embedders",
- "actant-policy",
- "actant-storage",
- "anyhow",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "actant-kernel"
-version = "0.0.15"
-dependencies = [
- "actant-command",
- "actant-core",
- "actant-effects",
- "actant-policy",
- "actant-storage",
- "actant-subscribe",
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "actant-memory"
 version = "0.0.15"
 dependencies = [
+ "actant-contracts",
  "actant-core",
+ "actant-embed",
+ "actant-embedders",
  "actant-storage",
  "anyhow",
  "async-trait",
@@ -386,12 +340,10 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bytes",
- "hex",
  "object_store",
  "reqwest",
  "serde",
  "serde_json",
- "sha2",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
@@ -404,6 +356,7 @@ dependencies = [
 name = "actant-policy"
 version = "0.0.15"
 dependencies = [
+ "actant-contracts",
  "actant-core",
  "actant-storage",
  "anyhow",
@@ -458,27 +411,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-runtime"
-version = "0.0.15"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "hex",
- "proptest",
- "rand 0.9.4",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "actant-schema-dsl"
 version = "0.0.15"
 dependencies = [
@@ -488,21 +420,6 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tracing",
-]
-
-[[package]]
-name = "actant-sdk-codegen"
-version = "0.0.15"
-dependencies = [
- "actant-core",
- "anyhow",
- "clap",
- "schemars",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -531,6 +448,7 @@ dependencies = [
  "clap",
  "futures",
  "hex",
+ "hmac",
  "hyper",
  "once_cell",
  "prometheus",
@@ -539,6 +457,7 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "thiserror 1.0.69",
  "time",
@@ -664,22 +583,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actant-trust"
-version = "0.0.15"
-dependencies = [
- "actant-core",
- "actant-storage",
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "actant-worker-protocol"
 version = "0.0.15"
 dependencies = [
@@ -728,28 +631,25 @@ version = "0.0.15"
 dependencies = [
  "actant-audit-export",
  "actant-auth",
- "actant-capsule",
  "actant-command",
  "actant-compensation",
  "actant-contracts",
+ "actant-core",
  "actant-drift",
  "actant-effects",
  "actant-embed",
  "actant-eval",
- "actant-kernel",
  "actant-memory",
  "actant-objectstore",
  "actant-policy",
  "actant-reliability",
  "actant-replay",
- "actant-runtime",
  "actant-storage",
  "actant-subscribe",
  "actant-sync",
  "actant-templates",
  "actant-tenant",
  "actant-trigger",
- "actant-trust",
  "actant-workers",
 ]
 

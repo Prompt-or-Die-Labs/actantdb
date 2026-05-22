@@ -286,4 +286,4 @@ defer { Task { await sup.stop() } }                     // SIGTERM, then SIGKILL
 
 ## Status
 
-Hand-written. Codegen-from-contracts (`cargo run -p actant-contracts -- codegen-swift`) is a follow-up; until then, keep these types in sync with `crates/actant-contracts/src/{events,policy,replay}.rs` and `crates/actant-core/src/model.rs`.
+Hand-written. Codegen-from-contracts (`cargo run -p actant-contracts --bin actant-contracts -- codegen-swift`) is a follow-up; until then, keep these types in sync with `crates/actant-contracts/src/{events,policy,replay}.rs` and `crates/actant-core/src/model.rs`.

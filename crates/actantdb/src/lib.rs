@@ -30,18 +30,35 @@
 //!
 //! Pick any subset of the features below:
 //!
-//! - `storage`, `policy`, `command`, `replay`, `subscribe`, `auth`
+//! - `core`, `storage`, `policy`, `command`, `replay`, `subscribe`, `auth`
 //! - `reliability` (throttle / circuit / lock / ingress, each its own sub-feature inside)
-//! - `runtime` (trace / cache / prompts / models / protocol)
 //! - `workers` (shell / file / browser / email / mcp / slack / model, gated inside)
 //! - `objectstore` (filesystem default; s3 / ipfs / gcs / azure feature-gated)
-//! - `sync`, `memory`, `effects`, `trigger`, `eval`, `embed`, `capsule`,
-//!   `trust`, `templates`, `audit-export`, `tenant`, `drift`,
-//!   `compensation`, `kernel`, `contracts`
+//! - `sync`, `memory`, `effects`, `trigger`, `eval`, `embed`,
+//!   `templates`, `audit-export`, `tenant`, `drift`, `compensation`,
+//!   `contracts`
 //!
 //! This crate is *only* re-exports. Every type you see here is identical
 //! to the one in the underlying `actant-*` crate; consumers who already
 //! depend on those crates directly do not need to migrate.
+//!
+//! ## Consolidated import paths
+//!
+//! The retired `capsule`, `kernel`, `runtime`, and `trust` umbrella modules
+//! were folded into their owning crates. Use these replacements:
+//!
+//! ```ignore
+//! use actantdb::policy::{ActantCapsule, ActantTrustProfile, MemoryAllowed};
+//! use actantdb::command::{
+//!     dispatch_tool_call, ActantCache, ActantHotToolCall, ActantModelRegistry,
+//!     ActantPromptTemplate,
+//! };
+//! use actantdb::core::{
+//!     new_span_id, new_trace_id, ActantA2aCard, ActantAp2Mandate, ActantMcpServer,
+//! };
+//! use actantdb::memory::{ActantIndex, ActantSearchOptions};
+//! use actantdb::contracts::sdk_codegen;
+//! ```
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -50,14 +67,14 @@
 pub use actant_audit_export as audit_export;
 #[cfg(feature = "auth")]
 pub use actant_auth as auth;
-#[cfg(feature = "capsule")]
-pub use actant_capsule as capsule;
 #[cfg(feature = "command")]
 pub use actant_command as command;
 #[cfg(feature = "compensation")]
 pub use actant_compensation as compensation;
 #[cfg(feature = "contracts")]
 pub use actant_contracts as contracts;
+#[cfg(feature = "core")]
+pub use actant_core as core;
 #[cfg(feature = "drift")]
 pub use actant_drift as drift;
 #[cfg(feature = "effects")]
@@ -66,8 +83,6 @@ pub use actant_effects as effects;
 pub use actant_embed as embed;
 #[cfg(feature = "eval")]
 pub use actant_eval as eval;
-#[cfg(feature = "kernel")]
-pub use actant_kernel as kernel;
 #[cfg(feature = "memory")]
 pub use actant_memory as memory;
 #[cfg(feature = "objectstore")]
@@ -78,8 +93,6 @@ pub use actant_policy as policy;
 pub use actant_reliability as reliability;
 #[cfg(feature = "replay")]
 pub use actant_replay as replay;
-#[cfg(feature = "runtime")]
-pub use actant_runtime as runtime;
 #[cfg(feature = "storage")]
 pub use actant_storage as storage;
 #[cfg(feature = "subscribe")]
@@ -92,7 +105,5 @@ pub use actant_templates as templates;
 pub use actant_tenant as tenant;
 #[cfg(feature = "trigger")]
 pub use actant_trigger as trigger;
-#[cfg(feature = "trust")]
-pub use actant_trust as trust;
 #[cfg(feature = "workers")]
 pub use actant_workers as workers;

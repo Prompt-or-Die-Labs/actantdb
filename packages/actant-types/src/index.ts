@@ -2,7 +2,7 @@
  * @actantdb/types — generated TS bindings of `crates/actant-contracts`.
  *
  * Regenerate with:
- *   cargo run -p actant-contracts -- codegen-ts
+ *   cargo run -p actant-contracts --bin actant-contracts -- codegen-ts
  *
  * Hand-edits to `src/generated/*` are forbidden. New cross-package types
  * must be added to `crates/actant-contracts` first. See

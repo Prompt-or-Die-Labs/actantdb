@@ -11,7 +11,7 @@ intentionally out of scope.
 - [x] `pnpm smoke`
 - [x] `just verify-specs`
 - [x] `just verify-agents`
-- [x] `cargo run -p actant-contracts -- check-compat`
+- [x] `cargo run -p actant-contracts --bin actant-contracts -- check-compat`
 - [x] CI workflow exists for format, lint, tests, spec verification, and agent verification
 - [x] Three runnable examples exist: [`examples/test-cleanup/`](./examples/test-cleanup), [`examples/langgraph-router/`](./examples/langgraph-router), [`examples/cli-only/`](./examples/cli-only)
 - [x] CI publish workflow exists: [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml)
@@ -67,8 +67,8 @@ the configured platforms.
 Before publishing any release that changes `crates/actant-contracts`, run:
 
 ```bash
-cargo run -p actant-contracts -- check-compat
-cargo run -p actant-contracts -- codegen-ts
+cargo run -p actant-contracts --bin actant-contracts -- check-compat
+cargo run -p actant-contracts --bin actant-contracts -- codegen-ts
 git diff --exit-code packages/actant-types/src/generated
 ```
 

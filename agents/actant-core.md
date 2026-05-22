@@ -2,7 +2,7 @@
 
 ## Context
 
-`actant-core` is the foundation crate. Every other ActantDB crate depends on it for IDs, enums, error types, and the event-hash helpers. It has no internal dependencies. Get this crate right and the rest of the workspace falls into place.
+`actant-core` is the foundation crate. Every other ActantDB crate depends on it for IDs, enums, error types, event-hash helpers, protocol shapes, and trace/span ID primitives. It has no internal dependencies. Get this crate right and the rest of the workspace falls into place.
 
 See `/specs/01-architecture.md` for where `actant-core` sits. There is no subsystem named "core" — this crate exists because the same primitives are needed by Chronicle, Command Engine, Effect Engine, Guard, etc.
 

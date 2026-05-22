@@ -21,8 +21,8 @@ Use this workflow before final completion of code-changing tasks, and when the u
    cargo check -p <crate> --all-targets
 
 5. If contracts changed, run:
-   cargo run -p actant-contracts -- check-compat
-   cargo run -p actant-contracts -- codegen-ts
+   cargo run -p actant-contracts --bin actant-contracts -- check-compat
+   cargo run -p actant-contracts --bin actant-contracts -- codegen-ts
 
 6. If code changed and graphify-out/graph.json exists, run:
    graphify update .

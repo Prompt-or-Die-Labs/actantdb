@@ -6,6 +6,8 @@ Cross-reference: [SPECS_STATUS.md](./SPECS_STATUS.md), [GATES.md](./GATES.md),
 
 ## Unreleased — 2026-05-20
 
+- **Rust crate surface consolidated again**: standalone runtime/index/kernel/capsule/trust/SDK-codegen crates were folded into their owning backend crates (`actant-core`, `actant-command`, `actant-memory`, `actant-policy`, `actant-contracts`). Workspace now has 31 crates under `crates/`.
+- **Rust umbrella imports moved**: `actantdb::capsule::*` and `actantdb::trust::*` now live under `actantdb::policy::*`; `actantdb::kernel::*` and cache/model/prompt runtime helpers now live under `actantdb::command::*`; protocol and trace helpers live under `actantdb::core::*`; retrieval types live under `actantdb::memory::*`; SDK codegen lives under `actantdb::contracts::sdk_codegen`.
 - **First five minutes tightened**: root README now leads with the local
   embedded quickstart instead of the broad product inventory, and mdbook has
   `golden-quickstart.md` plus an embedded interactive playground for capture,

@@ -5,4 +5,4 @@
 2. **No New Public Types**:
    Never introduce any public type outside of `actant-contracts`. Edit `crates/actant-contracts/src/lib.rs` first.
 3. **No Hand-editing Generated Code**:
-   Do NOT hand-edit anything under `packages/actant-types/src/generated/*`. They are regenerated via `cargo run -p actant-contracts -- codegen-ts`.
+   Do NOT hand-edit anything under `packages/actant-types/src/generated/*`. They are regenerated via `cargo run -p actant-contracts --bin actant-contracts -- codegen-ts`.

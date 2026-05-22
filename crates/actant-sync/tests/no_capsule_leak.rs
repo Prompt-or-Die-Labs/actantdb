@@ -5,7 +5,7 @@
 //! capsule markers and asserts a sync export drops every private row
 //! and surfaces zero "we skipped a row" metadata leaks.
 //!
-//! Until `actant-capsule` is wired into `actant-sync` properly, this
+//! Until policy capsules are wired into `actant-sync` properly, this
 //! crate has no `export_for_sync` helper. The test inlines a reference
 //! implementation of the redaction rule and exercises it against the
 //! fixture. The rule it encodes:

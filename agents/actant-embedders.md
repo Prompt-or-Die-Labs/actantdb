@@ -2,7 +2,7 @@
 
 ## Context
 
-Provider registry for embedders, sparse encoders, and rerankers. Used by `actant-index` and `actant-memory`. Ships with FastEmbed (local default), MLX (Apple), and adapters for OpenAI, Voyage, Cohere, Jina, Mixedbread, Nomic, custom OpenAI-compatible. Sparse: BM25 + SPLADE-v3. Rerankers: local BGE-reranker-v2 + cloud (Cohere/Voyage/Jina) + a policy-aware reranker that emits reasons.
+Provider registry for embedders, sparse encoders, and rerankers. Used by `actant-memory::index` and `actant-memory`. Ships with FastEmbed (local default), MLX (Apple), and adapters for OpenAI, Voyage, Cohere, Jina, Mixedbread, Nomic, custom OpenAI-compatible. Sparse: BM25 + SPLADE-v3. Rerankers: local BGE-reranker-v2 + cloud (Cohere/Voyage/Jina) + a policy-aware reranker that emits reasons.
 
 ## Specs to read first
 
@@ -13,7 +13,7 @@ Provider registry for embedders, sparse encoders, and rerankers. Used by `actant
 ## Scope
 
 ```rust
-#[async_trait] pub trait Embedder: Send + Sync { /* ... see actant-index spec §10 ... */ }
+#[async_trait] pub trait Embedder: Send + Sync { /* ... see ActantIndex spec §10 ... */ }
 #[async_trait] pub trait Reranker: Send + Sync { /* ... */ }
 #[async_trait] pub trait SparseEncoder: Send + Sync { /* ... */ }
 

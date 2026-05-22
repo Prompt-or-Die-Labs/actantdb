@@ -2,7 +2,7 @@
 
 ## Context
 
-`actant-policy` is **Guard** — the authority, permissions, and approval-decision engine. It is the single point of truth for "can this actor do this?". Every command runs through it; every effect carries a `required_permission` that Guard verifies.
+`actant-policy` is **Guard** — the authority, permissions, and approval-decision engine. It is the single point of truth for "can this actor do this?". Every command runs through it; every effect carries a `required_permission` that Guard verifies. Capsules and behavioral trust profiles live here because both are policy inputs, not standalone substrates.
 
 ## Specs to read first
 

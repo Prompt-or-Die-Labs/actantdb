@@ -1,4 +1,206 @@
 {
+  "ActantA2aCard": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "A2A peer card.",
+    "properties": {
+      "capabilities": {
+        "description": "Advertised capabilities.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "endpoint": {
+        "description": "Endpoint URL.",
+        "type": "string"
+      },
+      "peer_name": {
+        "description": "Peer display name.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "capabilities",
+      "endpoint",
+      "peer_name"
+    ],
+    "title": "ActantA2aCard",
+    "type": "object"
+  },
+  "ActantAp2Mandate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "AP2 mandate: delegated authority to spend.",
+    "properties": {
+      "holder": {
+        "description": "Grantee.",
+        "type": "string"
+      },
+      "purpose": {
+        "description": "Purpose.",
+        "type": "string"
+      },
+      "spend_limit_usd": {
+        "description": "Spend limit in USD.",
+        "format": "double",
+        "type": "number"
+      }
+    },
+    "required": [
+      "holder",
+      "purpose",
+      "spend_limit_usd"
+    ],
+    "title": "ActantAp2Mandate",
+    "type": "object"
+  },
+  "ActantCapsule": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "MemoryAllowed": {
+        "description": "Memory storage scope allowed by a capsule.",
+        "oneOf": [
+          {
+            "description": "Do not write derived content to memory.",
+            "enum": [
+              "forbidden"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Workspace-local memory writes are allowed.",
+            "enum": [
+              "workspace"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Global memory writes are allowed.",
+            "enum": [
+              "global"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "Sensitivity": {
+        "description": "Sensitivity classification carried with every event payload. Drives Studio rendering and replay redaction.",
+        "oneOf": [
+          {
+            "description": "Safe to expose anywhere (logs, UI, sharing).",
+            "enum": [
+              "public"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Low-risk data; default for non-PII operational events.",
+            "enum": [
+              "low"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "User-attributable but not high-impact.",
+            "enum": [
+              "medium"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Personally identifying or business-sensitive.",
+            "enum": [
+              "high"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Secrets, tokens, keys. Never displayed in Studio without unmask.",
+            "enum": [
+              "secret"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "Policy bundle that travels with derived content.",
+    "properties": {
+      "cloud_model_allowed": {
+        "description": "Allow this capsule's content to be sent to cloud models.",
+        "type": "boolean"
+      },
+      "memory_allowed": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/MemoryAllowed"
+          }
+        ],
+        "description": "Memory storage scope allowed by this capsule."
+      },
+      "name": {
+        "description": "Display name.",
+        "type": "string"
+      },
+      "sensitivity": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/Sensitivity"
+          }
+        ],
+        "description": "Highest sensitivity content this capsule may hold."
+      },
+      "upgrades_to_sensitivity": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/Sensitivity"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Sensitivity to upgrade to when re-emitted as memory."
+      }
+    },
+    "required": [
+      "cloud_model_allowed",
+      "memory_allowed",
+      "name",
+      "sensitivity"
+    ],
+    "title": "ActantCapsule",
+    "type": "object"
+  },
+  "ActantEntityRelation": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Relation between two known entities.",
+    "properties": {
+      "confidence": {
+        "description": "Confidence in the relation, `0.0..=1.0`.",
+        "format": "float",
+        "type": "number"
+      },
+      "relation_type": {
+        "description": "Relation type label.",
+        "type": "string"
+      },
+      "source_entity": {
+        "description": "Source entity label.",
+        "type": "string"
+      },
+      "target_entity": {
+        "description": "Target entity label.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "confidence",
+      "relation_type",
+      "source_entity",
+      "target_entity"
+    ],
+    "title": "ActantEntityRelation",
+    "type": "object"
+  },
   "ActantEvent": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
@@ -197,6 +399,772 @@
       "sensitivity"
     ],
     "title": "ActantEvent",
+    "type": "object"
+  },
+  "ActantHit": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ActantIndexedItem": {
+        "description": "One indexed object.",
+        "properties": {
+          "embedding": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Embedding"
+              }
+            ],
+            "description": "Computed embedding."
+          },
+          "id": {
+            "description": "Identifier.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Free-text canonical content.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "embedding",
+          "id",
+          "text"
+        ],
+        "type": "object"
+      },
+      "Embedding": {
+        "description": "One embedding vector and the model that produced it.",
+        "properties": {
+          "model": {
+            "description": "Model name.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider id.",
+            "type": "string"
+          },
+          "vector": {
+            "description": "Vector.",
+            "items": {
+              "format": "float",
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "provider",
+          "vector"
+        ],
+        "type": "object"
+      }
+    },
+    "description": "A scored dense search hit.",
+    "properties": {
+      "item": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/ActantIndexedItem"
+          }
+        ],
+        "description": "Stored item."
+      },
+      "score": {
+        "description": "Similarity score.",
+        "format": "float",
+        "type": "number"
+      }
+    },
+    "required": [
+      "item",
+      "score"
+    ],
+    "title": "ActantHit",
+    "type": "object"
+  },
+  "ActantHotToolCall": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Hot-path tool-call request.",
+    "properties": {
+      "actor_id": {
+        "description": "Calling actor identifier.",
+        "type": "string"
+      },
+      "arguments": {
+        "description": "Arguments."
+      },
+      "session_id": {
+        "description": "Session identifier.",
+        "type": "string"
+      },
+      "tool": {
+        "description": "Tool name.",
+        "type": "string"
+      },
+      "workspace_id": {
+        "description": "Workspace identifier.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "actor_id",
+      "arguments",
+      "session_id",
+      "tool",
+      "workspace_id"
+    ],
+    "title": "ActantHotToolCall",
+    "type": "object"
+  },
+  "ActantIndex": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ActantEntityRelation": {
+        "description": "Relation between two known entities.",
+        "properties": {
+          "confidence": {
+            "description": "Confidence in the relation, `0.0..=1.0`.",
+            "format": "float",
+            "type": "number"
+          },
+          "relation_type": {
+            "description": "Relation type label.",
+            "type": "string"
+          },
+          "source_entity": {
+            "description": "Source entity label.",
+            "type": "string"
+          },
+          "target_entity": {
+            "description": "Target entity label.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confidence",
+          "relation_type",
+          "source_entity",
+          "target_entity"
+        ],
+        "type": "object"
+      },
+      "ActantIndexedItem": {
+        "description": "One indexed object.",
+        "properties": {
+          "embedding": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Embedding"
+              }
+            ],
+            "description": "Computed embedding."
+          },
+          "id": {
+            "description": "Identifier.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Free-text canonical content.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "embedding",
+          "id",
+          "text"
+        ],
+        "type": "object"
+      },
+      "Embedding": {
+        "description": "One embedding vector and the model that produced it.",
+        "properties": {
+          "model": {
+            "description": "Model name.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider id.",
+            "type": "string"
+          },
+          "vector": {
+            "description": "Vector.",
+            "items": {
+              "format": "float",
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "provider",
+          "vector"
+        ],
+        "type": "object"
+      }
+    },
+    "description": "In-memory retrieval index over embedded objects.",
+    "properties": {
+      "item_entities": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "type": "object"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/definitions/ActantIndexedItem"
+        },
+        "type": "array"
+      },
+      "relations": {
+        "items": {
+          "$ref": "#/definitions/ActantEntityRelation"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "item_entities",
+      "items",
+      "relations"
+    ],
+    "title": "ActantIndex",
+    "type": "object"
+  },
+  "ActantIndexedItem": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "Embedding": {
+        "description": "One embedding vector and the model that produced it.",
+        "properties": {
+          "model": {
+            "description": "Model name.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider id.",
+            "type": "string"
+          },
+          "vector": {
+            "description": "Vector.",
+            "items": {
+              "format": "float",
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "provider",
+          "vector"
+        ],
+        "type": "object"
+      }
+    },
+    "description": "One indexed object.",
+    "properties": {
+      "embedding": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/Embedding"
+          }
+        ],
+        "description": "Computed embedding."
+      },
+      "id": {
+        "description": "Identifier.",
+        "type": "string"
+      },
+      "text": {
+        "description": "Free-text canonical content.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "embedding",
+      "id",
+      "text"
+    ],
+    "title": "ActantIndexedItem",
+    "type": "object"
+  },
+  "ActantMcpServer": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "MCP server descriptor.",
+    "properties": {
+      "capabilities": {
+        "description": "Capabilities advertised.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "name": {
+        "description": "Display name.",
+        "type": "string"
+      },
+      "transport": {
+        "description": "Transport (\"stdio\", \"http\", \"websocket\").",
+        "type": "string"
+      },
+      "uri": {
+        "description": "URI of the server.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "capabilities",
+      "name",
+      "transport",
+      "uri"
+    ],
+    "title": "ActantMcpServer",
+    "type": "object"
+  },
+  "ActantModelInfo": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "One row in the model registry.",
+    "properties": {
+      "cost_per_input_1k": {
+        "description": "Cost per 1K input tokens in USD.",
+        "format": "double",
+        "type": "number"
+      },
+      "cost_per_output_1k": {
+        "description": "Cost per 1K output tokens in USD.",
+        "format": "double",
+        "type": "number"
+      },
+      "latency_p50_ms": {
+        "description": "50th-percentile latency in milliseconds.",
+        "format": "uint32",
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "locality": {
+        "description": "Locality, such as `local` or `cloud`.",
+        "type": "string"
+      },
+      "name": {
+        "description": "Model name.",
+        "type": "string"
+      },
+      "privacy_class": {
+        "description": "Privacy class, such as `public` or `private`.",
+        "type": "string"
+      },
+      "provider": {
+        "description": "Provider.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "cost_per_input_1k",
+      "cost_per_output_1k",
+      "latency_p50_ms",
+      "locality",
+      "name",
+      "privacy_class",
+      "provider"
+    ],
+    "title": "ActantModelInfo",
+    "type": "object"
+  },
+  "ActantModelRegistry": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ActantModelInfo": {
+        "description": "One row in the model registry.",
+        "properties": {
+          "cost_per_input_1k": {
+            "description": "Cost per 1K input tokens in USD.",
+            "format": "double",
+            "type": "number"
+          },
+          "cost_per_output_1k": {
+            "description": "Cost per 1K output tokens in USD.",
+            "format": "double",
+            "type": "number"
+          },
+          "latency_p50_ms": {
+            "description": "50th-percentile latency in milliseconds.",
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "locality": {
+            "description": "Locality, such as `local` or `cloud`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Model name.",
+            "type": "string"
+          },
+          "privacy_class": {
+            "description": "Privacy class, such as `public` or `private`.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cost_per_input_1k",
+          "cost_per_output_1k",
+          "latency_p50_ms",
+          "locality",
+          "name",
+          "privacy_class",
+          "provider"
+        ],
+        "type": "object"
+      }
+    },
+    "description": "In-memory model registry.",
+    "properties": {
+      "models": {
+        "items": {
+          "$ref": "#/definitions/ActantModelInfo"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "models"
+    ],
+    "title": "ActantModelRegistry",
+    "type": "object"
+  },
+  "ActantPromptTemplate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ActantPromptVersion": {
+        "description": "A prompt template version.",
+        "properties": {
+          "body": {
+            "description": "Template body.",
+            "type": "string"
+          },
+          "version": {
+            "description": "Version number.",
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "body",
+          "version"
+        ],
+        "type": "object"
+      }
+    },
+    "description": "A prompt template.",
+    "properties": {
+      "name": {
+        "description": "Display name.",
+        "type": "string"
+      },
+      "versions": {
+        "description": "Versions, ordered ascending.",
+        "items": {
+          "$ref": "#/definitions/ActantPromptVersion"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "name",
+      "versions"
+    ],
+    "title": "ActantPromptTemplate",
+    "type": "object"
+  },
+  "ActantPromptVersion": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "A prompt template version.",
+    "properties": {
+      "body": {
+        "description": "Template body.",
+        "type": "string"
+      },
+      "version": {
+        "description": "Version number.",
+        "format": "uint32",
+        "minimum": 0.0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "body",
+      "version"
+    ],
+    "title": "ActantPromptVersion",
+    "type": "object"
+  },
+  "ActantSearchHit": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ActantIndexedItem": {
+        "description": "One indexed object.",
+        "properties": {
+          "embedding": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Embedding"
+              }
+            ],
+            "description": "Computed embedding."
+          },
+          "id": {
+            "description": "Identifier.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Free-text canonical content.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "embedding",
+          "id",
+          "text"
+        ],
+        "type": "object"
+      },
+      "Embedding": {
+        "description": "One embedding vector and the model that produced it.",
+        "properties": {
+          "model": {
+            "description": "Model name.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider id.",
+            "type": "string"
+          },
+          "vector": {
+            "description": "Vector.",
+            "items": {
+              "format": "float",
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "provider",
+          "vector"
+        ],
+        "type": "object"
+      }
+    },
+    "description": "Scored hybrid retrieval hit.",
+    "properties": {
+      "dense_score": {
+        "description": "Dense cosine component.",
+        "format": "float",
+        "type": "number"
+      },
+      "graph_score": {
+        "description": "Entity graph component.",
+        "format": "float",
+        "type": "number"
+      },
+      "item": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/ActantIndexedItem"
+          }
+        ],
+        "description": "Stored item."
+      },
+      "rerank_score": {
+        "description": "Rerank component.",
+        "format": "float",
+        "type": "number"
+      },
+      "score": {
+        "description": "Final fused score.",
+        "format": "float",
+        "type": "number"
+      },
+      "sparse_score": {
+        "description": "Sparse lexical component.",
+        "format": "float",
+        "type": "number"
+      }
+    },
+    "required": [
+      "dense_score",
+      "graph_score",
+      "item",
+      "rerank_score",
+      "score",
+      "sparse_score"
+    ],
+    "title": "ActantSearchHit",
+    "type": "object"
+  },
+  "ActantSearchMode": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Retrieval mode used by [`ActantIndex::search_with_options`].",
+    "oneOf": [
+      {
+        "description": "Dense cosine similarity only.",
+        "enum": [
+          "dense"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Dense + sparse lexical scoring.",
+        "enum": [
+          "hybrid"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Dense + sparse + entity graph expansion.",
+        "enum": [
+          "graph"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Graph mode plus local deterministic rerank.",
+        "enum": [
+          "deep"
+        ],
+        "type": "string"
+      }
+    ],
+    "title": "ActantSearchMode"
+  },
+  "ActantSearchOptions": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "ActantSearchMode": {
+        "description": "Retrieval mode used by [`ActantIndex::search_with_options`].",
+        "oneOf": [
+          {
+            "description": "Dense cosine similarity only.",
+            "enum": [
+              "dense"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Dense + sparse lexical scoring.",
+            "enum": [
+              "hybrid"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Dense + sparse + entity graph expansion.",
+            "enum": [
+              "graph"
+            ],
+            "type": "string"
+          },
+          {
+            "description": "Graph mode plus local deterministic rerank.",
+            "enum": [
+              "deep"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "description": "Search options for hybrid retrieval.",
+    "properties": {
+      "dense_weight": {
+        "description": "Dense cosine score weight.",
+        "format": "float",
+        "type": "number"
+      },
+      "graph_weight": {
+        "description": "Entity graph expansion score weight.",
+        "format": "float",
+        "type": "number"
+      },
+      "mode": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/ActantSearchMode"
+          }
+        ],
+        "description": "Retrieval mode."
+      },
+      "rerank": {
+        "description": "Apply local deterministic rerank after candidate fusion.",
+        "type": "boolean"
+      },
+      "sparse_weight": {
+        "description": "Sparse lexical score weight.",
+        "format": "float",
+        "type": "number"
+      },
+      "top_k": {
+        "description": "Maximum number of results returned.",
+        "format": "uint",
+        "minimum": 0.0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "dense_weight",
+      "graph_weight",
+      "mode",
+      "rerank",
+      "sparse_weight",
+      "top_k"
+    ],
+    "title": "ActantSearchOptions",
+    "type": "object"
+  },
+  "ActantTrustProfile": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Trust profile for one actor + capability area.",
+    "properties": {
+      "area": {
+        "description": "Capability area.",
+        "type": "string"
+      },
+      "confidence": {
+        "description": "Bayesian confidence given sample size.",
+        "format": "double",
+        "type": "number"
+      },
+      "sample_size": {
+        "description": "Number of observations.",
+        "format": "uint64",
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "score": {
+        "description": "Score in \\[0, 1].",
+        "format": "double",
+        "type": "number"
+      }
+    },
+    "required": [
+      "area",
+      "confidence",
+      "sample_size",
+      "score"
+    ],
+    "title": "ActantTrustProfile",
     "type": "object"
   },
   "ApprovalDecision": {
@@ -706,6 +1674,35 @@
     ],
     "title": "DiffKind"
   },
+  "Embedding": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "One embedding vector and the model that produced it.",
+    "properties": {
+      "model": {
+        "description": "Model name.",
+        "type": "string"
+      },
+      "provider": {
+        "description": "Provider id.",
+        "type": "string"
+      },
+      "vector": {
+        "description": "Vector.",
+        "items": {
+          "format": "float",
+          "type": "number"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "model",
+      "provider",
+      "vector"
+    ],
+    "title": "Embedding",
+    "type": "object"
+  },
   "EventKind": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "description": "Causal kind for each event written to the ledger.",
@@ -796,6 +1793,34 @@
       }
     ],
     "title": "EventKind"
+  },
+  "MemoryAllowed": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Memory storage scope allowed by a capsule.",
+    "oneOf": [
+      {
+        "description": "Do not write derived content to memory.",
+        "enum": [
+          "forbidden"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Workspace-local memory writes are allowed.",
+        "enum": [
+          "workspace"
+        ],
+        "type": "string"
+      },
+      {
+        "description": "Global memory writes are allowed.",
+        "enum": [
+          "global"
+        ],
+        "type": "string"
+      }
+    ],
+    "title": "MemoryAllowed"
   },
   "ModelCall": {
     "$schema": "http://json-schema.org/draft-07/schema#",

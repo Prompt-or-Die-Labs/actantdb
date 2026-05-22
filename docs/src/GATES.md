@@ -36,7 +36,7 @@ Acceptance criterion:
 | --- | --- | --- |
 | Embedded local ledger | ✅ | `@actantdb/core` uses SQLite via `node:sqlite`; Node >= 22.5 path documented in [`README.md`](./README.md). |
 | Rust HTTP + WS server | ✅ | [`crates/actant-server/`](./crates/actant-server) with health probes, TLS support, and OpenAPI coverage. SQLite-backed today. |
-| SQLite + Postgres storage | ✅ | [`crates/actant-storage/`](./crates/actant-storage), [`crates/actant-command/`](./crates/actant-command), SQLite/PG migration parity in CI. Postgres covers storage + command engine, not the HTTP server. |
+| SQLite + Postgres storage | ✅ | [`crates/actant-storage/`](./crates/actant-storage), [`crates/actant-command/`](./crates/actant-command), [`crates/actant-server/`](./crates/actant-server), SQLite/PG migration parity in CI. Postgres covers storage, command engine, and the core HTTP command/event/sync surface. |
 | Hash-chain and idempotency | ✅ | `agent_event.prev_chain_hash` and idempotency records covered by spec verification. |
 | Auth + tenant boundary | ✅ | [`crates/actant-auth/`](./crates/actant-auth), [`crates/actant-tenant/`](./crates/actant-tenant). |
 | Effect workers | ✅ | Shell, file, model, MCP, browser, email, slack, and manager workers under `crates/actant-workers/`. |
@@ -46,8 +46,10 @@ Acceptance criterion:
 | Deployment recipes | ✅ | [`deploy/docker-compose.yml`](./deploy/docker-compose.yml), [`deploy/Dockerfile`](./deploy/Dockerfile), [`deploy/helm/`](./deploy/helm). |
 | MCP surface | ✅ | [`packages/actant-mcp-server/`](./packages/actant-mcp-server) exposes tools and resources over stdio + HTTP. |
 
-**Gate 2: mostly green.** Postgres-backed HTTP server mode remains outside the
-green claim until route SQL is ported.
+**Gate 2: mostly green.** Postgres-backed core HTTP mode is in tree for
+health, metadata, typed commands, events, and sync pulls. SQLite-only
+Studio/admin routes still return explicit 501 until their SQL is
+backend-neutral.
 
 ## Gate 3 — Compatibility and release discipline
 
@@ -59,8 +61,8 @@ Acceptance criterion:
 | Item | Status | Evidence |
 | --- | --- | --- |
 | Contracts are source of truth | ✅ | Public cross-language types live in [`crates/actant-contracts/`](./crates/actant-contracts). |
-| Generated TypeScript is reproducible | ✅ | `cargo run -p actant-contracts -- codegen-ts` writes [`packages/actant-types/src/generated/`](./packages/actant-types/src/generated). |
-| Schema compatibility is checked | ✅ | `cargo run -p actant-contracts -- check-compat` compares current schemas against the generated baseline and fails on removed types, removed properties, required-field drift, and enum shrinkage. |
+| Generated TypeScript is reproducible | ✅ | `cargo run -p actant-contracts --bin actant-contracts -- codegen-ts` writes [`packages/actant-types/src/generated/`](./packages/actant-types/src/generated). |
+| Schema compatibility is checked | ✅ | `cargo run -p actant-contracts --bin actant-contracts -- check-compat` compares current schemas against the generated baseline and fails on removed types, removed properties, required-field drift, and enum shrinkage. |
 | Spec verification is wired | ✅ | Every active spec has a `tests/spec_NN_verification.rs` verifier; see [`SPECS_STATUS.md`](./SPECS_STATUS.md). |
 | Agent docs verification is wired | ✅ | `just verify-agents` enforces the required agent-work-package sections. |
 | Formatting/lint/test CI is wired | ✅ | [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs format, lint, tests, spec verification, and agent verification. |

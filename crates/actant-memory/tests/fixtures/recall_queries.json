@@ -1,0 +1,25 @@
+{
+  "description": "Tiny recall@5 fixture for actant-memory::index. Each entry pairs a query string with a deterministic list of gold document ids. The corpus (in the test file) contains one document per id whose text equals the query text — so a deterministic embedder that hashes the entire input produces an exact match and the harness verifies its own wiring. When a semantic embedder (e.g. fastembed) is swapped in, replace `text` per doc with a richer body and re-evaluate the recall threshold.",
+  "queries": [
+    { "query": "document about apples in red orchards",       "gold_doc_ids": ["doc-001"] },
+    { "query": "notes on banana ripening times",              "gold_doc_ids": ["doc-002"] },
+    { "query": "guide to citrus juicing equipment",           "gold_doc_ids": ["doc-003"] },
+    { "query": "history of dragonfruit cultivation",          "gold_doc_ids": ["doc-004"] },
+    { "query": "elderberry syrup brewing instructions",       "gold_doc_ids": ["doc-005"] },
+    { "query": "fig harvest schedule mediterranean",          "gold_doc_ids": ["doc-006"] },
+    { "query": "grapevine pruning techniques summer",         "gold_doc_ids": ["doc-007"] },
+    { "query": "honeydew melon storage temperatures",         "gold_doc_ids": ["doc-008"] },
+    { "query": "icaco fruit jam recipes caribbean",           "gold_doc_ids": ["doc-009"] },
+    { "query": "jackfruit ripeness indicators south asia",    "gold_doc_ids": ["doc-010"] },
+    { "query": "kiwi varieties resistant to frost",           "gold_doc_ids": ["doc-011"] },
+    { "query": "lychee canning seasonal yield",               "gold_doc_ids": ["doc-012"] },
+    { "query": "mango cultivars optimal for export",          "gold_doc_ids": ["doc-013"] },
+    { "query": "nectarine pollination drift study",           "gold_doc_ids": ["doc-014"] },
+    { "query": "orange peel candied confectionery",           "gold_doc_ids": ["doc-015"] },
+    { "query": "papaya enzyme tenderizer industrial use",     "gold_doc_ids": ["doc-016"] },
+    { "query": "quince paste preparation iberian",            "gold_doc_ids": ["doc-017"] },
+    { "query": "raspberry trellis spacing organic",           "gold_doc_ids": ["doc-018"] },
+    { "query": "strawberry runner propagation greenhouse",    "gold_doc_ids": ["doc-019"] },
+    { "query": "tangerine essential oil extraction",          "gold_doc_ids": ["doc-020"] }
+  ]
+}

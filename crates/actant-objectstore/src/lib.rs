@@ -10,7 +10,7 @@
 //! in-memory store for tests, and a [`Layered`] router that dispatches on URI
 //! scheme.
 //!
-//! The default-feature build pulls only `tokio`, `bytes`, `sha2`, and `url` —
+//! The default-feature build pulls only `tokio`, `bytes`, and `url` —
 //! no AWS SDK, no IPFS client. Backends are gated behind the `s3` and `ipfs`
 //! features.
 //!
@@ -171,8 +171,5 @@ pub fn is_safe_key(key: &str) -> bool {
 /// Exposed as a helper so callers (notably `actant-storage::Storage::put_artifact`)
 /// don't pull `sha2` directly.
 pub fn sha256_hex(body: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(body);
-    hex::encode(hasher.finalize())
+    actant_core::sha256_hex(body)
 }

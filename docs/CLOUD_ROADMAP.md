@@ -24,7 +24,7 @@ with a one-line import change. Backed entirely by existing primitives:
 | `box.snapshot / box.listSnapshots / box.deleteSnapshot / Box.fromSnapshot` | `@actantdb/replay::checkpoint` + workspace tar snapshot |
 | `box.pause / resume / delete` | session lifecycle + workspace cleanup |
 | `box.cd / box.cwd` | workspace-relative path resolution |
-| `box.configureModel` | `actant-runtime::models` registry lookup |
+| `box.configureModel` | `actant-command::models` registry lookup |
 
 Run modes:
 

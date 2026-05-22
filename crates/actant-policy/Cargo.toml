@@ -9,6 +9,7 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+actant-contracts = { workspace = true }
 actant-core    = { workspace = true }
 actant-storage = { workspace = true }
 anyhow         = { workspace = true }

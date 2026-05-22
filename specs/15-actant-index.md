@@ -20,23 +20,23 @@ A retrieval result without provenance, sensitivity, and visibility is a leak. A 
 ```
 ActantIndex
 ├── Embedder Registry            (actant-embedders)
-├── Chunker                      (actant-index::chunk)
+├── Chunker                      (actant-memory::index::chunk)
 ├── Sparse Encoder               (actant-embedders sparse)
 ├── Dense Vector Store           (actant-embed)
 ├── Sparse Vector Store          (actant-embed sparse)
 ├── Multivector Store            (actant-embed multivector)
-├── Entity Index                 (actant-index::entity)
-├── Graph Index                  (actant-index::graph)
+├── Entity Index                 (actant-memory::index::entity)
+├── Graph Index                  (actant-memory::index::graph)
 ├── Memory Index                 (joins actant-memory)
 ├── Artifact Index               (joins artifact)
-├── Retrieval Planner            (actant-index::plan)
-├── Hybrid Search Engine         (actant-index::hybrid)
+├── Retrieval Planner            (actant-memory::index::plan)
+├── Hybrid Search Engine         (actant-memory::index::hybrid)
 ├── Reranker                     (actant-embedders rerank)
-├── Context Packer               (actant-index::pack; consumed by actant-context)
-├── Policy Filter                (delegates to actant-policy + actant-capsule)
-├── Embedding Version Manager    (actant-index::version)
-├── Reindexer                    (actant-index::reindex)
-├── Retrieval Evaluator          (actant-index::eval + actant-eval)
+├── Context Packer               (actant-memory::index::pack; consumed by actant-context)
+├── Policy Filter                (delegates to actant-policy::capsule)
+├── Embedding Version Manager    (actant-memory::index::version)
+├── Reindexer                    (actant-memory::index::reindex)
+├── Retrieval Evaluator          (actant-memory::index::eval + actant-eval)
 └── Retrieval Trace Store        (retrieval_trace + retrieval_candidate)
 ```
 
@@ -414,7 +414,7 @@ The diff answers: did retrieval cause the failure? Did reranking fix it?
 ## Verification
 
 - [ ] Every table in §4–§8 has a CREATE TABLE in `/migrations/0003_ai_native_and_reliability.sql`.
-- [ ] Every retrieval mode in §11 has a code path in `actant-index::plan`.
+- [ ] Every retrieval mode in §11 has a code path in `actant-memory::index::plan`.
 - [ ] Every provider in §10 has a registry entry in `actant-embedders`.
 - [ ] Every CLI command in §14 is implemented in `actant-cli`.
 - [ ] Every invariant in §18 is enforced by a structural check + a property test.

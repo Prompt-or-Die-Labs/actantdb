@@ -270,7 +270,7 @@ impl PgStorage {
         Ok(())
     }
 
-    /// Store an artifact body via the injected [`BlobStore`] and insert the
+    /// Store an artifact body via the injected [`crate::BlobStore`] and insert the
     /// metadata row. Mirrors [`crate::Storage::put_artifact`].
     pub async fn put_artifact(
         &self,

@@ -52,7 +52,7 @@ mcp_prompt (
 
 ### Behaviors
 
-- **Resource indexing.** Subscribed MCP resources are pulled by `actant-ingress`, normalized, and submitted to `actant-index` like any other indexable object. Sensitivity defaults to the MCP server's declared sensitivity; capsules can override.
+- **Resource indexing.** Subscribed MCP resources are pulled by `actant-reliability::ingress`, normalized, and submitted to `actant-memory::index` like any other indexable object. Sensitivity defaults to the MCP server's declared sensitivity; capsules can override.
 - **Prompt versioning.** Every MCP prompt sent into a model call records `(server_id, name, version)` for replay.
 - **Tool registration.** `actant mcp wrap <tool>` mints a Tool row with `kind='mcp'`, a tool schema version, and a default approval policy. The MCP tool then goes through the standard tool-call lifecycle.
 

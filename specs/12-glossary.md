@@ -335,7 +335,7 @@ Defined in `/specs/19-performance-architecture.md`. ADRs 0018-0020.
 
 **Freshness target.** A per-lane latency goal measured between trigger event and lane completion. Reported as the `lane_freshness_seconds` metric.
 
-**Hot kernel.** `actant-kernel`. The only crate that runs synchronously in the command path. ADR-0018.
+**Hot kernel.** `actant-command::kernel`. The only module that runs synchronously in the command path. ADR-0018.
 
 **Hot projection tier (L0).** In-memory cache of active sessions, pending approvals, leases, budgets, worker health, capability tokens, rate-limit/circuit state, hot memory shortlists. WAL-backed and reconstructable from the event log.
 
@@ -345,7 +345,7 @@ Defined in `/specs/19-performance-architecture.md`. ADRs 0018-0020.
 
 **Progressive enrichment.** ADR-0019 — write minimal facts immediately; lanes fill in richness later through enrichment fields with `lane_status`.
 
-**Retrieval profile.** Admission-controlled retrieval configuration (`fast`, `balanced`, `deep`, `local_private`, `degraded`) chosen per request by `actant-index::plan` based on latency goal, sensitivity, budget, complexity, and backpressure.
+**Retrieval profile.** Admission-controlled retrieval configuration (`fast`, `balanced`, `deep`, `local_private`, `degraded`) chosen per request by `actant-memory::index::plan` based on latency goal, sensitivity, budget, complexity, and backpressure.
 
 **Storage tier (L0-L5).** L0 in-memory hot projections, L1 event log WAL, L2 projection tables, L3 semantic/sparse indexes, L4 artifact/blob store, L5 cold archive.
 

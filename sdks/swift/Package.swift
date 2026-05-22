@@ -10,7 +10,7 @@ let localActantFFI = ProcessInfo.processInfo.environment["ACTANTDB_LOCAL_FFI_XCF
     .flatMap { $0.isEmpty ? nil : $0 }
     .map(localBinaryTargetPath)
 
-let releasedActantFFI: (url: String, checksum: String)? = nil
+let releasedActantFFI = releasedBinaryTarget()
 
 let actantFFIBinaryTarget: Target?
 if let localActantFFI {
@@ -92,4 +92,19 @@ func localBinaryTargetPath(_ rawPath: String) -> String {
         return String(artifact.path.dropFirst(rootPath.count))
     }
     return rawPath
+}
+
+func releasedBinaryTarget() -> (url: String, checksum: String)? {
+    let env = ProcessInfo.processInfo.environment
+    guard let checksum = env["ACTANTDB_FFI_XCFRAMEWORK_CHECKSUM"], !checksum.isEmpty else {
+        return nil
+    }
+    if let url = env["ACTANTDB_FFI_XCFRAMEWORK_URL"], !url.isEmpty {
+        return (url, checksum)
+    }
+    let tag = env["ACTANTDB_FFI_RELEASE_TAG"].flatMap { $0.isEmpty ? nil : $0 } ?? "v0.0.15"
+    return (
+        "https://github.com/actantdb/actantdb/releases/download/\(tag)/ActantFFI.xcframework.zip",
+        checksum
+    )
 }

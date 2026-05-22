@@ -28,6 +28,10 @@ fmt-check:
 lint:
     cargo clippy --workspace --all-targets -- -D warnings
 
+# Generate Rust API docs and fail on rustdoc warnings.
+docs-rust:
+    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --lib --no-deps
+
 # Apply migrations to a local dev database.
 migrate db="./actant.dev.sqlite":
     @echo "Migrations will run via actant-storage; see crates/actant-storage."

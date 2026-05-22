@@ -72,3 +72,8 @@ ehthumbs.db
 docs/book/
 .cargo/config.toml
 graphify-out/
+
+# Local code-map artifacts
+_tmp_*
+.actantdb-map-with-meta.html
+actantdb-codebase-map*.html

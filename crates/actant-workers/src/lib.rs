@@ -9,15 +9,15 @@
 //!
 //! | Feature   | Module                  | Effect types covered                            |
 //! |-----------|-------------------------|-------------------------------------------------|
-//! | `shell`   | [`shell`]               | `shell.run`                                     |
-//! | `file`    | [`file`]                | `file.read`, `file.write`                       |
-//! | `browser` | [`browser`]             | `browser.navigate`/`click`/`type`/`screenshot`  |
-//! | `cdp`     | [`browser::cdp`]        | (extends `browser` with a real Chrome driver)   |
-//! | `email`   | [`email`]               | `email.send`                                    |
-//! | `mcp`     | [`mcp`]                 | `mcp.call`                                      |
-//! | `slack`   | [`slack`]               | `slack.post`                                    |
-//! | `model`   | [`model`]               | `model.call`                                    |
-//! | `manager` | [`manager`]             | (host any subset of the above in one process)   |
+//! | `shell`   | `shell`                 | `shell.run`                                     |
+//! | `file`    | `file`                  | `file.read`, `file.write`                       |
+//! | `browser` | `browser`               | `browser.navigate`/`click`/`type`/`screenshot`  |
+//! | `cdp`     | `browser::cdp`          | (extends `browser` with a real Chrome driver)   |
+//! | `email`   | `email`                 | `email.send`                                    |
+//! | `mcp`     | `mcp`                   | `mcp.call`                                      |
+//! | `slack`   | `slack`                 | `slack.post`                                    |
+//! | `model`   | `model`                 | `model.call`                                    |
+//! | `manager` | `manager`               | (host any subset of the above in one process)   |
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]

@@ -223,7 +223,7 @@ cookie, returns CSRF + redirect target.
 
 - Add types `WorkspaceOwner`, `LinkCode`, `SessionToken`, plus request/response
   shapes `LinkRequest`, `LinkResponse`, `LoginRequest`, `LoginResponse`,
-  `PasswordSetRequest`. Run `cargo run -p actant-contracts -- check-compat`
+  `PasswordSetRequest`. Run `cargo run -p actant-contracts --bin actant-contracts -- check-compat`
   and `codegen-ts`; commit Rust + regenerated TS in the same PR.
 
 ### 7.2 Rust — `crates/actant-auth/src/lib.rs`

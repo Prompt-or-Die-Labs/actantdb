@@ -33,23 +33,28 @@ pub mod graphql_api;
 #[cfg(any(feature = "auto-rest", feature = "graphql"))]
 pub mod schema_introspect;
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use actant_command::Engine;
 use actant_core::{
     canonical_json, chain_hash, now_rfc3339, sha256_hex, ActantError, Actor, ActorId, ActorKind,
     AgentEvent, CausalityKind, EventId, Sensitivity, SessionId, Workspace, WorkspaceId,
 };
-use actant_storage::Storage;
+use actant_storage::{PgStorage, Storage};
 use actant_subscribe::{Broker, SubscribeHub, Topic};
 use axum::{
-    extract::{ws::WebSocket, Query, State, WebSocketUpgrade},
-    http::StatusCode,
+    extract::{ws::WebSocket, Path, Query, State, WebSocketUpgrade},
+    http::{header, HeaderMap, Method, StatusCode},
     response::{IntoResponse, Json, Response},
     routing::{get, post},
     Router,
 };
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+type HmacSha256 = Hmac<sha2::Sha256>;
+
+type WorkspaceRateLimiter =
+    Arc<tokio::sync::Mutex<HashMap<String, actant_reliability::throttle::Bucket>>>;
 
 /// Shared application state.
 #[derive(Clone)]
@@ -64,13 +69,7 @@ pub struct AppState {
     /// Bearer <HS256-JWT>` signed with this secret.
     pub auth_secret: Option<Vec<u8>>,
     /// Per-workspace rate-limiter bucket. None = no rate limiting.
-    pub rate_limiter: Option<
-        std::sync::Arc<
-            tokio::sync::Mutex<
-                std::collections::HashMap<String, actant_reliability::throttle::Bucket>,
-            >,
-        >,
-    >,
+    pub rate_limiter: Option<WorkspaceRateLimiter>,
     /// Token-bucket policy (applied when rate_limiter is set).
     pub rate_policy: Option<actant_reliability::throttle::Policy>,
     /// Per-IP / per-session limiters for the UI auth surface (link redeem,
@@ -165,9 +164,67 @@ impl AppState {
 
     /// Builder: enable per-workspace rate limiting via actant-reliability::throttle.
     pub fn with_rate_limit(mut self, policy: actant_reliability::throttle::Policy) -> Self {
-        self.rate_limiter = Some(std::sync::Arc::new(tokio::sync::Mutex::new(
-            std::collections::HashMap::new(),
-        )));
+        self.rate_limiter = Some(std::sync::Arc::new(tokio::sync::Mutex::new(HashMap::new())));
+        self.rate_policy = Some(policy);
+        self
+    }
+}
+
+/// Shared state for the Postgres-backed core HTTP surface.
+#[derive(Clone)]
+pub struct PostgresAppState {
+    /// Command engine.
+    pub engine: Engine,
+    /// Postgres storage handle.
+    pub storage: PgStorage,
+    /// Optional HS256 bearer-token secret.
+    pub auth_secret: Option<Vec<u8>>,
+    /// Per-workspace rate-limiter bucket. None = no rate limiting.
+    pub rate_limiter: Option<WorkspaceRateLimiter>,
+    /// Token-bucket policy.
+    pub rate_policy: Option<actant_reliability::throttle::Policy>,
+    /// Loopback bind mode.
+    pub local_mode: bool,
+    /// Whether forwarded proxy headers are trusted in local mode.
+    pub trust_proxy: bool,
+}
+
+impl PostgresAppState {
+    /// Build a Postgres state from a storage handle.
+    pub fn new(storage: PgStorage) -> Self {
+        let engine = Engine::postgres(storage.clone());
+        Self {
+            engine,
+            storage,
+            auth_secret: None,
+            rate_limiter: None,
+            rate_policy: None,
+            local_mode: true,
+            trust_proxy: false,
+        }
+    }
+
+    /// Builder: explicitly mark this state as remote.
+    pub fn with_local_mode(mut self, local: bool) -> Self {
+        self.local_mode = local;
+        self
+    }
+
+    /// Builder: trust `X-Forwarded-For` / `Forwarded` headers in local mode.
+    pub fn with_trust_proxy(mut self, trust: bool) -> Self {
+        self.trust_proxy = trust;
+        self
+    }
+
+    /// Builder: enable HS256 bearer-token auth using the given shared secret.
+    pub fn with_auth(mut self, secret: impl Into<Vec<u8>>) -> Self {
+        self.auth_secret = Some(secret.into());
+        self
+    }
+
+    /// Builder: enable per-workspace rate limiting.
+    pub fn with_rate_limit(mut self, policy: actant_reliability::throttle::Policy) -> Self {
+        self.rate_limiter = Some(Arc::new(tokio::sync::Mutex::new(HashMap::new())));
         self.rate_policy = Some(policy);
         self
     }
@@ -220,6 +277,12 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/auth/login", post(auth_routes::login))
         .route("/v1/auth/logout", post(auth_routes::logout))
         .route("/v1/auth/me", get(auth_routes::whoami))
+        .route("/v1/auth/providers", get(auth_providers))
+        .route("/v1/auth/oauth/{provider}/start", get(auth_oauth_start))
+        .route(
+            "/v1/auth/oauth/{provider}/callback",
+            get(auth_oauth_callback),
+        )
         // Prometheus exposition (in addition to the older /v1/metrics view).
         .route("/metrics", get(prom_metrics))
         // Pub/sub broker WS surface (DEVX_GAPS X93).
@@ -234,6 +297,35 @@ pub fn router(state: AppState) -> Router {
     let r = graphql_api::mount(r);
 
     r.layer(axum::middleware::from_fn(prom::record_http_middleware))
+        .layer(axum::middleware::from_fn(request_id_middleware))
+        .with_state(Arc::new(state))
+}
+
+/// Construct the Postgres-backed core HTTP router.
+///
+/// This surface intentionally registers only routes whose implementation is
+/// backend-neutral or backed by `PgStorage`: health, metadata, typed command
+/// dispatch, event reads, and sync pulls. SQLite-specific Studio/admin routes
+/// fail closed with 501 instead of silently downgrading to SQLite.
+pub fn postgres_router(state: PostgresAppState) -> Router {
+    Router::new()
+        .route("/v1/healthz", get(healthz))
+        .route("/v1/healthz/startup", get(healthz_startup))
+        .route("/v1/healthz/live", get(healthz_live))
+        .route("/v1/healthz/ready", get(pg_healthz_ready))
+        .route("/v1/metadata/commands", get(metadata_commands))
+        .route("/v1/openapi.yaml", get(openapi_yaml))
+        .route("/v1/command", post(pg_dispatch_command))
+        .route("/v1/events", get(pg_list_events))
+        .route("/v1/sync/since", post(pg_sync_since))
+        .route("/v1/auth/providers", get(auth_providers))
+        .route("/v1/auth/oauth/{provider}/start", get(auth_oauth_start))
+        .route(
+            "/v1/auth/oauth/{provider}/callback",
+            get(auth_oauth_callback),
+        )
+        .fallback(pg_not_implemented)
+        .layer(axum::middleware::from_fn(prom::record_http_middleware))
         .layer(axum::middleware::from_fn(request_id_middleware))
         .with_state(Arc::new(state))
 }
@@ -261,6 +353,152 @@ async fn healthz_ready(State(s): State<Arc<AppState>>) -> Response {
         )
             .into_response(),
     }
+}
+
+async fn pg_healthz_ready(State(s): State<Arc<PostgresAppState>>) -> Response {
+    match sqlx::query("SELECT 1").execute(s.storage.pool()).await {
+        Ok(_) => Json(serde_json::json!({
+            "phase": "ready",
+            "ok": true,
+            "backend": "postgres"
+        }))
+        .into_response(),
+        Err(e) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "phase": "ready",
+                "ok": false,
+                "backend": "postgres",
+                "error": e.to_string()
+            })),
+        )
+            .into_response(),
+    }
+}
+
+async fn pg_dispatch_command(
+    State(s): State<Arc<PostgresAppState>>,
+    headers: HeaderMap,
+    Json(req): Json<CommandRequest>,
+) -> Response {
+    if let Err(resp) = enforce_pg_auth(&s, &headers, &Method::POST, &req.workspace_id).await {
+        return resp;
+    }
+    if let Err(resp) = enforce_pg_rate_limit(&s, &req.workspace_id).await {
+        return resp;
+    }
+    prom::record_command(&req.workspace_id, &req.command_type);
+    let ws = WorkspaceId::from_string(req.workspace_id);
+    let actor = ActorId::from_string(req.actor_id);
+    match s
+        .engine
+        .dispatch(
+            &ws,
+            &actor,
+            &req.command_type,
+            req.input,
+            req.idempotency_key.as_deref(),
+        )
+        .await
+    {
+        Ok(out) => (
+            StatusCode::OK,
+            Json(CommandResponse {
+                command_id: out.command_id.as_str().into(),
+                event_id: out.event_id,
+                result: out.result,
+            }),
+        )
+            .into_response(),
+        Err(e) => err_response(e),
+    }
+}
+
+async fn pg_list_events(
+    State(s): State<Arc<PostgresAppState>>,
+    headers: HeaderMap,
+    Query(q): Query<EventsQuery>,
+) -> Response {
+    let session_id = SessionId::from_string(q.session_id);
+    let workspace_id =
+        match sqlx::query_scalar::<_, String>("SELECT workspace_id FROM session WHERE id = $1")
+            .bind(session_id.as_str())
+            .fetch_optional(s.storage.pool())
+            .await
+        {
+            Ok(Some(workspace_id)) => workspace_id,
+            Ok(None) => return pg_events_auth_error(),
+            Err(e) => return err_response(ActantError::Storage(e.to_string())),
+        };
+    if enforce_pg_auth(&s, &headers, &Method::GET, &workspace_id)
+        .await
+        .is_err()
+    {
+        return pg_events_auth_error();
+    }
+    match s.storage.events_in_session(&session_id).await {
+        Ok(events) => Json(serde_json::json!({"events": events})).into_response(),
+        Err(e) => err_response(e),
+    }
+}
+
+async fn pg_sync_since(
+    State(s): State<Arc<PostgresAppState>>,
+    headers: HeaderMap,
+    Json(req): Json<SyncSinceRequest>,
+) -> Response {
+    if let Err(resp) = enforce_pg_auth(&s, &headers, &Method::POST, &req.workspace_id).await {
+        return resp;
+    }
+    if let Err(resp) = enforce_pg_rate_limit(&s, &req.workspace_id).await {
+        return resp;
+    }
+    let limit = req.limit.clamp(1, 10_000) as i64;
+    let rows = sqlx::query_as::<_, (String, String, String, String, Option<String>, String)>(
+        "SELECT id, event_type, actor_id, payload_hash, payload_inline, created_at
+         FROM agent_event
+         WHERE workspace_id = $1 AND id > $2
+         ORDER BY id ASC LIMIT $3",
+    )
+    .bind(&req.workspace_id)
+    .bind(&req.since_event_id)
+    .bind(limit)
+    .fetch_all(s.storage.pool())
+    .await;
+    match rows {
+        Ok(rows) => {
+            let events: Vec<_> = rows
+                .into_iter()
+                .map(|(id, et, actor, ph, pi, created)| {
+                    serde_json::json!({
+                        "id": id,
+                        "event_type": et,
+                        "actor_id": actor,
+                        "payload_hash": ph,
+                        "payload_inline": pi,
+                        "created_at": created,
+                    })
+                })
+                .collect();
+            let next = events
+                .last()
+                .and_then(|e| e["id"].as_str())
+                .map(String::from);
+            Json(serde_json::json!({
+                "events": events,
+                "next_since": next,
+            }))
+            .into_response()
+        }
+        Err(e) => err_response(ActantError::Storage(e.to_string())),
+    }
+}
+
+async fn pg_not_implemented(uri: axum::http::Uri) -> Response {
+    err_response(ActantError::NotImplemented(format!(
+        "route {} is SQLite-only; Postgres server mode exposes health, metadata, command, events, and sync routes",
+        uri.path()
+    )))
 }
 
 /// Attach an `x-request-id` header to every response. Generated if the
@@ -578,6 +816,250 @@ async fn metadata_commands() -> impl IntoResponse {
     }))
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct AuthProviderInfo {
+    id: String,
+    label: String,
+}
+
+#[derive(Debug, Clone)]
+struct AuthProviderConfig {
+    id: String,
+    label: String,
+    auth_url: String,
+    client_id: String,
+    scope: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct OAuthCallbackQuery {
+    state: Option<String>,
+}
+
+const OAUTH_STATE_TTL_SECS: i64 = 10 * 60;
+
+fn unix_now() -> i64 {
+    time::OffsetDateTime::now_utc().unix_timestamp()
+}
+
+fn oauth_enabled() -> bool {
+    let Ok(value) = std::env::var("ACTANTDB_OAUTH_ENABLED") else {
+        return false;
+    };
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
+}
+
+fn oauth_state_secret() -> Result<Vec<u8>, Response> {
+    match std::env::var("ACTANTDB_OAUTH_STATE_SECRET") {
+        Ok(value) if !value.trim().is_empty() => Ok(value.into_bytes()),
+        _ => Err((
+            StatusCode::NOT_IMPLEMENTED,
+            [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+            "OAuth sign-in is not enabled: set ACTANTDB_OAUTH_ENABLED=true and ACTANTDB_OAUTH_STATE_SECRET.",
+        )
+            .into_response()),
+    }
+}
+
+fn oauth_state_signature(secret: &[u8], provider: &str, expires_at: i64, nonce: &str) -> String {
+    let mut mac = HmacSha256::new_from_slice(secret).expect("HMAC accepts any key length");
+    mac.update(format!("{provider}.{expires_at}.{nonce}").as_bytes());
+    hex::encode(mac.finalize().into_bytes())
+}
+
+fn new_oauth_state(provider: &str) -> Result<String, Response> {
+    let secret = oauth_state_secret()?;
+    let expires_at = unix_now() + OAUTH_STATE_TTL_SECS;
+    let nonce = ulid::Ulid::new().to_string();
+    let signature = oauth_state_signature(&secret, provider, expires_at, &nonce);
+    Ok(format!("oauth.{provider}.{expires_at}.{nonce}.{signature}"))
+}
+
+fn verify_oauth_state(state: &str, provider: &str) -> Result<(), Response> {
+    let parts: Vec<_> = state.split('.').collect();
+    if parts.len() != 5 || parts[0] != "oauth" {
+        return Err(err_response(ActantError::PermissionDenied(
+            "invalid OAuth state".into(),
+        )));
+    }
+    let state_provider = parts[1];
+    let expires_at = parts[2]
+        .parse::<i64>()
+        .map_err(|_| err_response(ActantError::PermissionDenied("invalid OAuth state".into())))?;
+    let nonce = parts[3];
+    let signature = parts[4];
+    if state_provider != provider {
+        return Err(err_response(ActantError::PermissionDenied(
+            "OAuth state provider mismatch".into(),
+        )));
+    }
+    if expires_at <= unix_now() {
+        return Err(err_response(ActantError::PermissionDenied(
+            "expired OAuth state".into(),
+        )));
+    }
+    let secret = oauth_state_secret()?;
+    let sig = hex::decode(signature)
+        .map_err(|_| err_response(ActantError::PermissionDenied("invalid OAuth state".into())))?;
+    let mut mac = HmacSha256::new_from_slice(&secret).expect("HMAC accepts any key length");
+    mac.update(format!("{state_provider}.{expires_at}.{nonce}").as_bytes());
+    mac.verify_slice(&sig)
+        .map_err(|_| err_response(ActantError::PermissionDenied("invalid OAuth state".into())))
+}
+
+async fn auth_providers() -> Response {
+    if !oauth_enabled() {
+        return Json(serde_json::json!({ "providers": [] })).into_response();
+    }
+    let providers: Vec<_> = configured_auth_providers()
+        .into_iter()
+        .map(|p| AuthProviderInfo {
+            id: p.id,
+            label: p.label,
+        })
+        .collect();
+    Json(serde_json::json!({ "providers": providers })).into_response()
+}
+
+async fn auth_oauth_start(Path(provider): Path<String>) -> Response {
+    if !oauth_enabled() {
+        return (
+            StatusCode::NOT_IMPLEMENTED,
+            [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+            "OAuth sign-in is not enabled for this server.",
+        )
+            .into_response();
+    }
+    let Some(config) = configured_auth_providers()
+        .into_iter()
+        .find(|p| p.id == provider)
+    else {
+        return err_response(ActantError::NotFound(format!(
+            "unknown auth provider: {provider}"
+        )));
+    };
+    let Ok(base_url) = std::env::var("ACTANTDB_PUBLIC_BASE_URL") else {
+        return err_response(ActantError::InvalidInput(
+            "ACTANTDB_PUBLIC_BASE_URL is required for OAuth redirects".into(),
+        ));
+    };
+    let redirect_uri = format!(
+        "{}/v1/auth/oauth/{}/callback",
+        base_url.trim_end_matches('/'),
+        config.id
+    );
+    let state = match new_oauth_state(&config.id) {
+        Ok(state) => state,
+        Err(response) => return response,
+    };
+    let location = format!(
+        "{}?response_type=code&client_id={}&redirect_uri={}&scope={}&state={}",
+        config.auth_url,
+        percent_encode(&config.client_id),
+        percent_encode(&redirect_uri),
+        percent_encode(&config.scope),
+        percent_encode(&state)
+    );
+    match axum::http::HeaderValue::from_str(&location) {
+        Ok(value) => {
+            let mut response = StatusCode::FOUND.into_response();
+            response.headers_mut().insert(header::LOCATION, value);
+            response
+        }
+        Err(e) => err_response(ActantError::InvalidInput(format!(
+            "invalid OAuth redirect URL: {e}"
+        ))),
+    }
+}
+
+async fn auth_oauth_callback(
+    Path(provider): Path<String>,
+    Query(query): Query<OAuthCallbackQuery>,
+) -> Response {
+    let Some(state) = query.state else {
+        return err_response(ActantError::PermissionDenied("missing OAuth state".into()));
+    };
+    if let Err(response) = verify_oauth_state(&state, &provider) {
+        return response;
+    }
+    err_response(ActantError::NotImplemented(format!(
+        "OAuth callback for provider {provider} requires a token-exchange service with provider client secret storage"
+    )))
+}
+
+fn configured_auth_providers() -> Vec<AuthProviderConfig> {
+    let Ok(raw) = std::env::var("ACTANTDB_OAUTH_PROVIDERS") else {
+        return Vec::new();
+    };
+    raw.split(',')
+        .filter_map(|provider| {
+            let id = provider.trim().to_lowercase();
+            if id.is_empty() {
+                return None;
+            }
+            let key = id
+                .chars()
+                .map(|c| {
+                    if c.is_ascii_alphanumeric() {
+                        c.to_ascii_uppercase()
+                    } else {
+                        '_'
+                    }
+                })
+                .collect::<String>();
+            let auth_url = std::env::var(format!("ACTANTDB_OAUTH_{key}_AUTH_URL")).ok()?;
+            let client_id = std::env::var(format!("ACTANTDB_OAUTH_{key}_CLIENT_ID")).ok()?;
+            let label = std::env::var(format!("ACTANTDB_OAUTH_{key}_LABEL"))
+                .unwrap_or_else(|_| title_case_provider(&id));
+            let scope = std::env::var(format!("ACTANTDB_OAUTH_{key}_SCOPE"))
+                .unwrap_or_else(|_| "openid profile email".into());
+            Some(AuthProviderConfig {
+                id,
+                label,
+                auth_url,
+                client_id,
+                scope,
+            })
+        })
+        .collect()
+}
+
+fn title_case_provider(id: &str) -> String {
+    id.split(['-', '_'])
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                Some(first) => {
+                    let mut out = String::new();
+                    out.extend(first.to_uppercase());
+                    out.push_str(chars.as_str());
+                    out
+                }
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn percent_encode(raw: &str) -> String {
+    raw.bytes()
+        .flat_map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                vec![byte as char]
+            }
+            _ => {
+                let encoded = format!("%{byte:02X}");
+                encoded.chars().collect()
+            }
+        })
+        .collect()
+}
+
 #[derive(Debug, Deserialize)]
 struct CommandRequest {
     workspace_id: String,
@@ -620,202 +1102,286 @@ async fn enforce_rate_limit(state: &AppState, workspace_id: &str) -> Result<(), 
     Ok(())
 }
 
-/// Authentication chokepoint for the legacy data-plane routes.
-///
-/// Order of operations:
-///
-/// 1. **Loopback trust**: when [`AppState::local_mode`] is on AND the request
-///    isn't carrying a forwarded-proxy header (or the operator opted into
-///    [`AppState::trust_proxy`]), the request is allowed unauthenticated.
-///    This is the "OS user is the trust boundary" loopback contract.
-/// 2. **Bearer JWT**: legacy service-account path. If
-///    [`AppState::auth_secret`] is configured, an `Authorization: Bearer …`
-///    header is verified and its `iss` claim must equal `workspace_id`.
-///    Bearer tokens are CSRF-exempt by construction.
-/// 3. **Session cookie**: the UI path. `actantdb_session=<token>` is hashed,
-///    looked up in `session_token`, checked for expiry/revocation. On
-///    mutating methods (anything other than `GET/HEAD/OPTIONS`), the
-///    request must also carry an `X-CSRF-Token` matching the row's
-///    `csrf_secret`. The workspace bound to the session must match
-///    `workspace_id`.
-/// 4. **Else 401.** When no auth context is available and the server isn't
-///    in `local_mode`, the request is rejected.
-///
-/// Returns `Err(response)` for any rejection; `Ok(())` when the request
-/// is allowed.
+#[allow(clippy::result_large_err)]
+async fn enforce_pg_rate_limit(
+    state: &PostgresAppState,
+    workspace_id: &str,
+) -> Result<(), Response> {
+    if let (Some(limiter), Some(policy)) = (&state.rate_limiter, &state.rate_policy) {
+        let mut g = limiter.lock().await;
+        let bucket = g
+            .entry(workspace_id.to_string())
+            .or_insert_with(|| actant_reliability::throttle::Bucket::new(policy.clone()));
+        if let Err(retry_after) = bucket.try_consume(1) {
+            return Err((
+                StatusCode::TOO_MANY_REQUESTS,
+                [("retry-after", retry_after.as_secs().max(1).to_string())],
+                Json(serde_json::json!({
+                    "error": "rate_limited",
+                    "retry_after_seconds": retry_after.as_secs()
+                })),
+            )
+                .into_response());
+        }
+    }
+    Ok(())
+}
+
+#[derive(Debug)]
+struct SessionAuthRow {
+    workspace_id: String,
+    csrf_secret: String,
+    expires_at: String,
+    revoked_at: Option<String>,
+}
+
+impl From<(String, String, String, Option<String>)> for SessionAuthRow {
+    fn from(row: (String, String, String, Option<String>)) -> Self {
+        Self {
+            workspace_id: row.0,
+            csrf_secret: row.1,
+            expires_at: row.2,
+            revoked_at: row.3,
+        }
+    }
+}
+
+fn auth_error(status: StatusCode, body: serde_json::Value) -> Response {
+    (status, Json(body)).into_response()
+}
+
+fn pg_events_auth_error() -> Response {
+    auth_error(
+        StatusCode::UNAUTHORIZED,
+        serde_json::json!({"error": "session_not_authorized"}),
+    )
+}
+
+#[allow(clippy::result_large_err)]
+fn enforce_local_auth_bypass(
+    local_mode: bool,
+    trust_proxy: bool,
+    auth_secret: Option<&[u8]>,
+    headers: &HeaderMap,
+) -> Result<bool, Response> {
+    if !local_mode || auth_secret.is_some() {
+        return Ok(false);
+    }
+    let proxied = headers.contains_key("x-forwarded-for")
+        || headers.contains_key("forwarded")
+        || headers.contains_key("x-real-ip");
+    if proxied && !trust_proxy {
+        return Err(auth_error(
+            StatusCode::FORBIDDEN,
+            serde_json::json!({
+                "error": "reverse_proxy_detected",
+                "message":
+                    "the server is in local-mode but received a forwarded \
+                     proxy header; pass --trust-proxy to honor it or bind \
+                     non-loopback to enable full auth"
+            }),
+        ));
+    }
+    Ok(true)
+}
+
+#[allow(clippy::result_large_err)]
+fn enforce_bearer_auth(
+    auth_secret: Option<&[u8]>,
+    headers: &HeaderMap,
+    workspace_id: &str,
+) -> Option<Result<(), Response>> {
+    let token = headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))?;
+    let Some(secret) = auth_secret else {
+        return Some(Err(auth_error(
+            StatusCode::UNAUTHORIZED,
+            serde_json::json!({"error": "bearer_not_configured"}),
+        )));
+    };
+    Some(match actant_auth::verify(token, secret) {
+        Ok(claims) if claims.iss == workspace_id => Ok(()),
+        Ok(claims) => Err(auth_error(
+            StatusCode::FORBIDDEN,
+            serde_json::json!({
+                "error": "workspace_mismatch",
+                "iss": claims.iss,
+                "workspace_id": workspace_id
+            }),
+        )),
+        Err(_) => Err(auth_error(
+            StatusCode::UNAUTHORIZED,
+            serde_json::json!({"error": "invalid_token"}),
+        )),
+    })
+}
+
+fn csrf_header(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get("x-csrf-token")
+        .or_else(|| headers.get("X-CSRF-Token"))
+        .and_then(|v| v.to_str().ok())
+}
+
+#[allow(clippy::result_large_err)]
+fn validate_session_auth(
+    row: SessionAuthRow,
+    headers: &HeaderMap,
+    method: &Method,
+    workspace_id: &str,
+) -> Result<(), Response> {
+    if row.revoked_at.is_some() {
+        return Err(auth_error(
+            StatusCode::UNAUTHORIZED,
+            serde_json::json!({"error": "revoked"}),
+        ));
+    }
+    let exp = time::OffsetDateTime::parse(
+        &row.expires_at,
+        &time::format_description::well_known::Rfc3339,
+    )
+    .map(|t| t.unix_timestamp())
+    .map_err(|_| {
+        auth_error(
+            StatusCode::UNAUTHORIZED,
+            serde_json::json!({"error": "invalid_session_expiry"}),
+        )
+    })?;
+    if time::OffsetDateTime::now_utc().unix_timestamp() > exp {
+        return Err(auth_error(
+            StatusCode::UNAUTHORIZED,
+            serde_json::json!({"error": "expired"}),
+        ));
+    }
+    if row.workspace_id != workspace_id {
+        return Err(auth_error(
+            StatusCode::FORBIDDEN,
+            serde_json::json!({
+                "error": "workspace_mismatch",
+                "session_workspace": row.workspace_id,
+                "workspace_id": workspace_id
+            }),
+        ));
+    }
+    if !matches!(*method, Method::GET | Method::HEAD | Method::OPTIONS) {
+        let Some(presented) = csrf_header(headers) else {
+            return Err(auth_error(
+                StatusCode::FORBIDDEN,
+                serde_json::json!({
+                    "error": "csrf_required",
+                    "message": "X-CSRF-Token header is required for mutating routes"
+                }),
+            ));
+        };
+        if !actant_auth::verify_csrf(&row.csrf_secret, presented) {
+            return Err(auth_error(
+                StatusCode::FORBIDDEN,
+                serde_json::json!({
+                    "error": "csrf_mismatch",
+                    "message": "X-CSRF-Token does not match session"
+                }),
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::result_large_err)]
+fn enforce_missing_auth(auth_secret: Option<&[u8]>) -> Result<(), Response> {
+    if auth_secret.is_some() {
+        Err(auth_error(
+            StatusCode::UNAUTHORIZED,
+            serde_json::json!({"error": "missing_authorization"}),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+async fn fetch_sqlite_session_auth(
+    storage: &Storage,
+    token_hash: &str,
+) -> Result<Option<SessionAuthRow>, Response> {
+    sqlx::query_as::<_, (String, String, String, Option<String>)>(
+        "SELECT workspace_id, csrf_secret, expires_at, revoked_at
+         FROM session_token WHERE token_hash = ?",
+    )
+    .bind(token_hash)
+    .fetch_optional(storage.pool())
+    .await
+    .map(|row| row.map(SessionAuthRow::from))
+    .map_err(|e| err_response(ActantError::Storage(e.to_string())))
+}
+
+async fn fetch_postgres_session_auth(
+    storage: &PgStorage,
+    token_hash: &str,
+) -> Result<Option<SessionAuthRow>, Response> {
+    sqlx::query_as::<_, (String, String, String, Option<String>)>(
+        "SELECT workspace_id, csrf_secret, expires_at, revoked_at
+         FROM session_token WHERE token_hash = $1",
+    )
+    .bind(token_hash)
+    .fetch_optional(storage.pool())
+    .await
+    .map(|row| row.map(SessionAuthRow::from))
+    .map_err(|e| err_response(ActantError::Storage(e.to_string())))
+}
+
+#[allow(clippy::result_large_err)]
+async fn enforce_pg_auth(
+    state: &PostgresAppState,
+    headers: &HeaderMap,
+    method: &Method,
+    workspace_id: &str,
+) -> Result<(), Response> {
+    let auth_secret = state.auth_secret.as_deref();
+    if enforce_local_auth_bypass(state.local_mode, state.trust_proxy, auth_secret, headers)? {
+        return Ok(());
+    }
+    if let Some(result) = enforce_bearer_auth(auth_secret, headers, workspace_id) {
+        return result;
+    }
+    if let Some(plain) = auth_routes::extract_session_cookie(headers) {
+        let hash = actant_auth::hash_token(&plain);
+        let Some(row) = fetch_postgres_session_auth(&state.storage, &hash).await? else {
+            return Err(auth_error(
+                StatusCode::UNAUTHORIZED,
+                serde_json::json!({"error": "invalid_session"}),
+            ));
+        };
+        return validate_session_auth(row, headers, method, workspace_id);
+    }
+    enforce_missing_auth(auth_secret)
+}
+
 #[allow(clippy::result_large_err)]
 async fn enforce_auth(
     state: &AppState,
-    headers: &axum::http::HeaderMap,
-    method: &axum::http::Method,
+    headers: &HeaderMap,
+    method: &Method,
     workspace_id: &str,
 ) -> Result<(), Response> {
-    // (1) Loopback trust gate. The `into_make_service_with_connect_info`
-    // layer guarantees we run inside an axum service stack, but the per-
-    // request `ConnectInfo` extractor isn't reachable from this helper —
-    // so we trust `local_mode` (set at boot from the bind string), and
-    // separately refuse forwarded-proxy headers as the only way to escape
-    // that assumption.
-    //
-    // When `auth_secret` is also configured, we still enforce the bearer
-    // path even in local mode — that's how service accounts work. The
-    // loopback trust only applies to *unauthenticated* requests; once a
-    // caller supplies a bearer header it must be valid.
-    if state.local_mode && state.auth_secret.is_none() {
-        let proxied = headers.contains_key("x-forwarded-for")
-            || headers.contains_key("forwarded")
-            || headers.contains_key("x-real-ip");
-        if proxied && !state.trust_proxy {
-            return Err((
-                StatusCode::FORBIDDEN,
-                Json(serde_json::json!({
-                    "error": "reverse_proxy_detected",
-                    "message":
-                        "the server is in local-mode but received a forwarded \
-                         proxy header; pass --trust-proxy to honor it or bind \
-                         non-loopback to enable full auth"
-                })),
-            )
-                .into_response());
-        }
+    let auth_secret = state.auth_secret.as_deref();
+    if enforce_local_auth_bypass(state.local_mode, state.trust_proxy, auth_secret, headers)? {
         return Ok(());
     }
-
-    // (2) Bearer JWT path (legacy + service accounts).
-    if let Some(token) = headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-    {
-        let Some(secret) = &state.auth_secret else {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({"error": "bearer_not_configured"})),
-            )
-                .into_response());
-        };
-        return match actant_auth::verify(token, secret) {
-            Ok(claims) => {
-                if claims.iss != workspace_id {
-                    Err((
-                        StatusCode::FORBIDDEN,
-                        Json(serde_json::json!({
-                            "error": "workspace_mismatch",
-                            "iss": claims.iss,
-                            "workspace_id": workspace_id
-                        })),
-                    )
-                        .into_response())
-                } else {
-                    Ok(())
-                }
-            }
-            Err(_) => Err((
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({"error": "invalid_token"})),
-            )
-                .into_response()),
-        };
+    if let Some(result) = enforce_bearer_auth(auth_secret, headers, workspace_id) {
+        return result;
     }
-
-    // (3) Cookie path.
     if let Some(plain) = auth_routes::extract_session_cookie(headers) {
         let hash = actant_auth::hash_token(&plain);
-        let row = sqlx::query_as::<_, (String, String, String, Option<String>)>(
-            "SELECT workspace_id, csrf_secret, expires_at, revoked_at
-             FROM session_token WHERE token_hash = ?",
-        )
-        .bind(&hash)
-        .fetch_optional(state.storage.pool())
-        .await
-        .map_err(|e| err_response(ActantError::Storage(e.to_string())))?;
-        let Some((sess_ws, csrf_secret, expires_at, revoked_at)) = row else {
-            return Err((
+        let Some(row) = fetch_sqlite_session_auth(&state.storage, &hash).await? else {
+            return Err(auth_error(
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({"error": "invalid_session"})),
-            )
-                .into_response());
+                serde_json::json!({"error": "invalid_session"}),
+            ));
         };
-        if revoked_at.is_some() {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({"error": "revoked"})),
-            )
-                .into_response());
-        }
-        // Expiry check.
-        let now = time::OffsetDateTime::now_utc().unix_timestamp();
-        let exp = time::OffsetDateTime::parse(
-            &expires_at,
-            &time::format_description::well_known::Rfc3339,
-        )
-        .map(|t| t.unix_timestamp())
-        .unwrap_or(0);
-        if now > exp {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({"error": "expired"})),
-            )
-                .into_response());
-        }
-        if sess_ws != workspace_id {
-            return Err((
-                StatusCode::FORBIDDEN,
-                Json(serde_json::json!({
-                    "error": "workspace_mismatch",
-                    "session_workspace": sess_ws,
-                    "workspace_id": workspace_id
-                })),
-            )
-                .into_response());
-        }
-        // CSRF on mutating verbs only.
-        if !matches!(
-            *method,
-            axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::OPTIONS
-        ) {
-            let presented = headers
-                .get("x-csrf-token")
-                .or_else(|| headers.get("X-CSRF-Token"))
-                .and_then(|v| v.to_str().ok());
-            let Some(presented) = presented else {
-                return Err((
-                    StatusCode::FORBIDDEN,
-                    Json(serde_json::json!({
-                        "error": "csrf_required",
-                        "message": "X-CSRF-Token header is required for mutating routes"
-                    })),
-                )
-                    .into_response());
-            };
-            if !actant_auth::verify_csrf(&csrf_secret, presented) {
-                return Err((
-                    StatusCode::FORBIDDEN,
-                    Json(serde_json::json!({
-                        "error": "csrf_mismatch",
-                        "message": "X-CSRF-Token does not match session"
-                    })),
-                )
-                    .into_response());
-            }
-        }
-        return Ok(());
+        return validate_session_auth(row, headers, method, workspace_id);
     }
-
-    // (4) Nothing matched.
-    if state.auth_secret.is_some() {
-        Err((
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({"error": "missing_authorization"})),
-        )
-            .into_response())
-    } else {
-        // Non-loopback bind with no bearer secret configured and no cookie
-        // — the legacy behavior was to allow. Preserve that so non-auth
-        // setups keep working, but in remote mode the operator should
-        // configure either a secret or rely on the cookie path.
-        Ok(())
-    }
+    enforce_missing_auth(auth_secret)
 }
 
 async fn dispatch_command(
@@ -2389,6 +2955,28 @@ pub async fn bootstrap_with_mode(
     Ok((router, state, link_code))
 }
 
+/// Bootstrap the Postgres-backed core HTTP server.
+pub async fn bootstrap_postgres(
+    database_url: &str,
+) -> Result<(Router, PostgresAppState), ActantError> {
+    bootstrap_postgres_with_mode(database_url, true, false).await
+}
+
+/// Bootstrap the Postgres-backed core HTTP server with explicit auth mode.
+pub async fn bootstrap_postgres_with_mode(
+    database_url: &str,
+    local_mode: bool,
+    trust_proxy: bool,
+) -> Result<(Router, PostgresAppState), ActantError> {
+    let storage = PgStorage::open(database_url).await?;
+    let state = PostgresAppState::new(storage)
+        .with_local_mode(local_mode)
+        .with_trust_proxy(trust_proxy);
+    seed_postgres_if_empty(&state).await?;
+    let router = postgres_router(state.clone());
+    Ok((router, state))
+}
+
 async fn seed_if_empty(state: &AppState) -> Result<(), ActantError> {
     let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM workspace")
         .fetch_one(state.storage.pool())
@@ -2399,6 +2987,30 @@ async fn seed_if_empty(state: &AppState) -> Result<(), ActantError> {
     }
     let ws = actant_core::Workspace {
         id: WorkspaceId::from_string("ws_default".to_string()),
+        name: "default".into(),
+        created_at: now_rfc3339(),
+        archived_at: None,
+    };
+    state.storage.insert_workspace(&ws).await?;
+    let actor = Actor {
+        id: ActorId::from_string("act_system".to_string()),
+        workspace_id: ws.id.clone(),
+        kind: ActorKind::System,
+        display_name: "system".into(),
+        created_at: now_rfc3339(),
+        disabled_at: None,
+    };
+    state.storage.insert_actor(&actor).await?;
+    Ok(())
+}
+
+async fn seed_postgres_if_empty(state: &PostgresAppState) -> Result<(), ActantError> {
+    let ws_id = WorkspaceId::from_string("ws_default".to_string());
+    if state.storage.get_workspace(&ws_id).await?.is_some() {
+        return Ok(());
+    }
+    let ws = actant_core::Workspace {
+        id: ws_id,
         name: "default".into(),
         created_at: now_rfc3339(),
         archived_at: None,

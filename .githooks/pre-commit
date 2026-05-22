@@ -60,7 +60,7 @@ if has_staged '^packages/actant-types/src/generated/' && ! has_staged '^crates/a
 fi
 
 if has_staged '^crates/actant-contracts/'; then
-  cargo run -p actant-contracts -- check-compat
+  cargo run -p actant-contracts --bin actant-contracts -- check-compat
 fi
 
 if has_staged '^specs/.*\.md$'; then

@@ -45,7 +45,7 @@
           },
           {
             "type": "command",
-            "command": "FILE=$(python3 -c \"import json,sys; d=json.load(sys.stdin); t=d.get('tool_input',{}); print(d.get('TargetFile') or d.get('file_path') or (t.get('file_path') if isinstance(t,dict) else '') or '')\" 2>/dev/null || true); if [ -n \"$FILE\" ] && printf '%s' \"$FILE\" | grep -q 'crates/actant-contracts/'; then cargo run -p actant-contracts -- check-compat; fi",
+            "command": "FILE=$(python3 -c \"import json,sys; d=json.load(sys.stdin); t=d.get('tool_input',{}); print(d.get('TargetFile') or d.get('file_path') or (t.get('file_path') if isinstance(t,dict) else '') or '')\" 2>/dev/null || true); if [ -n \"$FILE\" ] && printf '%s' \"$FILE\" | grep -q 'crates/actant-contracts/'; then cargo run -p actant-contracts --bin actant-contracts -- check-compat; fi",
             "timeout": 30
           }
         ]

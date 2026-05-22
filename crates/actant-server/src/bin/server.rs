@@ -47,20 +47,6 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
     let args = Args::parse();
-    if let Ok(url) = std::env::var("ACTANTDB_DATABASE_URL") {
-        if !url.is_empty() {
-            anyhow::bail!(
-                "ACTANTDB_DATABASE_URL is set ({}) but actantdb-server is \
-                 still a SQLite-only HTTP surface. Postgres is available in \
-                 actant-storage and actant-command; the server refuses this \
-                 mixed mode until every raw HTTP route has Postgres SQL. \
-                 To run the server on SQLite, unset ACTANTDB_DATABASE_URL and \
-                 pass --db <path>.",
-                redact_db_url(&url)
-            );
-        }
-    }
-
     let local_mode = actant_server::auth_routes::is_bind_loopback(&args.bind);
     let tls_enabled = args.tls_cert.is_some() && args.tls_key.is_some();
 
@@ -75,26 +61,40 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
-    let (router, _state, link_code) =
-        actant_server::bootstrap_with_mode(args.db, local_mode, tls_enabled, args.trust_proxy)
-            .await?;
+    let router = if let Some(url) = std::env::var("ACTANTDB_DATABASE_URL")
+        .ok()
+        .filter(|url| !url.is_empty())
+    {
+        let (router, _state) =
+            actant_server::bootstrap_postgres_with_mode(&url, local_mode, args.trust_proxy).await?;
+        eprintln!(
+            "(postgres mode: {}; Studio/admin routes return 501 until their SQL is backend-neutral)",
+            redact_db_url(&url)
+        );
+        router
+    } else {
+        let (router, _state, link_code) =
+            actant_server::bootstrap_with_mode(args.db, local_mode, tls_enabled, args.trust_proxy)
+                .await?;
 
-    if let Some(code) = link_code.as_deref() {
-        eprintln!();
-        eprintln!("A one-time linking code is required to claim this workspace:");
-        eprintln!();
-        eprintln!("    Code:    {code}");
-        eprintln!("    Expires: in 15 minutes");
-        eprintln!();
-        let proto = if tls_enabled { "https" } else { "http" };
-        eprintln!("Open: {proto}://{bind}/link", bind = args.bind);
-        eprintln!("Or:   {proto}://{bind}/link/{code}", bind = args.bind);
-        eprintln!();
-        eprintln!("(this code rotates on each restart until ownership is claimed)");
-        eprintln!();
-    } else if local_mode {
-        eprintln!("(local mode: no password required)");
-    }
+        if let Some(code) = link_code.as_deref() {
+            eprintln!();
+            eprintln!("A one-time linking code is required to claim this workspace:");
+            eprintln!();
+            eprintln!("    Code:    {code}");
+            eprintln!("    Expires: in 15 minutes");
+            eprintln!();
+            let proto = if tls_enabled { "https" } else { "http" };
+            eprintln!("Open: {proto}://{bind}/link", bind = args.bind);
+            eprintln!("Or:   {proto}://{bind}/link/{code}", bind = args.bind);
+            eprintln!();
+            eprintln!("(this code rotates on each restart until ownership is claimed)");
+            eprintln!();
+        } else if local_mode {
+            eprintln!("(local mode: no password required)");
+        }
+        router
+    };
 
     actant_server::serve(router, &args.bind, args.tls_cert, args.tls_key).await?;
     tracing::info!("actantdb-server shutdown complete");

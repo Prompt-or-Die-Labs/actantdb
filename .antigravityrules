@@ -39,7 +39,7 @@ and get a complete, replayable trace for free.
    add a struct that crosses a crate boundary or appears in the public
    API, edit `crates/actant-contracts/src/lib.rs` first.
 2. **Never hand-edit `packages/actant-types/src/generated/*`.** Those
-   files are produced by `cargo run -p actant-contracts -- codegen-ts`.
+   files are produced by `cargo run -p actant-contracts --bin actant-contracts -- codegen-ts`.
    If the generated TypeScript is wrong, fix the Rust contract and
    regenerate.
 3. **The default install path is `npm install @actantdb/all`.** Do
@@ -79,7 +79,7 @@ and get a complete, replayable trace for free.
 - **Rust tests (per crate):** `cargo test -p <crate> <test_name>`
 - **TypeScript build:** `pnpm -r build`
 - **TypeScript tests:** `pnpm -r test` or `pnpm --filter @actantdb/<pkg> test`
-- **Regenerate TS types from contracts:** `cargo run -p actant-contracts -- codegen-ts`
+- **Regenerate TS types from contracts:** `cargo run -p actant-contracts --bin actant-contracts -- codegen-ts`
 - **Smoke test (required green on every PR):** `pnpm smoke`
 - **Verify Specs compliance:** `just verify-specs`
 - **Verify Agent compliance:** `just verify-agents`

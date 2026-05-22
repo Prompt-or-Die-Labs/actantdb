@@ -67,8 +67,9 @@ cannot answer:
 - Add backend state for model calls, tool calls, approvals, memory decisions, context manifests, replay diffs, and audit exports.
 - Keep the default backend path embedded and local.
 - Add the Rust server only when you need shared approvals, HTTP/WebSocket access,
-  tenancy, or deployment. The server path is SQLite today; Postgres is wired at
-  the Rust storage + command-engine layer.
+  tenancy, or deployment. SQLite is the default server backend; Postgres is
+  wired for the core HTTP command/event/sync surface through
+  `ACTANTDB_DATABASE_URL`.
 - Export traces and audit rows when a downstream system needs them.
 
 ---
@@ -79,21 +80,21 @@ Concrete state of the repo at the most recent build. Not aspirational.
 
 | Layer                | What ships                                                                                  | Evidence                                       |
 | -------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **npm packages**      | 23 package manifests: 22 `@actantdb/*` packages plus `create-actantdb`. Local workspace version is `0.0.15`. ESM, Node ≥22.5 with Bun first-run smoke coverage. | `packages/*`, `.github/workflows/publish-npm.yml` |
+| **npm packages**      | 24 package manifests: 23 `@actantdb/*` packages plus `create-actantdb`. Local workspace version is `0.0.15`. ESM, Node ≥22.5 with Bun first-run smoke coverage. | `packages/*`, `.github/workflows/publish-npm.yml` |
 | **Demos**            | 3 runnable demos with recorded SQLite event ledgers (Mastra, LangGraph, pure CLI).            | `examples/test-cleanup/`, `examples/langgraph-router/`, `examples/cli-only/` |
-| **Rust workspace**   | 37 crates under `crates/`, 39 Cargo workspace members including the Rust SDK and bench package. Rust 1.88. Full Phase 1–6 implementation. | `crates/`, `cargo metadata`                    |
+| **Rust workspace**   | 31 crates under `crates/`, 33 Cargo workspace packages including the Rust SDK and bench package. Rust 1.88. Full Phase 1–6 implementation. | `crates/`, `cargo metadata`                    |
 | **HTTP server**      | Axum HTTP + WebSocket. TLS (rustls). `actantdb serve --tls-cert/--tls-key`.                   | `crates/actant-server`, `tests/tls.rs`         |
-| **Storage**          | SQLite server backend; Postgres storage + command-engine backend. Migration runner. Hash-chained events. Idempotency records. | `crates/actant-storage`, `crates/actant-command`, `migrations/` |
+| **Storage**          | SQLite server backend; Postgres storage + command-engine + core HTTP backend. Migration runner. Hash-chained events. Idempotency records. | `crates/actant-storage`, `crates/actant-command`, `crates/actant-server`, `migrations/` |
 | **Auth**             | JWT HS256 + OIDC discovery/JWKS with 1-hour cache.                                            | `crates/actant-auth`                           |
 | **Multi-tenant**     | `actant-tenant` with cross-tenant guards. Role checks.                                        | `crates/actant-tenant`                         |
 | **Workers**          | Shell, file, model (mock + OpenAI-compat), MCP (stdio JSON-RPC), browser (emulator + driver trait), email, slack, manager. | `crates/actant-worker-*`                       |
 | **Workflows**        | Runner state machine with approval-gate pause/resume. Cron scheduler with watch-channel shutdown. | `crates/actant-flow`, `crates/actant-trigger`  |
 | **Replay**           | 4 working modes (recorded / model / policy / memory) + 3 explicit deferrals (experimental / tool / local_only) returning named errors. | `crates/actant-replay`                         |
-| **Reliability**      | Throttle (token bucket), circuit breaker, leases, locks, DLQ, compensations, drift detection.   | `crates/actant-{throttle,circuit,lock,compensation,drift}` |
-| **AI-native**        | Context manifests with sensitivity ceiling. Memory candidate→approval→use lifecycle with conflict detection. Hybrid retrieval (dense cosine). MCP+A2A+AP2 protocol types. | `crates/actant-{context,memory,index,embed,protocol}` |
-| **Observability**    | OTel GenAI + OpenInference traces. W3C-style trace+span ids. Single redaction chokepoint.      | `crates/actant-trace`                          |
+| **Reliability**      | Throttle (token bucket), circuit breaker, leases, locks, DLQ, compensations, drift detection.   | `crates/actant-reliability`, `crates/actant-{compensation,drift}` |
+| **AI-native**        | Context manifests with sensitivity ceiling. Memory candidate→approval→use lifecycle with conflict detection. Hybrid retrieval (dense + sparse + graph + local rerank). MCP+A2A+AP2 protocol types. | `crates/actant-{context,memory,embed,core}` |
+| **Observability**    | OTel GenAI + OpenInference schema columns. W3C-style trace+span ids. Single redaction chokepoint.      | `crates/actant-core`                          |
 | **Audit + retention**| Nightly export per workspace. `purge_by_policy` deletes events past retention.                  | `crates/actant-audit-export`                   |
-| **Deployment**       | Multi-stage Dockerfile (rust:1.88 → distroless). Docker Compose server stack with SQLite volume + Caddy + Mailpit. Helm chart exists but Postgres-backed server mode is not enabled. | `deploy/`, `deploy/helm/` |
+| **Deployment**       | Multi-stage Dockerfile (rust:1.88 → distroless). Docker Compose server stack with SQLite volume + Caddy + Mailpit. Helm chart exists; `ACTANTDB_DATABASE_URL` enables Postgres-backed core HTTP mode. | `deploy/`, `deploy/helm/` |
 | **Docs site**        | mdbook materialized from `/specs` + ADRs + operations. 20 specs + 18 ADRs.                      | `docs/book.toml`, `docs/build.sh`              |
 | **Python SDK**       | pip-installable sync + asyncio client, typed public errors, and dependency-free LangChain/CrewAI/AutoGen adapters. | `sdks/python/` |
 | **Swift SDK**        | Two-tier (Swift 6.3, macOS 26 / iOS 26). `ActantDB` is a 1:1 HTTP+WS client; `ActantAgent` is the opinionated facade (Session / MemoryStore / Auditor / ApprovalCenter / ReplayClient / RelationshipStore / ActantDBSupervisor) that lets a consumer like Swoosh add ActantDB by one-line conformance extensions. | `sdks/swift/` |
@@ -232,7 +233,7 @@ const actant = await createActant({ mode: "embedded", project: "p1" });
 const actant = await createActant({ mode: "server", url: process.env.ACTANTDB_URL });
 ```
 
-When you cross the line where embedded isn't enough — shared approvals, HTTP/WebSocket access, or deployment behind TLS — run the Rust server. The server persists to SQLite today. Postgres is implemented in `PgStorage` and `Engine::postgres`; `actantdb-server` refuses `ACTANTDB_DATABASE_URL` until its remaining raw HTTP route SQL is ported.
+When you cross the line where embedded isn't enough — shared approvals, HTTP/WebSocket access, or deployment behind TLS — run the Rust server. The default server persists to SQLite. Set `ACTANTDB_DATABASE_URL=postgres://...` to run the Postgres-backed core HTTP surface: health, metadata, typed commands, events, and sync pulls. SQLite-only Studio/admin routes return explicit 501 in Postgres mode.
 
 ---
 
@@ -241,14 +242,14 @@ When you cross the line where embedded isn't enough — shared approvals, HTTP/W
 ```
 crates/
 ├── actant-contracts/      SINGLE source of truth. Every public type, error,
-│                          event, command, schema. `cargo run -p actant-contracts --
+│                          event, command, schema. `cargo run -p actant-contracts --bin actant-contracts --
 │                          {diff,check-compat,codegen-ts,codegen-py,codegen-swift}`.
 │                          Hand-edits to the generated TS are forbidden.
 ├── actant-core / actant-storage / actant-command / actant-policy
 │                          Phase 1 core. 10 alpha commands.
-├── actant-effects + actant-worker-{protocol,shell,file,model,mcp,browser,email,slack,manager}
+├── actant-effects + actant-worker-protocol + actant-workers
 │                          Phase 2. Lease-based effect queue + worker fleet.
-├── actant-context / actant-memory / actant-embed / actant-embedders / actant-index
+├── actant-context / actant-memory / actant-embed / actant-embedders
 │                          Phase 3. Context firewall, memory lifecycle, hybrid retrieval.
 ├── actant-flow / actant-trigger
 │                          Phase 4. Durable workflows + cron/event triggers.
@@ -256,22 +257,32 @@ crates/
 │                          Phase 5. Four working replay modes + 3 named deferrals.
 ├── actant-auth / actant-tenant / actant-audit-export / actant-sync
 │                          Phase 6. JWT + OIDC, multi-tenant, audit export, cluster sync.
-├── actant-server / actant-cli / actant-kernel / actant-subscribe
+├── actant-server / actant-cli / actant-subscribe
 │                          HTTP+WS server, `actantdb` CLI binary, hot-path kernel.
-├── actant-throttle / actant-circuit / actant-lock / actant-ingress / actant-compensation / actant-drift
+├── actant-reliability / actant-compensation / actant-drift
 │                          Reliability primitives.
-├── actant-protocol / actant-prompts / actant-models / actant-cache / actant-trace
-│                          AI-native primitives.
-├── actant-schema-dsl / actant-sdk-codegen / actant-templates / actant-codegen-project
+├── actant-schema-dsl / actant-templates
 │                          Developer-tools surface.
-├── actant-eval / actant-capsule / actant-trust
-│                          Self-improvement primitives.
-└── actant-napi / actant-wasm
-                          Bridge stubs (declared via @actantdb/core optionalDependencies;
-                          NAPI/WASM build is a named deferral in CHANGELOG.md).
+├── actant-eval / actant-ffi
+│                          Self-improvement primitives + embeddable FFI.
 ```
 
 Every active spec under `/specs` (20 specs + 18 ADRs) has a corresponding `tests/spec_NN_verification.rs` regression gate. Breaking a spec's `## Verification` clause fails CI.
+
+Rust import migration after the crate consolidation:
+
+```rust
+use actantdb::policy::{ActantCapsule, ActantTrustProfile, MemoryAllowed};
+use actantdb::command::{
+    dispatch_tool_call, ActantCache, ActantHotToolCall, ActantModelRegistry,
+    ActantPromptTemplate,
+};
+use actantdb::core::{
+    new_span_id, new_trace_id, ActantA2aCard, ActantAp2Mandate, ActantMcpServer,
+};
+use actantdb::memory::{ActantIndex, ActantSearchOptions};
+use actantdb::contracts::sdk_codegen;
+```
 
 ---
 
@@ -322,8 +333,8 @@ ACTANTDB_STORE_DIR=./examples/test-cleanup/.actantdb \
   npx actantdb studio --project demo-test-cleanup
 
 # Regenerate TS types from Rust contracts
-cargo run -p actant-contracts -- check-compat
-cargo run -p actant-contracts -- codegen-ts
+cargo run -p actant-contracts --bin actant-contracts -- check-compat
+cargo run -p actant-contracts --bin actant-contracts -- codegen-ts
 
 # Benchmark HTTP /v1/command
 cargo bench -p actant-bench --bench http_command -- --sample-size 20
@@ -346,7 +357,7 @@ Three places ActantDB is genuinely uncontested in 2026:
 ## Status
 
 - **Gate 1 — agent substrate:** green. Wrapping, capture, approval, Studio, and replay are implemented and tested.
-- **Gate 2 — self-host backend:** mostly green. Embedded, SQLite server, auth, workers, workflows, replay, deployment, and CLI diagnostics are in tree; Postgres is storage + command-engine only until the HTTP server route layer is ported.
+- **Gate 2 — self-host backend:** mostly green. Embedded, SQLite server, auth, workers, workflows, replay, deployment, CLI diagnostics, and Postgres core HTTP mode are in tree; remaining Postgres work is the SQLite-only Studio/admin route layer.
 - **Gate 3 — compatibility and release discipline:** green. Contracts, generated SDKs, spec verification, agent docs verification, and CI are reproducible from the repo.
 
 [`GATES.md`](./GATES.md) is the artifact gate ledger. [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md) covers release operations. [`CHANGELOG.md`](./CHANGELOG.md) enumerates what landed. [`SPECS_STATUS.md`](./SPECS_STATUS.md) maps every spec to its verifier test. [`PIVOT.md`](./PIVOT.md) captures the freeze-lift decision and the current substrate shape.
@@ -365,7 +376,7 @@ Three places ActantDB is genuinely uncontested in 2026:
 ├── RELEASE_CHECKLIST.md            — package and binary release checklist
 ├── CLAUDE.md                       — guidance for Claude Code sessions
 ├── packages/                       — 19 package manifests (TypeScript first)
-├── crates/                         — Cargo workspace, 37 crates, Rust 1.88
+├── crates/                         — Cargo workspace, 31 crates, Rust 1.88
 ├── migrations/                     — SQLite + Postgres migrations
 ├── specs/                          — 20 specs + 18 ADRs
 ├── agents/                         — per-crate implementation briefs

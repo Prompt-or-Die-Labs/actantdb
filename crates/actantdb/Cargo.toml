@@ -19,6 +19,7 @@ path = "src/lib.rs"
 # storage do `cargo add actantdb --no-default-features --features storage`.
 [features]
 default = [
+    "core",
     "storage",
     "policy",
     "command",
@@ -26,7 +27,6 @@ default = [
     "subscribe",
     "auth",
     "reliability",
-    "runtime",
     "objectstore",
     "sync",
     "workers",
@@ -35,16 +35,14 @@ default = [
     "trigger",
     "eval",
     "embed",
-    "capsule",
-    "trust",
     "templates",
     "audit-export",
     "tenant",
     "drift",
     "compensation",
-    "kernel",
     "contracts",
 ]
+core         = ["dep:actant-core"]
 storage      = ["dep:actant-storage"]
 policy       = ["dep:actant-policy"]
 command      = ["dep:actant-command"]
@@ -52,7 +50,6 @@ replay       = ["dep:actant-replay"]
 subscribe    = ["dep:actant-subscribe"]
 auth         = ["dep:actant-auth"]
 reliability  = ["dep:actant-reliability"]
-runtime      = ["dep:actant-runtime"]
 objectstore  = ["dep:actant-objectstore"]
 sync         = ["dep:actant-sync"]
 workers      = ["dep:actant-workers"]
@@ -61,17 +58,15 @@ effects      = ["dep:actant-effects"]
 trigger      = ["dep:actant-trigger"]
 eval         = ["dep:actant-eval"]
 embed        = ["dep:actant-embed"]
-capsule      = ["dep:actant-capsule"]
-trust        = ["dep:actant-trust"]
 templates    = ["dep:actant-templates"]
 audit-export = ["dep:actant-audit-export"]
 tenant       = ["dep:actant-tenant"]
 drift        = ["dep:actant-drift"]
 compensation = ["dep:actant-compensation"]
-kernel       = ["dep:actant-kernel"]
 contracts    = ["dep:actant-contracts"]
 
 [dependencies]
+actant-core         = { workspace = true, optional = true }
 actant-storage      = { workspace = true, optional = true }
 actant-policy       = { workspace = true, optional = true }
 actant-command      = { workspace = true, optional = true }
@@ -79,7 +74,6 @@ actant-replay       = { workspace = true, optional = true }
 actant-subscribe    = { workspace = true, optional = true }
 actant-auth         = { workspace = true, optional = true }
 actant-reliability  = { workspace = true, optional = true }
-actant-runtime      = { workspace = true, optional = true }
 actant-objectstore  = { workspace = true, optional = true }
 actant-sync         = { workspace = true, optional = true }
 actant-workers      = { workspace = true, optional = true }
@@ -88,12 +82,9 @@ actant-effects      = { workspace = true, optional = true }
 actant-trigger      = { workspace = true, optional = true }
 actant-eval         = { workspace = true, optional = true }
 actant-embed        = { workspace = true, optional = true }
-actant-capsule      = { workspace = true, optional = true }
-actant-trust        = { workspace = true, optional = true }
 actant-templates    = { workspace = true, optional = true }
 actant-audit-export = { workspace = true, optional = true }
 actant-tenant       = { workspace = true, optional = true }
 actant-drift        = { workspace = true, optional = true }
 actant-compensation = { workspace = true, optional = true }
-actant-kernel       = { workspace = true, optional = true }
 actant-contracts    = { workspace = true, optional = true }

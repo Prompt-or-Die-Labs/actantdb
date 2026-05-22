@@ -4,7 +4,7 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 
 ## Repository status — read before doing anything
 
-Workspace: **36 Rust crates** (post-slim refactor, was 53), **9 npm packages** (incl. new `actantdb` umbrella), three runnable end-to-end demos under `examples/`, full Phase 1–6 implementation. Packages published as `@actantdb/*@0.0.10`. Everything is active; there is no "wedge mode" or freeze.
+Workspace: **31 Rust crates** (33 Cargo workspace packages incl. bench + Rust SDK; post-slim refactor, was 53), **24 npm packages** (incl. the `@actantdb/all` umbrella and `create-actantdb` scaffolder), three runnable end-to-end demos under `examples/`, full Phase 1–6 implementation. Packages published as `@actantdb/*@0.0.15`. Everything is active; there is no "wedge mode" or freeze.
 
 Read [CHANGELOG.md](CHANGELOG.md) for what landed, [GATES.md](GATES.md) for outstanding gate work, [GAPS.md](GAPS.md) for implementation gaps, [SPECS_STATUS.md](SPECS_STATUS.md) for per-spec verification, [STORAGE_AUDIT.md](STORAGE_AUDIT.md) + [BENCHMARKS.md](BENCHMARKS.md) + [TESTING.md](TESTING.md) for system audits.
 
@@ -14,15 +14,40 @@ The product ships as **npm packages**; the Rust workspace is the substrate.
 
 ### TypeScript packages (`/packages`, pnpm workspace, ESM, Node ≥22.5)
 
+Core substrate:
 ```
-@actantdb/mastra    withActant() wrapper for Mastra / LangGraph / hand-rolled agents
-@actantdb/core      embedded ledger on node:sqlite
-@actantdb/types     generated from crates/actant-contracts (hand-edits forbidden)
-@actantdb/policy    Guard verdict builders
-@actantdb/replay    checkpoint / run / diff
-@actantdb/studio    UI + actantdb CLI
-@actantdb/sdk       HTTP + WS client for the Rust server
-@actantdb/convex    Convex adapter
+@actantdb/core            embedded ledger on node:sqlite
+@actantdb/sdk             HTTP + WS client for the Rust server
+@actantdb/types           generated from crates/actant-contracts (hand-edits forbidden)
+@actantdb/policy          Guard verdict builders
+@actantdb/replay          checkpoint / run / diff
+@actantdb/studio          UI + actantdb CLI
+@actantdb/testing         shared test helpers
+@actantdb/all             umbrella entry-point that re-exports the public surface
+create-actantdb           project scaffolder (`npm create actantdb`)
+```
+
+Agent / framework adapters:
+```
+@actantdb/mastra          withActant() wrapper for Mastra
+@actantdb/langchain       LangChain adapter
+@actantdb/langgraph       LangGraph adapter
+@actantdb/elizaos         elizaOS adapter
+@actantdb/ai-sdk          Vercel AI SDK adapter
+@actantdb/anthropic       Anthropic SDK adapter
+@actantdb/openai          OpenAI SDK adapter
+@actantdb/openai-agents   OpenAI Agents SDK adapter
+@actantdb/mcp-server      MCP server exposing actantdb to MCP clients
+```
+
+Workflow / integration adapters:
+```
+@actantdb/convex          Convex adapter
+@actantdb/inngest         Inngest adapter
+@actantdb/triggerdev      Trigger.dev adapter
+@actantdb/workflow        generic workflow adapter
+@actantdb/box             Box.com adapter
+@actantdb/supabase        Supabase Edge Function adapter
 ```
 
 ### Swift SDK (`/sdks/swift`, SwiftPM, Swift 6.3, macOS 26 / iOS 26)
@@ -47,19 +72,33 @@ work down into ActantAgent.
 
 ### Rust crates (`/crates`, Cargo workspace, Rust 1.88)
 
+The slim refactor (53 → 31 crates) consolidated 8 `actant-worker-*` shards
+into `actant-workers`, the throttle/circuit/lock/ingress quartet into
+`actant-reliability`, and retired the standalone `actant-protocol`,
+`actant-prompts`, `actant-models`, `actant-cache`, `actant-trace`,
+`actant-runtime`, `actant-kernel`, `actant-index`, `actant-capsule`,
+`actant-trust`, `actant-sdk-codegen`, and `actant-codegen-project` crates.
+The full current list:
+
 ```
 actant-contracts      SINGLE SOURCE OF TRUTH for every public type.
-                      CLI: cargo run -p actant-contracts -- {diff,check-compat,codegen-ts,codegen-py,codegen-swift}
-actant-core, actant-storage, actant-command, actant-policy
-actant-effects, actant-worker-{protocol,shell,file,model,mcp,browser,email,slack,manager}
-actant-context, actant-memory, actant-embed, actant-embedders, actant-index
-actant-flow, actant-trigger, actant-replay, actant-eval
-actant-server, actant-cli, actant-kernel, actant-subscribe
-actant-auth, actant-tenant, actant-audit-export, actant-sync
-actant-throttle, actant-circuit, actant-lock, actant-ingress, actant-compensation, actant-drift
-actant-protocol, actant-prompts, actant-models, actant-cache, actant-trace
-actant-schema-dsl, actant-sdk-codegen, actant-templates, actant-codegen-project
-actant-capsule, actant-trust
+                      CLI: cargo run -p actant-contracts --bin actant-contracts -- {diff,check-compat,codegen-ts,codegen-py,codegen-swift}
+
+Core runtime:         actant-core, actant-effects
+Storage / command:    actant-storage, actant-objectstore, actant-command
+Workers:              actant-worker-protocol, actant-workers
+                      (actant-workers consolidates shell, file, model, mcp,
+                       browser, email, slack, and manager workers)
+Memory / retrieval:   actant-context, actant-memory, actant-embed,
+                      actant-embedders
+Flow / observability: actant-flow, actant-trigger, actant-replay, actant-eval
+Policy / safety:      actant-policy
+Server / surface:     actant-server, actant-cli, actant-subscribe, actant-ffi
+Multi-tenant / sync:  actant-auth, actant-tenant, actant-audit-export, actant-sync
+Reliability:          actant-reliability (throttle + circuit + lock + ingress),
+                      actant-compensation, actant-drift
+Schema / codegen:     actant-contracts, actant-schema-dsl, actant-templates
+Umbrella:             actantdb
 ```
 
 The TypeScript API is identical between `mode: "embedded"` (`@actantdb/core` against `node:sqlite`) and `mode: "server"` (`@actantdb/sdk` against `actantdb-server`). Choice is config, not migration.
@@ -69,7 +108,7 @@ The TypeScript API is identical between `mode: "embedded"` (`@actantdb/core` aga
 The contract-first build discipline:
 
 1. **No new public type outside `actant-contracts`.** Missing interface? Edit the contract crate and regenerate. Hand-edits to `packages/actant-types/src/generated/*` are forbidden.
-2. **Contract update protocol**: edit `actant-contracts` → `cargo run -p actant-contracts -- check-compat` → `… codegen-ts` → commit Rust + regenerated TS in the same PR.
+2. **Contract update protocol**: edit `actant-contracts` → `cargo run -p actant-contracts --bin actant-contracts -- check-compat` → `… codegen-ts` → commit Rust + regenerated TS in the same PR.
 3. **TS-native default install path.** First README line is `npm install`. Never add Rust toolchain steps, Docker, or exposed ports to the default install path.
 4. **Workspace smoke test must pass on every PR.** If `cargo build --workspace` or `pnpm smoke` stays red >24h, freeze new feature work until green.
 5. **Every active spec has a `tests/spec_NN_verification.rs` regression gate.** Breaking a spec's `## Verification` clause fails CI.
@@ -116,8 +155,8 @@ ACTANTDB_STORE_DIR=./examples/test-cleanup/.actantdb \
 ### Regenerate TS types from contracts
 
 ```bash
-cargo run -p actant-contracts -- check-compat
-cargo run -p actant-contracts -- codegen-ts
+cargo run -p actant-contracts --bin actant-contracts -- check-compat
+cargo run -p actant-contracts --bin actant-contracts -- codegen-ts
 ```
 
 ### Python SDK

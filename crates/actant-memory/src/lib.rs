@@ -9,6 +9,13 @@ use actant_core::*;
 use actant_storage::Storage;
 use sqlx::Row;
 
+pub mod index;
+
+pub use index::{
+    ActantEntityRelation, ActantHit, ActantIndex, ActantIndexedItem, ActantSearchHit,
+    ActantSearchMode, ActantSearchOptions,
+};
+
 /// Memory lifecycle façade over a `Storage`.
 #[derive(Clone)]
 pub struct MemoryStore {

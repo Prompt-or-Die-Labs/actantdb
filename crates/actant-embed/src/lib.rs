@@ -4,18 +4,8 @@
 #![warn(missing_docs)]
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 
-/// One embedding.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Embedding {
-    /// Provider id.
-    pub provider: String,
-    /// Model name.
-    pub model: String,
-    /// Vector.
-    pub vector: Vec<f32>,
-}
+pub use actant_contracts::Embedding;
 
 /// An embedder.
 #[async_trait]

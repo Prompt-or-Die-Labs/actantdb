@@ -42,6 +42,20 @@ pub enum Sensitivity {
     Regulated,
 }
 
+impl Sensitivity {
+    /// Stable ordering from least to most sensitive.
+    pub fn rank(self) -> u8 {
+        match self {
+            Self::Public => 0,
+            Self::Low => 1,
+            Self::Medium => 2,
+            Self::High => 3,
+            Self::Secret => 4,
+            Self::Regulated => 5,
+        }
+    }
+}
+
 /// Risk classification used by tools and effects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

@@ -2,7 +2,7 @@
 
 ## Context
 
-`actant-memory` owns the memory lifecycle, the candidate/approval flow, and the provenance traversal helpers. Phase 1 implements the candidate → approve/reject path that the alpha demo exercises. Restrict / expire / revoke / delete and embedding integration arrive in Phase 3.
+`actant-memory` owns the memory lifecycle, the candidate/approval flow, and the provenance traversal helpers. It also owns the retrieval index module because vectors are indexes over governed memory, not an independent runtime surface. Phase 1 implements the candidate → approve/reject path that the alpha demo exercises. Restrict / expire / revoke / delete and embedding integration arrive in Phase 3.
 
 ## Specs to read first
 

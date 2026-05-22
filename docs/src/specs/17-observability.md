@@ -19,7 +19,7 @@ Every span emitted carries the matching OpenInference/OTel attribute keys plus a
 | `model.call`             | llm                  | actant-effects (model.call) |
 | `tool.call`              | tool                 | actant-effects (tool.call)  |
 | `embedding`              | embedding            | actant-embedders            |
-| `retrieval.search`       | retriever            | actant-index                |
+| `retrieval.search`       | retriever            | actant-memory::index        |
 | `reranker.call`          | reranker             | actant-embedders            |
 | `context.build`          | guardrail            | actant-context              |
 | `memory.propose`         | evaluator            | actant-memory               |

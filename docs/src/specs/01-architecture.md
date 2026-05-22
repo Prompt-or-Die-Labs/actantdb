@@ -55,7 +55,7 @@ Reliability primitives (specs/18-reliability-primitives.md)
 └── Idempotency (universal; every command and effect)
 ```
 
-The whole system is organized as a **hot kernel + async lanes** (`specs/19-performance-architecture.md`, ADR-0018). The hot kernel (`actant-kernel`) runs only: actor authentication, compiled policy check, fast budget/rate check, event append, hot projection update, effect enqueue, subscription notify. Everything expensive — embeddings, model calls, reranking, workflow advancement, OTel export, compliance evidence, eval shadow — runs in async lanes that subscribe to the chronicle.
+The whole system is organized as a **hot command path + async lanes** (`specs/19-performance-architecture.md`, ADR-0018). The command-path coordinator (`actant-command::kernel`) runs only: actor authentication, compiled policy check, fast budget/rate check, event append, hot projection update, effect enqueue, subscription notify. Everything expensive — embeddings, model calls, reranking, workflow advancement, OTel export, compliance evidence, eval shadow — runs in async lanes that subscribe to the chronicle.
 
 ```
                           ┌──────────────────────────┐
@@ -64,7 +64,7 @@ The whole system is organized as a **hot kernel + async lanes** (`specs/19-perfo
                                        │
                                        ▼
               ┌─────────────────────────────────────────────┐
-              │ actant-kernel (hot path; p99 < 30 ms)        │
+              │ actant-command::kernel (hot path; p99 < 30 ms)│
               │  validate → policy → budget → append event   │
               │  → hot projection → effect enqueue → notify  │
               └─────────────────────┬───────────────────────┘

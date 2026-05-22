@@ -35,7 +35,7 @@ hot path:                  nearline:
                              historical replay
 ```
 
-The kernel is `actant-kernel` (a thin composer over `actant-command`, `actant-policy`, `actant-storage`, `actant-effects`, `actant-subscribe`). The async lanes are ordinary subscribers to the chronicle.
+The kernel lives in `actant-command::kernel` (a thin composer over command, policy, storage, effects, and subscribe surfaces). The async lanes are ordinary subscribers to the chronicle.
 
 ## 2. Latency budgets
 
@@ -118,7 +118,7 @@ Async (lanes):
   summary lane               → message summary
   embedding lane             → message embedding (queued via memory.embed effect)
   memory-candidate lane      → scan for new candidates
-  entity-extraction lane     → entities into actant-index
+  entity-extraction lane     → entities into actant-memory::index
   analytics lane             → activity metrics
 ```
 
@@ -221,7 +221,7 @@ retrieval_profiles:
     rerank: false
 ```
 
-`actant-index::plan` picks the profile from `(latency_goal_ms, sensitivity_ceiling, budget_remaining, task_complexity, backpressure)`. The chosen profile is recorded on `retrieval_trace`.
+`actant-memory::index::plan` picks the profile from `(latency_goal_ms, sensitivity_ceiling, budget_remaining, task_complexity, backpressure)`. The chosen profile is recorded on `retrieval_trace`.
 
 ## 8. Subscription discipline
 
@@ -332,7 +332,7 @@ A grep over the eventual `actant-command::commands/*.rs` for these patterns insi
 
 | Phase | Performance discipline                                          |
 | ----- | --------------------------------------------------------------- |
-| 1     | `actant-kernel` + capability tokens + compiled policy + hot projection tier + L0 cache for budgets/rate-limits. Benchmark harness in `bench/`. |
+| 1     | `actant-command::kernel` + capability tokens + compiled policy + hot projection tier + L0 cache for budgets/rate-limits. Benchmark harness in `bench/`. |
 | 2     | Lanes pattern formalized via `actant-subscribe` consumers. Backpressure signals. Workers fully async. |
 | 3     | Hot memory shortlists. Selective subscription filter validator. Snapshot/compaction for SQLite. |
 | 4     | Workflow deterministic-shell discipline enforced; replay deterministic from event log. |
@@ -350,7 +350,7 @@ A grep over the eventual `actant-command::commands/*.rs` for these patterns insi
 
 ## Verification
 
-- [ ] `actant-kernel`'s dispatch table covers every alpha command.
+- [ ] `actant-command::kernel`'s dispatch table covers every alpha command.
 - [ ] Compiled policy decision DAG is array-indexed (no string match on the hot path).
 - [ ] Bench harness in `bench/` measures every operation in §2 and asserts p50/p99.
 - [ ] Grep test: zero HTTP / process spawn / model SDK calls inside any `Transaction<'_>` block.

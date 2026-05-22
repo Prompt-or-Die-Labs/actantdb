@@ -2,7 +2,7 @@
 //!
 //! Evaluates whether a proposed action (typically a tool call) is allowed
 //! under the policy active in a workspace. Verdicts mirror the wedge's
-//! [`actant_contracts::PolicyVerdict`] but live on the Rust substrate side.
+//! `actant_contracts::PolicyVerdict` but live on the Rust substrate side.
 //!
 //! See `/specs/05-security-model.md`.
 
@@ -11,6 +11,12 @@
 
 use actant_core::{ActorId, RiskLevel, Sensitivity};
 use serde::{Deserialize, Serialize};
+
+pub mod capsule;
+pub mod trust;
+
+pub use capsule::{ActantCapsule, MemoryAllowed};
+pub use trust::ActantTrustProfile;
 
 /// A Guard verdict.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -140,7 +146,7 @@ pub fn evaluate(policy: &PolicyDoc, input: &GuardInput<'_>) -> Verdict {
     }
 
     if let Some(ceiling) = policy.sensitivity_ceiling {
-        if sens_rank(input.sensitivity) > sens_rank(ceiling) {
+        if input.sensitivity.rank() > ceiling.rank() {
             return Verdict::RequireApproval {
                 reason: format!(
                     "args sensitivity {:?} exceeds ceiling {:?}",
@@ -187,17 +193,6 @@ pub fn evaluate(policy: &PolicyDoc, input: &GuardInput<'_>) -> Verdict {
 
     Verdict::Allow {
         reason: format!("risk={:?}", input.risk_level),
-    }
-}
-
-fn sens_rank(s: Sensitivity) -> u8 {
-    match s {
-        Sensitivity::Public => 0,
-        Sensitivity::Low => 1,
-        Sensitivity::Medium => 2,
-        Sensitivity::High => 3,
-        Sensitivity::Secret => 4,
-        Sensitivity::Regulated => 5,
     }
 }
 

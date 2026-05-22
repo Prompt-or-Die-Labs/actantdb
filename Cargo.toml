@@ -14,14 +14,11 @@ members = [
     "crates/actant-subscribe",
     "crates/actant-server",
     "crates/actant-cli",
-    "crates/actant-sdk-codegen",
     # Phase 2 — workers
     "crates/actant-worker-protocol",
     "crates/actant-workers",
     # Phase 3 — context/memory companions
     "crates/actant-embed",
-    "crates/actant-capsule",
-    "crates/actant-trust",
     # Phase 4 — triggers + evals
     "crates/actant-trigger",
     "crates/actant-eval",
@@ -32,17 +29,12 @@ members = [
     # CLI product surface (Phase 1+, expanded through Phase 4)
     "crates/actant-templates",
     "crates/actant-schema-dsl",
-    # AI-native retrieval + protocols + observability (Phase 1-4) — the
-    # five small observability/protocol crates (prompts, models, cache,
-    # trace, protocol) were merged into a single feature-flagged crate.
-    "crates/actant-index",
+    # AI-native retrieval companions. Trace/protocol shapes live in
+    # actant-core, while cache/model/prompt registries live in actant-command.
     "crates/actant-embedders",
-    "crates/actant-runtime",
     # Reliability primitives (Phase 1+) — merged into a single crate with
     # one feature flag per primitive (throttle/circuit/lock/ingress).
     "crates/actant-reliability",
-    # Hot-path coordinator (Phase 1, lands with the core kernel discipline)
-    "crates/actant-kernel",
     # F2/F3 prevention (post-pivot, 2026-05-17) — TS-native default + contract-first build
     "crates/actant-contracts",   # single source of truth for every public type
     # Phase 6 — cloud / team
@@ -82,12 +74,9 @@ actant-flow         = { path = "crates/actant-flow",         version = "0.0.15" 
 actant-replay       = { path = "crates/actant-replay",       version = "0.0.15" }
 actant-subscribe    = { path = "crates/actant-subscribe",    version = "0.0.15" }
 actant-server       = { path = "crates/actant-server",       version = "0.0.15" }
-actant-sdk-codegen  = { path = "crates/actant-sdk-codegen",  version = "0.0.15" }
 actant-worker-protocol = { path = "crates/actant-worker-protocol", version = "0.0.15" }
 actant-workers         = { path = "crates/actant-workers",         version = "0.0.15" }
 actant-embed        = { path = "crates/actant-embed",        version = "0.0.15" }
-actant-capsule      = { path = "crates/actant-capsule",      version = "0.0.15" }
-actant-trust        = { path = "crates/actant-trust",        version = "0.0.15" }
 actant-trigger      = { path = "crates/actant-trigger",      version = "0.0.15" }
 actant-eval         = { path = "crates/actant-eval",         version = "0.0.15" }
 actant-sync         = { path = "crates/actant-sync",         version = "0.0.15" }
@@ -95,11 +84,8 @@ actant-audit-export = { path = "crates/actant-audit-export", version = "0.0.15" 
 actant-objectstore  = { path = "crates/actant-objectstore",  version = "0.0.15" }
 actant-templates       = { path = "crates/actant-templates",       version = "0.0.15" }
 actant-schema-dsl      = { path = "crates/actant-schema-dsl",      version = "0.0.15" }
-actant-index           = { path = "crates/actant-index",           version = "0.0.15" }
 actant-embedders       = { path = "crates/actant-embedders",       version = "0.0.15" }
-actant-runtime         = { path = "crates/actant-runtime",         version = "0.0.15" }
 actant-reliability     = { path = "crates/actant-reliability",     version = "0.0.15", default-features = true }
-actant-kernel          = { path = "crates/actant-kernel",          version = "0.0.15" }
 actant-contracts       = { path = "crates/actant-contracts",       version = "0.0.15" }
 actant-auth            = { path = "crates/actant-auth",            version = "0.0.15" }
 actant-tenant          = { path = "crates/actant-tenant",          version = "0.0.15" }

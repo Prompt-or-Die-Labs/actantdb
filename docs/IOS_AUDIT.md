@@ -55,10 +55,6 @@ Tracked in `DEVX_GAPS.md` as a Part D follow-up.
 
 [ok] no iOS-incompatible patterns found.
 
-## actant-capsule
-
-[ok] no iOS-incompatible patterns found.
-
 ## actant-cli
 
 ### process-spawn
@@ -123,14 +119,6 @@ Tracked in `DEVX_GAPS.md` as a Part D follow-up.
 
 [ok] no iOS-incompatible patterns found.
 
-## actant-index
-
-[ok] no iOS-incompatible patterns found.
-
-## actant-kernel
-
-[ok] no iOS-incompatible patterns found.
-
 ## actant-memory
 
 [ok] no iOS-incompatible patterns found.
@@ -151,15 +139,7 @@ Tracked in `DEVX_GAPS.md` as a Part D follow-up.
 
 [ok] no iOS-incompatible patterns found.
 
-## actant-runtime
-
-[ok] no iOS-incompatible patterns found.
-
 ## actant-schema-dsl
-
-[ok] no iOS-incompatible patterns found.
-
-## actant-sdk-codegen
 
 [ok] no iOS-incompatible patterns found.
 
@@ -188,10 +168,6 @@ Tracked in `DEVX_GAPS.md` as a Part D follow-up.
 [ok] no iOS-incompatible patterns found.
 
 ## actant-trigger
-
-[ok] no iOS-incompatible patterns found.
-
-## actant-trust
 
 [ok] no iOS-incompatible patterns found.
 

@@ -47,13 +47,13 @@ fn adr_0003_context_as_manifest() {
 fn adr_0005_data_capsules_have_table_and_type() {
     let schema = read_repo("specs/02-data-model.sql");
     assert!(schema.contains("CREATE TABLE capsule"));
-    let lib = read_repo("crates/actant-capsule/src/lib.rs");
-    assert!(lib.contains("struct Capsule"));
+    let lib = read_repo("crates/actant-policy/src/capsule.rs");
+    assert!(lib.contains("struct ActantCapsule"));
 }
 
 #[test]
 fn adr_0007_behavioral_trust_has_score_confidence_samples() {
-    let lib = read_repo("crates/actant-trust/src/lib.rs");
+    let lib = read_repo("crates/actant-policy/src/trust.rs");
     assert!(lib.contains("score"));
     assert!(lib.contains("confidence"));
     assert!(lib.contains("sample_size"));
@@ -112,9 +112,9 @@ fn adr_0017_universal_idempotency() {
 
 #[test]
 fn adr_0018_hot_kernel_exists() {
-    let kernel = read_repo("crates/actant-kernel/src/lib.rs");
+    let kernel = read_repo("crates/actant-command/src/kernel.rs");
     assert!(kernel.contains("dispatch_tool_call"));
-    assert!(kernel.contains("HotToolCall"));
+    assert!(kernel.contains("ActantHotToolCall"));
 }
 
 #[test]

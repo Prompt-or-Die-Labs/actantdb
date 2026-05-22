@@ -38,7 +38,7 @@ The packages are what a developer installs. The substrate is what they get when 
 - **Phase 6 cloud + team**: `actant-auth` (HS256 + OIDC), `actant-tenant`, `actant-audit-export` (purge + retention), `actant-sync`.
 - **Reliability**: `actant-throttle`, `actant-circuit`, `actant-lock`, `actant-ingress`, `actant-compensation`, `actant-drift`.
 - **AI-native**: `actant-protocol` (MCP/A2A/AP2 with spend-limit enforcement), `actant-prompts`, `actant-models`, `actant-cache`, `actant-trace`.
-- **Contracts**: `actant-contracts` is the single source of truth for every public type. `cargo run -p actant-contracts -- codegen-ts` regenerates `packages/actant-types/src/generated/*`.
+- **Contracts**: `actant-contracts` is the single source of truth for every public type. `cargo run -p actant-contracts --bin actant-contracts -- codegen-ts` regenerates `packages/actant-types/src/generated/*`.
 - **CLI + SDK**: `actant-schema-dsl`, `actant-sdk-codegen`, `actant-templates`, `actant-codegen-project`.
 - **Hot path**: `actant-kernel` (synchronous in-process tool-call dispatcher).
 
@@ -75,7 +75,7 @@ CI bundle `fmt-check + clippy -D warnings + test + verify-specs + verify-agents`
 These survived the freeze lift because they were the right call regardless:
 
 1. **No new public type outside `actant-contracts`.** If an interface is missing, edit the contract crate and regenerate. Hand-edits to `packages/actant-types/src/generated/*` are forbidden.
-2. **Contract update protocol**: edit `actant-contracts` → `cargo run -p actant-contracts -- check-compat` → `… codegen-ts` → commit Rust + regenerated TS in the same PR.
+2. **Contract update protocol**: edit `actant-contracts` → `cargo run -p actant-contracts --bin actant-contracts -- check-compat` → `… codegen-ts` → commit Rust + regenerated TS in the same PR.
 3. **TS-native default install path.** First README line is `npm install`. No Rust toolchain, no Docker, no exposed port required.
 4. **Workspace smoke test on every PR** (`pnpm smoke`). If red >24h, freeze new feature work until green.
 5. **TS API is identical between `mode: "embedded"` and `mode: "server"`.** Choice is config, not migration.

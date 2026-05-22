@@ -51,5 +51,5 @@ The retrieval planner fuses candidate sets, deduplicates, applies capsule/sensit
 ## References
 
 - `/specs/15-actant-index.md` §11 (retrieval modes).
-- `/agents/actant-index.md`, `/agents/actant-embedders.md`.
+- `/agents/actant-memory.md`, `/agents/actant-embedders.md`.
 - Prior art: Qdrant hybrid, Pinecone hybrid.

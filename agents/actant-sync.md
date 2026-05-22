@@ -19,7 +19,7 @@ pub trait SyncDestination: Send + Sync {
     async fn pull(&self, cursor: SyncCursor) -> Result<SyncBatch, SyncError>;
 }
 
-pub struct SyncEngine { storage: Arc<actant_storage::Storage>, capsule: Arc<actant_capsule::CapsuleService>, dest: Box<dyn SyncDestination> }
+pub struct SyncEngine { storage: Arc<actant_storage::Storage>, policy: Arc<actant_policy::Guard>, dest: Box<dyn SyncDestination> }
 
 impl SyncEngine {
     pub async fn run_loop(self) -> Result<(), SyncError>;       // long-running; reads change-feed
@@ -33,7 +33,7 @@ pub struct SyncBatch { pub events: Vec<AgentEvent>, pub projections: Vec<Project
 
 - Chronicle is append-only → sync is conflict-free for events.
 - Projection rows: last-write-wins per ADR-0011 (which will be authored when Phase 6 starts). The sync engine emits `sync_conflict_detected` if two writes arrive with overlapping `version` from different sources.
-- Per-row policy resolution: the engine asks `actant-capsule` for the policy. Rows whose policy is `local_only` or `never_sync` are skipped silently (no metadata leak via "we skipped a row").
+- Per-row policy resolution: the engine asks `actant-policy::capsule` for the policy. Rows whose policy is `local_only` or `never_sync` are skipped silently (no metadata leak via "we skipped a row").
 - `metadata_only` strips payloads (replaces `body_ref` / `input_ref` with the hash only).
 - `encrypted_sync` requires a per-destination KMS key (Phase 6 supports cloud-KMS + on-device Keychain key delegation).
 

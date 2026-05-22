@@ -11,7 +11,7 @@ Crate-specific ACs are checked against source files and tests.
 | --- | --- | --- | --- |
 | actant-audit-export | partial | "identical bytes on re-run property test (1k rows, 10 reruns)"; "sensitivity exclusion fuzz tests" | add test |
 | actant-cache | partial | "1000 random `(actor, key, sensitivity)` puts cross-actor property test"; "`cache.hit` metric consumed by `actant-trace`" | add test |
-| actant-capsule | partial | "property test: random capsule vector composes to strictest in O(n)" | add test |
+| actant-policy::capsule | partial | "property test: random capsule vector composes to strictest in O(n)" | add test |
 | actant-circuit | partial | "concurrent record_outcome property test (200 callers)" | add test |
 | actant-cli | missing | `new`, `dev`, `doctor --json`, `examples run` subcommands absent; "5-minute test" and `actant examples run coding-agent` test do not exist; `actant doctor --json` schema not documented | verify manually |
 | actant-codegen-project | partial | "Python + TypeScript generator working test cases"; "Swift + Rust language paths with fixture each" | add test |
@@ -23,9 +23,9 @@ Crate-specific ACs are checked against source files and tests.
 | actant-embedders | missing | `Registry::embedder("fastembed:bge-small-en-v1.5")` API absent; no `fastembed`/`sparse-splade`/`rerank-local` features; only `HashEmbedder` ships; OpenAI adapter mocked-transport test absent | remove AC |
 | actant-eval | partial | "every operator positive+negative test" (only 1 inline test); "1000-event session under 30s" benchmark not present | add test |
 | actant-flow | covered | — | none |
-| actant-index | partial | "recall@5 ≥ 0.8 against bundled benchmark fixture" — no benchmark fixture in repo | add test |
+| actant-memory::index | partial | "recall@5 ≥ 0.8 against bundled benchmark fixture" — no benchmark fixture in repo | add test |
 | actant-ingress | partial | "100 duplicate webhook submissions → exactly 1 ingress_event" property test | add test |
-| actant-kernel | partial | bench harness exists (`bench/benches/`) but does not assert latency budgets from spec 19 §2; "no HTTP/process/model/vector in Transaction" architectural grep not codified as test | add test |
+| actant-command::kernel | partial | bench harness exists (`bench/benches/`) but does not assert latency budgets from spec 19 §2; "no HTTP/process/model/vector in Transaction" architectural grep not codified as test | add test |
 | actant-lock | partial | "100 concurrent acquires → one winner" property test | add test |
 | actant-memory | covered | — | none |
 | actant-models | partial | "deterministic selection with seeded tie-break" — only 1 inline test, no explicit determinism property test | add test |
@@ -34,7 +34,7 @@ Crate-specific ACs are checked against source files and tests.
 | actant-protocol | covered | — | none |
 | actant-replay | covered | — | none |
 | actant-schema-dsl | partial | "parses every `.actant` file in bundled coding-agent template" — no `.actant` files in repo; "generated SQL passes `actant schema validate`" / "generated Rust passes `cargo check`" / "generated TS passes `tsc --strict`" — generators emit strings but downstream type-check harness absent | add test |
-| actant-sdk-codegen | covered | — | none |
+| actant-contracts::sdk_codegen | covered | — | none |
 | actant-server | covered | — | none |
 | actant-storage | covered | — | none |
 | actant-subscribe | partial | "Phase 1 subscription tables snapshot+incremental round-trip property test (1000 commits, 10 subscribers)" | add test |
@@ -43,7 +43,7 @@ Crate-specific ACs are checked against source files and tests.
 | actant-throttle | partial | "p99 `check()` latency ≤ 1ms bench"; "every algorithm in §1 has positive + negative test" | add test |
 | actant-trace | partial | "every span name in spec 17 §1 has emit site"; "redaction chokepoint is the only place sensitive bytes reach exporter" — covered structurally by spec_17 verifier but emit-site coverage not enumerated | verify manually |
 | actant-trigger | partial | "process-restart survival: paused cron fires at next scheduled time, not retroactively" — `Scheduler::tick` respects `last_fired_at` but no explicit restart-survival test | add test |
-| actant-trust | partial | "no panic on NaN / sample_size=0 returns `(0.0, 0.0)`"; "recalibration on 10k synthetic actors in <5s" | add test |
+| actant-policy::trust | partial | "no panic on NaN / sample_size=0 returns `(0.0, 0.0)`"; "recalibration on 10k synthetic actors in <5s" | add test |
 | actant-worker-file | partial | "1000 random path strings against fixed pattern → zero out-of-bound writes"; "edit + restore round-trip byte-identical" | add test |
 | actant-worker-mcp | covered | — | none |
 | actant-worker-model | partial | only `Mock` + `OpenAi` providers — no Ollama; "smoke test against at least one local provider" absent; "cost math matches `model_route` rates within 1e-6" absent | add test |
@@ -57,7 +57,7 @@ Crate-specific ACs are checked against source files and tests.
 
 ## Summary
 
-- Covered: **13** (actant-command, actant-context, actant-core, actant-effects, actant-flow, actant-memory, actant-policy, actant-protocol, actant-replay, actant-sdk-codegen, actant-server, actant-storage, actant-worker-mcp).
+- Covered: **13** (actant-command, actant-context, actant-core, actant-effects, actant-flow, actant-memory, actant-policy, actant-protocol, actant-replay, actant-contracts::sdk_codegen, actant-server, actant-storage, actant-worker-mcp).
 - Partial: **29**.
 - Missing: **3** (actant-cli, actant-embedders, actant-templates).
 - Total: **45**.

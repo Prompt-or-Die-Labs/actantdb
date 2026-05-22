@@ -18,7 +18,7 @@ The agent experience depends on the answer. A 2-second pause before a tool call 
 
 ActantDB is structured as a **hot kernel + asynchronous lanes**:
 
-- The kernel (`actant-kernel`) is the only crate that runs in the synchronous command path. Its job per command is exhaustively defined in `/specs/19-performance-architecture.md` §4:
+- The kernel (`actant-command::kernel`) is the only module that runs in the synchronous command path. Its job per command is exhaustively defined in `/specs/19-performance-architecture.md` §4:
   1. authenticate actor,
   2. validate command schema,
   3. compiled policy check,
@@ -60,7 +60,7 @@ Latency budgets are explicit (`/specs/19-performance-architecture.md` §2). A `b
 ## References
 
 - `/specs/19-performance-architecture.md` — full design.
-- `/agents/actant-kernel.md` — implementation work package.
+- `/agents/actant-command.md` — command-path implementation work package.
 - `/planning/lane-catalog.md` — every lane and its owner.
 - `/specs/01-architecture.md` § "Cross-cutting layers" — where this lives.
 - Prior art: SpacetimeDB's commit-log + replay; Temporal's deterministic workflow vs activities split.

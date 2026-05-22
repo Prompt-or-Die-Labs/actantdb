@@ -1,6 +1,6 @@
 //! Sparse encoders.
 //!
-//! [`SparseEncoder`] is the trait surface used by `actant-index`'s hybrid
+//! [`SparseEncoder`] is the trait surface used by `actant-memory::index`'s hybrid
 //! retrieval planner. [`Bm25Encoder`] is the pure-Rust default — plain BM25
 //! over a small in-memory document collection. Heavier neural sparse models
 //! (SPLADE, BM42) are deferred behind future feature flags.

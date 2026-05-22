@@ -20,8 +20,8 @@ The fix: machine-checked contracts. Every public type, error, event name, comman
 ## Update protocol
 
 1. Modify `src/` in this crate.
-2. Run `cargo run -p actant-contracts -- check-compat`. Backward-incompatible changes without an explicit version bump fail.
-3. Run `cargo run -p actant-contracts -- codegen-ts`. Regenerates `packages/actant-types/src/generated/*`.
+2. Run `cargo run -p actant-contracts --bin actant-contracts -- check-compat`. Backward-incompatible changes without an explicit version bump fail.
+3. Run `cargo run -p actant-contracts --bin actant-contracts -- codegen-ts`. Regenerates `packages/actant-types/src/generated/*`.
 4. Commit Rust + regenerated TS in the same PR.
 5. Reviewer prompt: "Does this PR add a public type outside this crate? If yes, reject."
 

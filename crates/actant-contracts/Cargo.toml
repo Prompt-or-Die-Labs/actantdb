@@ -15,7 +15,13 @@ schemars   = { workspace = true }
 thiserror  = { workspace = true }
 time       = { workspace = true }
 ulid       = { workspace = true }
+sha2       = { workspace = true }
+hex        = { workspace = true }
 
 [[bin]]
 name = "actant-contracts"
 path = "src/bin/cli.rs"
+
+[[bin]]
+name = "actant-sdk-codegen"
+path = "src/bin/sdk_codegen.rs"

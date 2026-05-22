@@ -10,6 +10,7 @@ authors.workspace = true
 
 [dependencies]
 actant-core    = { workspace = true }
+actant-contracts = { workspace = true }
 actant-storage = { workspace = true }
 actant-policy  = { workspace = true }
 anyhow         = { workspace = true }
@@ -22,3 +23,6 @@ thiserror      = { workspace = true }
 time           = { workspace = true }
 tokio          = { workspace = true }
 tracing        = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

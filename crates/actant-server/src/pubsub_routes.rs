@@ -8,7 +8,7 @@
 //! * `POST /v1/pubsub/<workspace>/<topic>`  — publish a JSON body as the
 //!   envelope payload. Returns `{ id, ts }`.
 //!
-//! Workspace isolation is enforced through [`crate::enforce_auth`].
+//! Workspace isolation is enforced through the server authentication gate.
 
 use std::sync::Arc;
 

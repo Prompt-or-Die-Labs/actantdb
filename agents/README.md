@@ -8,7 +8,7 @@ This directory contains **work packages**: self-contained prompts that hand off 
 4. Defines binary **acceptance criteria**.
 5. Lists **do-not-do** constraints to keep the agent in its lane.
 
-This pattern lets a coding agent build a crate in isolation while remaining faithful to the spec set. Each work package is intentionally narrow — one crate per file, with named cross-crate interfaces.
+This pattern lets a coding agent build an owned crate or module group in isolation while remaining faithful to the spec set. Each work package is intentionally narrow, with named cross-crate interfaces.
 
 ## Order of work (Phase 1)
 
@@ -27,7 +27,7 @@ Build the crates in dependency order. Each step's work package assumes the previ
 10. actant-flow             (Phase 1: types + traits only)
 11. actant-server
 12. actant-cli
-13. actant-sdk-codegen      (last; reads server metadata)
+13. actant-contracts        (last; owns SDK codegen binaries/templates)
 ```
 
 Phase 1's **decision gate** (per `/specs/11-roadmap.md`) is the coding-agent demo from `/specs/10-alpha-demo.md` running end-to-end.
@@ -45,30 +45,30 @@ The order, with one phase-extension package + the new-crate packages per phase. 
 
 These three sit alongside the existing `actant-cli` work package and are needed for the Phase 1 minimum CLI (per `/planning/cli-design.md`).
 
-### AI-native + reliability crates (Phase 1+, after the core crates compile)
+### AI-native + reliability surfaces (Phase 1+, after the core crates compile)
 ```
-A1. actant-trace            (OTel + OpenInference; cross-cutting, lands early)
+A1. actant-core::trace      (trace/span IDs; cross-cutting, lands early)
 A2. actant-embedders        (provider registry; FastEmbed default)
-A3. actant-index            (hybrid retrieval + traces + reranker dispatch + context packer)
-A4. actant-prompts          (prompt + tool-schema registry)
-A5. actant-models           (model registry + routing)
-A6. actant-cache            (sensitivity-aware caches)
-A7. actant-protocol         (MCP first; A2A/AP2 in Phase 4/6)
+A3. actant-memory::index    (hybrid retrieval + traces + reranker dispatch + context packer)
+A4. actant-command::prompts (prompt + tool-schema registry)
+A5. actant-command::models  (model registry + routing)
+A6. actant-command::cache   (sensitivity-aware caches)
+A7. actant-core::protocol   (MCP first; A2A/AP2 in Phase 4/6)
 
-R1. actant-throttle         (multi-axis rate limits)
-R2. actant-circuit          (per-dependency breakers)
-R3. actant-lock             (lease-bounded resource locks)
-R4. actant-ingress          (HMAC webhooks + email + calendar + fs + MCP/A2A)
+R1. actant-reliability::throttle (multi-axis rate limits)
+R2. actant-reliability::circuit  (per-dependency breakers)
+R3. actant-reliability::lock     (lease-bounded resource locks)
+R4. actant-reliability::ingress  (HMAC webhooks + email + calendar + fs + MCP/A2A)
 ```
 
 These can be built in parallel groups: `A1` first (everything needs traces), then `A2 → A3` in series, and `A4..A7` + `R1..R4` in parallel.
 
 ### Hot-path coordinator (Phase 1, lands with the kernel discipline)
 ```
-K1. actant-kernel           (dispatch table + capability tokens + hot projection L0 + admission control)
+K1. actant-command::kernel  (dispatch table + capability tokens + hot projection L0 + admission control)
 ```
 
-`actant-kernel` is the only crate that runs synchronously in the command path. It composes `actant-command`, `actant-policy`, `actant-storage`, `actant-effects`, and `actant-subscribe` under the discipline in ADR-0018. Build order: after `actant-command` + `actant-policy` + `actant-storage` + `actant-effects` + `actant-subscribe` compile, before `actant-server` adds HTTP / WebSocket. Coding agents implementing it should be familiar with `/specs/19-performance-architecture.md` + `/planning/performance-budgets.md` + `/planning/lane-catalog.md` first.
+`actant-command::kernel` is the only module group that runs synchronously in the command path. It composes command, policy, storage, effects, and subscribe surfaces under the discipline in ADR-0018. Build order: after `actant-command` + `actant-policy` + `actant-storage` + `actant-effects` + `actant-subscribe` compile, before `actant-server` adds HTTP / WebSocket. Coding agents implementing it should be familiar with `/specs/19-performance-architecture.md` + `/planning/performance-budgets.md` + `/planning/lane-catalog.md` first.
 
 ### Phase 2 (workers + extended primitives)
 ```
@@ -83,8 +83,8 @@ K1. actant-kernel           (dispatch table + capability tokens + hot projection
 ### Phase 3 (context + memory + capsules + trust)
 ```
 20. actant-embed
-21. actant-capsule
-22. actant-trust
+21. actant-policy::capsule
+22. actant-policy::trust
 23. phase-3-extensions
 ```
 

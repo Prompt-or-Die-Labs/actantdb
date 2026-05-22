@@ -11,7 +11,7 @@ use actant_core::ActantError;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::PgPool;
 
-use crate::{BlobStore, MemoryStore};
+use crate::{first_line, strip_comments, BlobStore, MemoryStore};
 
 // Postgres migration apply order. Migration KEY (the first field) is the
 // applied-tracking identifier — once applied to a PG database it never
@@ -154,23 +154,6 @@ impl PgStorage {
                 .map_err(|e| ActantError::Storage(e.to_string()))?;
         Ok(rows.into_iter().map(|(n,)| n).collect())
     }
-}
-
-fn strip_comments(s: &str) -> String {
-    let mut out = String::new();
-    for line in s.lines() {
-        let trimmed = line.trim_start();
-        if trimmed.starts_with("--") {
-            continue;
-        }
-        out.push_str(line);
-        out.push('\n');
-    }
-    out
-}
-
-fn first_line(s: &str) -> &str {
-    s.lines().next().unwrap_or("").trim()
 }
 
 #[cfg(test)]

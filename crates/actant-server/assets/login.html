@@ -76,6 +76,40 @@
     cursor: pointer;
   }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .providers {
+    display: none;
+    gap: 8px;
+    flex-direction: column;
+    margin: 0 0 18px;
+  }
+  .providers.visible { display: flex; }
+  .provider-button {
+    display: block;
+    text-align: center;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+    background: var(--bg);
+    font-weight: 600;
+  }
+  .divider {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0 0 14px;
+  }
+  .divider.visible { display: flex; }
+  .divider::before,
+  .divider::after {
+    content: "";
+    height: 1px;
+    background: var(--border);
+    flex: 1;
+  }
   .msg { min-height: 18px; margin-top: 10px; font-size: 13px; }
   .msg.error { color: var(--error); }
   .msg.ok { color: var(--ok); }
@@ -95,6 +129,9 @@
   <h1>Sign in</h1>
   <p class="sub">ActantDB owner credentials.</p>
 
+  <div id="providers" class="providers"></div>
+  <div id="divider" class="divider">or</div>
+
   <form id="login-form" autocomplete="on" novalidate>
     <label for="pw">Password</label>
     <input id="pw" type="password" autocomplete="current-password" required>
@@ -113,6 +150,36 @@
   const pw = document.getElementById('pw');
   const btn = document.getElementById('submit');
   const msg = document.getElementById('msg');
+  const providers = document.getElementById('providers');
+  const divider = document.getElementById('divider');
+
+  fetch('/v1/auth/providers')
+    .then(r => r.ok ? r.json() : Promise.resolve({ providers: [] }))
+    .then(data => {
+      const list = Array.isArray(data.providers) ? data.providers : [];
+      let rendered = 0;
+      for (const provider of list) {
+        if (!provider || typeof provider.id !== 'string' || typeof provider.label !== 'string') continue;
+        const id = provider.id.trim();
+        const label = provider.label.trim();
+        if (!id || !label) continue;
+        const a = document.createElement('a');
+        a.className = 'provider-button';
+        a.href = '/v1/auth/oauth/' + encodeURIComponent(id) + '/start';
+        a.textContent = 'Continue with ' + label;
+        providers.appendChild(a);
+        rendered += 1;
+      }
+      if (rendered > 0) {
+        providers.classList.add('visible');
+        divider.classList.add('visible');
+      }
+    })
+    .catch(err => {
+      providers.dataset.loadError = err && err.message ? err.message : 'provider_load_failed';
+      msg.className = 'msg error';
+      msg.textContent = 'Sign-in providers could not be loaded.';
+    });
 
   document.getElementById('reset-link').addEventListener('click', e => {
     e.preventDefault();

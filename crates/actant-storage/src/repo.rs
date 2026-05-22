@@ -427,7 +427,7 @@ impl Storage {
         Ok(())
     }
 
-    /// Store an artifact body in the configured [`BlobStore`] and insert the
+    /// Store an artifact body in the configured [`crate::BlobStore`] and insert the
     /// metadata row. Returns the new [`ArtifactId`].
     ///
     /// The key handed to the blob store is the lowercase-hex SHA-256 of `body`,

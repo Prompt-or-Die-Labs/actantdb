@@ -14,6 +14,13 @@ use actant_storage::{PgStorage, Storage, StorageBackend};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+pub mod cache;
+pub mod kernel;
+pub mod models;
+pub mod prompts;
+
+pub use kernel::{dispatch_tool_call, ActantHotToolCall};
+
 /// Result of dispatching a command.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandOutcome {

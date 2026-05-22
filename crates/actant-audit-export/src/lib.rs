@@ -40,7 +40,7 @@ impl Default for RetentionPolicy {
 impl RetentionPolicy {
     /// True if an event should be retained.
     pub fn should_retain(&self, created_at_rfc3339: &str, sens: Sensitivity) -> bool {
-        if sens_rank(sens) >= sens_rank(self.always_keep_at_least) {
+        if sens.rank() >= self.always_keep_at_least.rank() {
             return true;
         }
         let Ok(t) = time::OffsetDateTime::parse(
@@ -52,17 +52,6 @@ impl RetentionPolicy {
         };
         let cutoff = time::OffsetDateTime::now_utc() - time::Duration::days(self.keep_days as i64);
         t >= cutoff
-    }
-}
-
-fn sens_rank(s: Sensitivity) -> u8 {
-    match s {
-        Sensitivity::Public => 0,
-        Sensitivity::Low => 1,
-        Sensitivity::Medium => 2,
-        Sensitivity::High => 3,
-        Sensitivity::Secret => 4,
-        Sensitivity::Regulated => 5,
     }
 }
 

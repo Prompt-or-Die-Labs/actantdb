@@ -4,7 +4,7 @@
 
 `actant-command` is the typed mutation surface. It is the only path to mutate state. The command engine authenticates the actor, validates input, calls Guard, opens a `Transaction`, runs the command's `execute`, appends events, and notifies subscribers.
 
-Phase 1 implements the **alpha command set** named in `/specs/11-roadmap.md` Phase 1.
+Phase 1 implements the **alpha command set** named in `/specs/11-roadmap.md` Phase 1. It also owns the hot-path kernel module, semantic cache, prompt registry, and model route registry because those are backend command surfaces, not a separate agent runtime.
 
 ## Specs to read first
 
@@ -69,6 +69,10 @@ crates/actant-command/src/
 ├── command_trait.rs
 ├── error.rs                       // CommandError -> ActantError mapping
 ├── registry.rs
+├── kernel.rs
+├── cache.rs
+├── models.rs
+├── prompts.rs
 └── commands/
     ├── mod.rs
     ├── create_session.rs

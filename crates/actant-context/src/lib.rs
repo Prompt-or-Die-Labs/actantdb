@@ -114,7 +114,7 @@ pub fn build(items: Vec<CandidateItem>, opts: &BuildOptions) -> Manifest {
         let tokens = item.token_count.unwrap_or(item.content.len() / 4);
         let mut blocked_reason: Option<&'static str> = None;
 
-        if sens_rank(item.sensitivity) > sens_rank(opts.sensitivity_ceiling) {
+        if item.sensitivity.rank() > opts.sensitivity_ceiling.rank() {
             blocked_reason = Some("sensitivity");
         }
         // Visibility: secret content is never sent to cloud routes.
@@ -170,17 +170,6 @@ pub fn build(items: Vec<CandidateItem>, opts: &BuildOptions) -> Manifest {
         included,
         blocked,
         total_tokens,
-    }
-}
-
-fn sens_rank(s: Sensitivity) -> u8 {
-    match s {
-        Sensitivity::Public => 0,
-        Sensitivity::Low => 1,
-        Sensitivity::Medium => 2,
-        Sensitivity::High => 3,
-        Sensitivity::Secret => 4,
-        Sensitivity::Regulated => 5,
     }
 }
 

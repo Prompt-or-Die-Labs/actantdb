@@ -1,8 +1,9 @@
 //! Bundled-template registry.
 //!
 //! Templates live at `/templates/<name>/` in the repo and are embedded into the
-//! crate at compile time via [`include_dir!`]. The registry exposes [`list`],
-//! [`get`], and [`render`] over that bundle.
+//! crate at compile time via [`include_dir!`]. The registry exposes
+//! [`TemplateRegistry::list`], [`TemplateRegistry::get`], and
+//! [`TemplateRegistry::render`] over that bundle.
 
 use std::collections::HashMap;
 use std::fs;

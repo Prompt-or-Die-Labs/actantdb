@@ -63,7 +63,7 @@ case "$event" in
     context=""
     case "$prompt_lc" in
       *contract*|*public\ type*|*generated\ type*|*codegen*|*binding*)
-        context="Contract changes must start in crates/actant-contracts. Run cargo run -p actant-contracts -- check-compat, then cargo run -p actant-contracts -- codegen-ts. Never hand-edit packages/actant-types/src/generated."
+        context="Contract changes must start in crates/actant-contracts. Run cargo run -p actant-contracts --bin actant-contracts -- check-compat, then cargo run -p actant-contracts --bin actant-contracts -- codegen-ts. Never hand-edit packages/actant-types/src/generated."
         ;;
       *graphify*|*architecture*|*dependency*|*relationship*|*where\ is*|*how\ does*)
         if [ -f graphify-out/graph.json ]; then
@@ -105,7 +105,7 @@ case "$event" in
     context=""
     case "$target" in
       *"crates/actant-contracts/"*)
-        context="Contract source changed. Run cargo run -p actant-contracts -- check-compat and cargo run -p actant-contracts -- codegen-ts before finishing."
+        context="Contract source changed. Run cargo run -p actant-contracts --bin actant-contracts -- check-compat and cargo run -p actant-contracts --bin actant-contracts -- codegen-ts before finishing."
         ;;
       *"packages/actant-types/src/generated/"*)
         context="Generated bindings are not hand-edited in ActantDB. Change crates/actant-contracts and regenerate instead."

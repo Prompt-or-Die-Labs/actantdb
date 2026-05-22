@@ -33,6 +33,25 @@ fn schema_bundle_has_all_expected_types() {
         "DiffEntry",
         "DiffKind",
         "ReplayOverrides",
+        "Embedding",
+        "ActantHotToolCall",
+        "ActantPromptVersion",
+        "ActantPromptTemplate",
+        "ActantModelInfo",
+        "ActantModelRegistry",
+        "ActantIndexedItem",
+        "ActantHit",
+        "ActantSearchMode",
+        "ActantSearchOptions",
+        "ActantSearchHit",
+        "ActantEntityRelation",
+        "ActantIndex",
+        "ActantMcpServer",
+        "ActantA2aCard",
+        "ActantAp2Mandate",
+        "MemoryAllowed",
+        "ActantCapsule",
+        "ActantTrustProfile",
     ] {
         assert!(obj.contains_key(expected), "missing schema: {expected}");
     }
@@ -76,6 +95,15 @@ fn event_kinds_are_snake_case() {
 fn risk_serde() {
     let s = serde_json::to_string(&Risk::Destructive).unwrap();
     assert_eq!(s, "\"destructive\"");
+}
+
+#[test]
+fn capsule_memory_scope_serde() {
+    let capsule = ActantCapsule::public_okay("public");
+    let s = serde_json::to_string(&capsule).unwrap();
+    assert!(s.contains("\"memory_allowed\":\"workspace\""));
+    let r: ActantCapsule = serde_json::from_str(&s).unwrap();
+    assert_eq!(r.memory_allowed, MemoryAllowed::Workspace);
 }
 
 #[test]
