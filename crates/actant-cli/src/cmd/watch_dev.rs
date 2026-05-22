@@ -10,6 +10,8 @@ use std::time::Duration;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::sync::mpsc;
 
+use crate::cli_errors;
+
 /// Run the dev watch command.
 pub async fn run(dirs: Vec<PathBuf>) -> anyhow::Result<()> {
     let watch_dirs = if dirs.is_empty() {
@@ -43,7 +45,7 @@ pub async fn run(dirs: Vec<PathBuf>) -> anyhow::Result<()> {
         }
     }
     if !watched_any {
-        anyhow::bail!("no watchable directories found");
+        return Err(cli_errors::invalid_input("no watchable directories found").into());
     }
 
     println!("press Ctrl-C to stop\n");

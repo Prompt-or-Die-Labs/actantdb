@@ -8,6 +8,8 @@ use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use sqlx::Row;
 
+use crate::cli_errors;
+
 /// Run the interactive shell.
 pub async fn run(db_path: &Path) -> anyhow::Result<()> {
     let s = Storage::open(StorageConfig::file(db_path)).await?;
@@ -30,7 +32,7 @@ pub async fn run(db_path: &Path) -> anyhow::Result<()> {
         match dispatch(&s, trimmed).await {
             Ok(should_exit) if should_exit => break,
             Ok(_) => {}
-            Err(e) => eprintln!("error: {e}"),
+            Err(e) => cli_errors::print_public_error(&e),
         }
     }
     Ok(())
@@ -58,7 +60,7 @@ async fn dispatch(s: &Storage, line: &str) -> anyhow::Result<bool> {
         "get" => {
             let id = rest
                 .first()
-                .ok_or_else(|| anyhow::anyhow!("usage: get <event_id>"))?;
+                .ok_or_else(|| cli_errors::invalid_input("usage: get <event_id>"))?;
             get_event(s, id).await?;
             Ok(false)
         }

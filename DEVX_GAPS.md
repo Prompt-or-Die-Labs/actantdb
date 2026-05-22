@@ -27,13 +27,13 @@ Astro, Convex, and Supabase.
 | X1 | **`npm create actantdb` / `npx @actantdb/create-app`** | 🟢 | `packages/create-actantdb/`. Interactive (`prompts`+`kleur`) and headless (`--template <name> --framework <name> --no-interactive`) modes. 15 vitest tests. Verified end-to-end for Node scaffolds, plus `scripts/smoke-bun-create.mjs` covers `--runtime bun` install/run. |
 | X2 | **First-launch Studio "welcome" screen** | 🟢 | `packages/actant-studio/ui-src/panels/RunsPanel.tsx` now renders a first-run empty state with a copy-pasteable `@actantdb/mastra` snippet that captures one tool call. Covered by Studio UI tests. |
 | X3 | **`actantdb doctor`** | 🟢 | Shipped in `crates/actant-cli/src/cmd/doctor.rs`. Checks rustc ≥ 1.88, node ≥ 22.5, disk space (5 GB threshold) on the db dir's filesystem, ports 4555 + 54323 (prints PID via `lsof`), optional `claude`/`codex`/`opencode` on PATH, `ACTANTDB_DATABASE_URL` shape, and Studio `dist/ui/` presence. Each check prints `[ok]/[warn]/[fail]` + a one-line fix where applicable. |
-| X4 | **Pretty errors with one-line fixes** | 🚧 | `actant_core::ActantError` now exposes `code`, `hint`, and optional `fix`; `actant-server` returns that JSON shape; TS and Python SDKs parse it into typed public errors. Remaining work: make every `actantdb` CLI subcommand render the same shape instead of raw `anyhow` text. |
+| X4 | **Pretty errors with one-line fixes** | 🟢 | `actant_core::ActantError` exposes `code`, `hint`, and optional `fix`; `actant-server` returns the typed JSON shape; TS and Python SDKs parse it into typed public errors; `actantdb` CLI now renders structured `error/detail/fix` output and maps high-risk subcommand failures onto `ActantError`. |
 | X5 | **Interactive 5-minute tutorial** | 🟢 | `docs/src/playground.md` embeds a dependency-free browser playground for capture -> authority review -> replay, and `docs/src/golden-quickstart.md` carries the one golden local quickstart. |
 | X6 | **CLI shell completion** | 🟢 | Hidden `actantdb completions <shell>` subcommand wired through `clap_complete::generate` in `crates/actant-cli/src/main.rs`. Supports bash/zsh/fish/elvish/powershell. |
-| X7 | **First-run telemetry opt-in (truthful)** | 🔴 | One prompt on first `actantdb` invocation: "share anonymous usage so we can fix what breaks?" with a clear opt-out path. Convex + Vercel do this. Don't be sneaky; the prompt itself is the trust-builder. |
+| X7 | **First-run telemetry opt-in (truthful)** | 🟢 | `actantdb` prompts once in interactive terminals, states that anonymous CLI usage/error telemetry excludes ledger contents, prompts, payloads, paths, and secrets, treats Enter/no as opt-out, skips non-interactive runs, and persists the choice in `~/.actantdb/config.json`. `ACTANTDB_TELEMETRY=yes/no/ask` supports explicit automation. |
 
-**Part A: 5 🟢 / 1 🚧 / 1 🔴.** X1, X2, X3, X5, and X6 now cover the first-create,
-first-open, doctor, interactive playground, and shell-completion path. X7 remains DX polish.
+**Part A: 7 🟢 / 0 🚧 / 0 🔴.** X1, X2, X3, X4, X5, X6, and X7 now cover the first-create,
+first-open, doctor, pretty-error, interactive playground, shell-completion, and telemetry-consent path.
 
 ---
 

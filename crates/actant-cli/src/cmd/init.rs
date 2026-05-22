@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use actant_templates::{RenderRequest, TemplateRegistry};
 
+use crate::cli_errors;
+
 /// Print the bundled-template list.
 pub fn list() {
     let templates = TemplateRegistry::list();
@@ -26,7 +28,7 @@ pub fn run(template: String, name: Option<String>, dir: Option<PathBuf>) -> anyh
 
     let req = RenderRequest::new(template.clone(), dir.clone(), project_name.clone());
     let out = TemplateRegistry::render(req)
-        .map_err(|e| anyhow::anyhow!("render template `{template}`: {e}"))?;
+        .map_err(|e| cli_errors::invalid_input(format!("render template `{template}`: {e}")))?;
 
     println!("Scaffolded `{template}` into {}", dir.display());
     println!("  ({} files written)", out.files_written.len());

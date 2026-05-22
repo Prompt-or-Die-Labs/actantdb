@@ -7,21 +7,28 @@ use comfy_table::Table;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::{Column, Row, TypeInfo};
 
+use crate::cli_errors;
+
 /// Run the SQL command.
 pub async fn run(db_path: &Path, statement: &str) -> anyhow::Result<()> {
     ensure_read_only(statement)?;
 
     // Open a strictly read-only connection — belt and braces against any
     // bug in `ensure_read_only`.
-    let opts = SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path.display()))?
+    let opts = SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path.display()))
+        .map_err(|e| cli_errors::storage("open read-only sqlite", e))?
         .read_only(true)
         .create_if_missing(false);
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect_with(opts)
-        .await?;
+        .await
+        .map_err(|e| cli_errors::storage("connect read-only sqlite", e))?;
 
-    let rows = sqlx::query(statement).fetch_all(&pool).await?;
+    let rows = sqlx::query(statement)
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| cli_errors::storage("run read-only query", e))?;
     if rows.is_empty() {
         println!("(no rows)");
         return Ok(());
@@ -82,14 +89,15 @@ pub fn ensure_read_only(stmt: &str) -> anyhow::Result<()> {
         .unwrap_or("")
         .to_ascii_uppercase();
     if first_word != "SELECT" && first_word != "WITH" {
-        anyhow::bail!(
+        return Err(cli_errors::invalid_input(format!(
             "only SELECT / WITH statements are allowed in `actantdb sql`; got `{first_word}`"
-        );
+        ))
+        .into());
     }
     // Refuse multiple statements.
     let body_no_strings = strip_string_literals(body);
     if body_no_strings.contains(';') {
-        anyhow::bail!("multiple statements are not allowed");
+        return Err(cli_errors::invalid_input("multiple statements are not allowed").into());
     }
     Ok(())
 }

@@ -8,12 +8,12 @@ use actant_subscribe::Predicate;
 use serde_json::json;
 use sqlx::Row;
 
-use crate::predicate_parse;
+use crate::{cli_errors, predicate_parse};
 
 /// Run the watch command.
 pub async fn run(db_path: &Path, expr: &str) -> anyhow::Result<()> {
-    let predicate: Predicate =
-        predicate_parse::parse(expr).map_err(|e| anyhow::anyhow!("parse predicate: {e}"))?;
+    let predicate: Predicate = predicate_parse::parse(expr)
+        .map_err(|e| cli_errors::invalid_input(format!("parse predicate: {e}")))?;
     eprintln!("watching: {predicate:?}");
 
     let s = Storage::open(StorageConfig::file(db_path)).await?;

@@ -3,12 +3,14 @@
 use std::path::PathBuf;
 
 use actant_command::Engine;
-use actant_core::{ActantError, ActorId, WorkspaceId};
+use actant_core::{ActorId, WorkspaceId};
 use actant_storage::{Storage, StorageConfig};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 
+mod cli_errors;
 mod cmd;
 mod predicate_parse;
+mod telemetry;
 
 use cmd::export_import::ExportFormat;
 
@@ -250,7 +252,7 @@ enum Command {
 #[tokio::main]
 async fn main() {
     if let Err(err) = run().await {
-        print_public_error(&err);
+        cli_errors::print_public_error(&err);
         std::process::exit(1);
     }
 }
@@ -263,6 +265,9 @@ async fn run() -> anyhow::Result<()> {
         )
         .init();
     let cli = Cli::parse();
+    if !matches!(&cli.command, Command::Completions { .. }) {
+        telemetry::prompt_if_needed()?;
+    }
     let db_path = cli.db.unwrap_or_else(default_db_path);
 
     match cli.command {
@@ -298,9 +303,9 @@ async fn run() -> anyhow::Result<()> {
                 sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
                     .execute(s.pool())
                     .await
-                    .map_err(|e| anyhow::anyhow!("wal_checkpoint: {e}"))?;
+                    .map_err(|e| cli_errors::storage("wal checkpoint", e))?;
                 drop(s);
-                std::fs::copy(&db_path, &to)?;
+                std::fs::copy(&db_path, &to).map_err(|e| cli_errors::storage("copy backup", e))?;
                 println!("backed up {} → {} (full)", db_path.display(), to.display());
             }
             BackupMode::Incremental => {
@@ -308,9 +313,11 @@ async fn run() -> anyhow::Result<()> {
                 // the manifest has no full yet — every subsequent run
                 // appends a WAL increment), update `<to>/manifest.json`.
                 use actant_storage::{backup_sha256_hex, EntryKind, Manifest, ManifestEntry};
-                std::fs::create_dir_all(&to)?;
+                std::fs::create_dir_all(&to)
+                    .map_err(|e| cli_errors::storage("create backup dir", e))?;
                 let manifest_path = to.join("manifest.json");
-                let mut manifest = Manifest::read_or_default(&manifest_path)?;
+                let mut manifest = Manifest::read_or_default(&manifest_path)
+                    .map_err(|e| cli_errors::storage("read backup manifest", e))?;
                 let s = Storage::open(StorageConfig::file(&db_path)).await?;
                 let now_ts = chrono_rfc3339();
 
@@ -321,14 +328,16 @@ async fn run() -> anyhow::Result<()> {
                     sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
                         .execute(s.pool())
                         .await
-                        .map_err(|e| anyhow::anyhow!("wal_checkpoint: {e}"))?;
+                        .map_err(|e| cli_errors::storage("wal checkpoint", e))?;
                     let lsn = s.last_lsn().await?;
                     let file_name = format!("full-{lsn:020}.sqlite");
                     let snapshot_path = to.join(&file_name);
                     drop(s);
-                    let bytes = std::fs::read(&db_path)?;
+                    let bytes = std::fs::read(&db_path)
+                        .map_err(|e| cli_errors::storage("read sqlite database", e))?;
                     let sha = backup_sha256_hex(&bytes);
-                    std::fs::write(&snapshot_path, &bytes)?;
+                    std::fs::write(&snapshot_path, &bytes)
+                        .map_err(|e| cli_errors::storage("write full backup", e))?;
                     manifest.entries.push(ManifestEntry {
                         kind: EntryKind::Full,
                         file: file_name,
@@ -338,7 +347,9 @@ async fn run() -> anyhow::Result<()> {
                         size_bytes: bytes.len() as u64,
                         taken_at: now_ts.clone(),
                     });
-                    manifest.write(&manifest_path)?;
+                    manifest
+                        .write(&manifest_path)
+                        .map_err(|e| cli_errors::storage("write backup manifest", e))?;
                     println!(
                         "backed up {} → {} (full @ lsn {})",
                         db_path.display(),
@@ -351,10 +362,11 @@ async fn run() -> anyhow::Result<()> {
                     let lsn = inc.lsn;
                     drop(s);
                     let bytes = serde_json::to_vec(&inc)
-                        .map_err(|e| anyhow::anyhow!("encode wal increment: {e}"))?;
+                        .map_err(|e| cli_errors::storage("encode wal increment", e))?;
                     let sha = backup_sha256_hex(&bytes);
                     let file_name = format!("wal-{lsn:020}.json");
-                    std::fs::write(to.join(&file_name), &bytes)?;
+                    std::fs::write(to.join(&file_name), &bytes)
+                        .map_err(|e| cli_errors::storage("write wal increment", e))?;
                     manifest.entries.push(ManifestEntry {
                         kind: EntryKind::Incremental,
                         file: file_name,
@@ -364,7 +376,9 @@ async fn run() -> anyhow::Result<()> {
                         size_bytes: bytes.len() as u64,
                         taken_at: now_ts.clone(),
                     });
-                    manifest.write(&manifest_path)?;
+                    manifest
+                        .write(&manifest_path)
+                        .map_err(|e| cli_errors::storage("write backup manifest", e))?;
                     println!(
                         "backed up {} → {} (incremental: {} → {})",
                         db_path.display(),
@@ -383,27 +397,37 @@ async fn run() -> anyhow::Result<()> {
                 );
             }
             if let Some(parent) = db_path.parent() {
-                std::fs::create_dir_all(parent)?;
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| cli_errors::storage("create database dir", e))?;
             }
 
             if from.is_dir() {
                 // Directory mode: read manifest + apply full + WAL increments.
                 use actant_storage::{EntryKind, Manifest, WalIncrement};
-                let manifest = Manifest::read_or_default(&from.join("manifest.json"))?;
+                let manifest = Manifest::read_or_default(&from.join("manifest.json"))
+                    .map_err(|e| cli_errors::storage("read backup manifest", e))?;
                 if manifest.entries.is_empty() {
-                    anyhow::bail!("no entries in {}/manifest.json", from.display());
+                    return Err(cli_errors::not_found(format!(
+                        "no entries in {}/manifest.json",
+                        from.display()
+                    ))
+                    .into());
                 }
                 let last_full = manifest
                     .entries
                     .iter()
                     .rposition(|e| matches!(e.kind, EntryKind::Full))
-                    .ok_or_else(|| anyhow::anyhow!("no full snapshot in manifest"))?;
+                    .ok_or_else(|| cli_errors::not_found("no full snapshot in manifest"))?;
                 let full_entry = &manifest.entries[last_full];
-                std::fs::copy(from.join(&full_entry.file), &db_path)?;
+                std::fs::copy(from.join(&full_entry.file), &db_path)
+                    .map_err(|e| cli_errors::storage("restore full backup", e))?;
                 let mut current_lsn = full_entry.lsn;
                 let stop = at_lsn.unwrap_or(u64::MAX);
                 if current_lsn > stop {
-                    anyhow::bail!("requested at_lsn={stop} is before the latest full snapshot lsn={current_lsn}");
+                    return Err(cli_errors::invalid_input(format!(
+                        "requested at_lsn={stop} is before the latest full snapshot lsn={current_lsn}"
+                    ))
+                    .into());
                 }
                 let s = Storage::open(StorageConfig::file(&db_path)).await?;
                 for entry in &manifest.entries[last_full + 1..] {
@@ -413,9 +437,11 @@ async fn run() -> anyhow::Result<()> {
                     if entry.lsn > stop {
                         break;
                     }
-                    let bytes = std::fs::read(from.join(&entry.file))?;
-                    let inc: WalIncrement = serde_json::from_slice(&bytes)
-                        .map_err(|e| anyhow::anyhow!("decode {}: {}", entry.file, e))?;
+                    let bytes = std::fs::read(from.join(&entry.file))
+                        .map_err(|e| cli_errors::storage("read wal increment", e))?;
+                    let inc: WalIncrement = serde_json::from_slice(&bytes).map_err(|e| {
+                        cli_errors::invalid_input(format!("decode {}: {e}", entry.file))
+                    })?;
                     s.apply_wal_frames(&inc).await?;
                     current_lsn = entry.lsn;
                 }
@@ -427,7 +453,8 @@ async fn run() -> anyhow::Result<()> {
                     current_lsn
                 );
             } else {
-                std::fs::copy(&from, &db_path)?;
+                std::fs::copy(&from, &db_path)
+                    .map_err(|e| cli_errors::storage("restore full backup", e))?;
                 let _s = Storage::open(StorageConfig::file(&db_path)).await?;
                 println!("restored {} ← {}", db_path.display(), from.display());
             }
@@ -451,10 +478,13 @@ async fn run() -> anyhow::Result<()> {
             let input_value: serde_json::Value = if input == "-" {
                 let mut buf = String::new();
                 use std::io::Read;
-                std::io::stdin().read_to_string(&mut buf)?;
-                serde_json::from_str(&buf)?
+                std::io::stdin()
+                    .read_to_string(&mut buf)
+                    .map_err(|e| cli_errors::invalid_input(format!("read stdin: {e}")))?;
+                serde_json::from_str(&buf).map_err(|e| cli_errors::invalid_input(e.to_string()))?
             } else {
-                serde_json::from_str(&input)?
+                serde_json::from_str(&input)
+                    .map_err(|e| cli_errors::invalid_input(e.to_string()))?
             };
             let ws = WorkspaceId::from_string(workspace);
             let actor = ActorId::from_string(actor);
@@ -574,20 +604,6 @@ async fn run() -> anyhow::Result<()> {
         }
     }
     Ok(())
-}
-
-fn print_public_error(err: &anyhow::Error) {
-    if let Some(e) = err.downcast_ref::<ActantError>() {
-        eprintln!("error: {}", e.code());
-        eprintln!("message: {e}");
-        eprintln!("hint: {}", e.hint());
-        if let Some(fix) = e.fix() {
-            eprintln!("fix: {fix}");
-        }
-        return;
-    }
-    eprintln!("error: cli_error");
-    eprintln!("message: {err}");
 }
 
 fn default_db_path() -> PathBuf {

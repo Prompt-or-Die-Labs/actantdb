@@ -6,23 +6,12 @@ import CloudKit
 /// records that arrived since the last sync cursor. Retries via a circuit
 /// breaker shape modeled on `actant-reliability::circuit` — failures bump a
 /// backoff counter; success resets it.
-///
-/// TODO(substrate, two-part):
-///   1. The outbox is currently held in memory. Durable `cloudkit_outbox`
-///      persistence lands in the Rust core (see SYNC_DESIGN.md +
-///      GAPS.md "cloudkit_outbox table").
-///   2. *Nothing currently calls `enqueue(_:)`*. The push path needs
-///      `Actant.dispatch(...)` (embedded mode) to call back into `sync` with
-///      the post-commit `EventRow`, OR the FFI bridge needs a "tail since"
-///      iterator the drainer pulls from. Until either lands, the push half
-///      of CloudKit sync is dormant — the pull half (subscribe + ingest
-///      inbound records) is the only live half.
 actor OutboxDrainer {
     private let actant: Actant
     private let database: CKDatabase
     private let options: SyncOptions
+    private let outbox: CloudKitOutboxStore
 
-    private var pendingOutbox: [EventRow] = []
     private var lastSynced: HLCCursor?
     private var lastInboundAt: Date?
     private var drainTask: Task<Void, Never>?
@@ -30,10 +19,16 @@ actor OutboxDrainer {
 
     private let zoneID = CKRecordZone.ID(zoneName: "ActantDBLedger", ownerName: CKCurrentUserDefaultName)
 
-    init(actant: Actant, database: CKDatabase, options: SyncOptions) {
+    init(
+        actant: Actant,
+        database: CKDatabase,
+        options: SyncOptions,
+        outbox: CloudKitOutboxStore
+    ) {
         self.actant = actant
         self.database = database
         self.options = options
+        self.outbox = outbox
     }
 
     func start() {
@@ -48,11 +43,11 @@ actor OutboxDrainer {
         drainTask = nil
     }
 
-    func enqueue(_ events: [EventRow]) {
-        pendingOutbox.append(contentsOf: events)
+    func enqueue(_ events: [EventRow]) async throws {
+        try await outbox.append(events)
     }
 
-    func queueDepth() -> Int { pendingOutbox.count }
+    func queueDepth() async -> Int { await outbox.count() }
     func lastSyncedHLC() -> HLCCursor? { lastSynced }
     func lastInbound() -> Date? { lastInboundAt }
 
@@ -81,8 +76,8 @@ actor OutboxDrainer {
     }
 
     private func pushOutboxBatch() async throws {
-        guard !pendingOutbox.isEmpty else { return }
-        let batch = pendingOutbox
+        let batch = await outbox.all()
+        guard !batch.isEmpty else { return }
         let records = batch.map { $0.toRecord(zoneID: zoneID) }
         let (results, _) = try await database.modifyRecords(
             saving: records,
@@ -96,7 +91,7 @@ actor OutboxDrainer {
         }
         if !succeeded.isEmpty {
             let succeededSet = Set(succeeded)
-            pendingOutbox.removeAll { succeededSet.contains($0.id) }
+            try await outbox.remove(ids: succeededSet)
         }
     }
 

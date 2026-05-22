@@ -5,6 +5,8 @@ use std::path::Path;
 use actant_storage::{Storage, StorageConfig};
 use sqlx::Row;
 
+use crate::cli_errors;
+
 /// Run the explain command.
 pub async fn run(db_path: &Path, event_id: &str) -> anyhow::Result<()> {
     let s = Storage::open(StorageConfig::file(db_path)).await?;
@@ -19,7 +21,7 @@ pub async fn run(db_path: &Path, event_id: &str) -> anyhow::Result<()> {
     .await?;
 
     let Some(r) = row else {
-        anyhow::bail!("event not found: {event_id}");
+        return Err(cli_errors::not_found(format!("event not found: {event_id}")).into());
     };
 
     let id: String = r.try_get("id")?;

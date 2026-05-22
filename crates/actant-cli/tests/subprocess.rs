@@ -13,6 +13,12 @@ fn tmp_db() -> std::path::PathBuf {
     p
 }
 
+fn tmp_file(prefix: &str) -> std::path::PathBuf {
+    let mut p = std::env::temp_dir();
+    p.push(format!("{prefix}-{}", ulid::Ulid::new()));
+    p
+}
+
 #[test]
 fn migrate_creates_database() {
     let db = tmp_db();
@@ -84,4 +90,59 @@ fn version_flag_works() {
         .expect("spawn actantdb --version");
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.starts_with("actantdb"), "got: {stdout}");
+}
+
+#[test]
+fn invalid_sql_uses_structured_error_shape() {
+    let db = tmp_db();
+    let out = Command::new(bin())
+        .args([
+            "--db",
+            db.to_str().unwrap(),
+            "sql",
+            "DROP TABLE agent_event",
+        ])
+        .output()
+        .expect("spawn actantdb sql");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+
+    assert!(!out.status.success());
+    assert!(stderr.contains("error: invalid_input"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("detail: invalid input:"),
+        "stderr: {stderr}"
+    );
+    assert!(stderr.contains("fix:"), "stderr: {stderr}");
+    assert!(!stderr.contains("message:"), "stderr: {stderr}");
+    let _ = std::fs::remove_file(&db);
+}
+
+#[test]
+fn bad_import_json_uses_structured_error_shape() {
+    let db = tmp_db();
+    let import = tmp_file("actantdb-import-bad");
+    std::fs::write(&import, "{not json}\n").unwrap();
+
+    let out = Command::new(bin())
+        .args([
+            "--db",
+            db.to_str().unwrap(),
+            "import",
+            "--from",
+            import.to_str().unwrap(),
+        ])
+        .output()
+        .expect("spawn actantdb import");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+
+    assert!(!out.status.success());
+    assert!(stderr.contains("error: invalid_input"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("detail: invalid input: line 1: bad JSON"),
+        "stderr: {stderr}"
+    );
+    assert!(stderr.contains("fix:"), "stderr: {stderr}");
+    assert!(!stderr.contains("message:"), "stderr: {stderr}");
+    let _ = std::fs::remove_file(&db);
+    let _ = std::fs::remove_file(&import);
 }

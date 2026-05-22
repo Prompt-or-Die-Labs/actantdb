@@ -10,6 +10,8 @@ use clap::ValueEnum;
 use serde_json::json;
 use sqlx::Row;
 
+use crate::cli_errors;
+
 /// Output format for `actantdb export`.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
 pub enum ExportFormat {
@@ -51,7 +53,9 @@ pub async fn run_export(
     };
 
     let mut sink: Box<dyn Write> = match &out {
-        Some(p) => Box::new(BufWriter::new(File::create(p)?)),
+        Some(p) => Box::new(BufWriter::new(
+            File::create(p).map_err(|e| cli_errors::storage("create export file", e))?,
+        )),
         None => Box::new(std::io::stdout()),
     };
 
@@ -59,12 +63,22 @@ pub async fn run_export(
         ExportFormat::Ndjson => {
             for r in &rows {
                 let obj = row_to_json(r);
-                writeln!(sink, "{}", serde_json::to_string(&obj)?)?;
+                writeln!(
+                    sink,
+                    "{}",
+                    serde_json::to_string(&obj)
+                        .map_err(|e| cli_errors::internal("encode exported row", e))?
+                )?;
             }
         }
         ExportFormat::Json => {
             let objs: Vec<_> = rows.iter().map(row_to_json).collect();
-            writeln!(sink, "{}", serde_json::to_string_pretty(&objs)?)?;
+            writeln!(
+                sink,
+                "{}",
+                serde_json::to_string_pretty(&objs)
+                    .map_err(|e| cli_errors::internal("encode export", e))?
+            )?;
         }
         ExportFormat::Csv => {
             writeln!(
@@ -106,7 +120,8 @@ pub async fn run_export(
             }
         }
     }
-    sink.flush()?;
+    sink.flush()
+        .map_err(|e| cli_errors::storage("flush export output", e))?;
     eprintln!("exported {} rows", rows.len());
     Ok(())
 }
@@ -153,20 +168,22 @@ fn row_to_json(r: &sqlx::sqlite::SqliteRow) -> serde_json::Value {
 /// Run the import command — NDJSON input only.
 pub async fn run_import(db_path: &Path, from: &Path) -> anyhow::Result<()> {
     let s = Storage::open(StorageConfig::file(db_path)).await?;
-    let file = File::open(from)?;
+    let file =
+        File::open(from).map_err(|e| cli_errors::not_found(format!("open import file: {e}")))?;
     let reader = BufReader::new(file);
 
     // Phase 1: read all records and collect run/session ids referenced.
     let mut records: Vec<serde_json::Value> = Vec::new();
     let mut run_ids: HashSet<String> = HashSet::new();
     for (lineno, line) in reader.lines().enumerate() {
-        let line = line?;
+        let line = line.map_err(|e| cli_errors::storage("read import file", e))?;
         let trimmed = line.trim();
         if trimmed.is_empty() {
             continue;
         }
-        let v: serde_json::Value = serde_json::from_str(trimmed)
-            .map_err(|e| anyhow::anyhow!("line {}: bad JSON: {e}", lineno + 1))?;
+        let v: serde_json::Value = serde_json::from_str(trimmed).map_err(|e| {
+            cli_errors::invalid_input(format!("line {}: bad JSON: {e}", lineno + 1))
+        })?;
         if let Some(id) = v
             .get("workflow_run_id")
             .and_then(|x| x.as_str())
@@ -185,10 +202,11 @@ pub async fn run_import(db_path: &Path, from: &Path) -> anyhow::Result<()> {
             .fetch_optional(s.pool())
             .await?;
         if row.is_some() {
-            anyhow::bail!(
+            return Err(cli_errors::conflict(format!(
                 "refusing to import: events already exist for session/run `{id}`. \
                  Migrate to a fresh DB or remove the existing rows first."
-            );
+            ))
+            .into());
         }
     }
 

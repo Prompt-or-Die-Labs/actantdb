@@ -11,10 +11,6 @@ import CloudKit
 /// CKRecord, HLC cursor, push-subscription resume) and the failure modes
 /// this implementation has to handle.
 ///
-/// Note: this is the v1 wiring — the OutboxDrainer holds an in-memory queue
-/// today because the Rust-side `cloudkit_outbox` table is still pending
-/// (see GAPS.md). Durable persistence of unflushed events lands when the
-/// substrate FFI surfaces an outbox-iterator method.
 public final class CloudKitSync: ActantSync {
     private let actant: Actant
     private let containerID: String
@@ -33,10 +29,17 @@ public final class CloudKitSync: ActantSync {
         let ckContainer = CKContainer(identifier: container)
         let database = ckContainer.privateCloudDatabase
         let subs = SubscriptionManager(database: database, containerID: container)
+        let outbox: CloudKitOutboxStore
+        do {
+            outbox = try CloudKitOutboxStore.defaultStore(containerID: container)
+        } catch {
+            throw SyncError.storage(error.localizedDescription)
+        }
         let drainer = OutboxDrainer(
             actant: actant,
             database: database,
-            options: options
+            options: options,
+            outbox: outbox
         )
 
         do {
